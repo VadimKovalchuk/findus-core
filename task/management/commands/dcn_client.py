@@ -1,11 +1,13 @@
 import logging
 import sys
 
+from time import sleep
+
 from django.core.management.base import BaseCommand, CommandError
 from client.client import Client
 from common.constants import CLIENT, BROKER, SECOND
 from common.logging_tools import setup_module_logger
-from task.models import Task
+from task.models import NetworkTask
 
 sys.path.append('./dcn')
 
@@ -26,7 +28,7 @@ class Command(BaseCommand):
         with Client(name='django', token='localhost') as client:
             client.connect()
             client.get_client_queues()
-            for task in Task.objects.all():
+            for task in NetworkTask.objects.all():
                 self.stdout.write(f'Got task: {task}')
                 dcn_task = task.compose_for_dcn()
                 dcn_task['client'] = client.broker.input_queue
@@ -35,4 +37,5 @@ class Command(BaseCommand):
                 result = next(client.broker.pulling_generator())
                 client.broker.set_task_done(result)
                 self.stdout.write(str(result))
+                # sleep(5)
         self.stdout.write(self.style.SUCCESS('done'))

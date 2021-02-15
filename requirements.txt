@@ -1,0 +1,15 @@
+asgiref==3.2.10
+attrs==19.3.0
+Django==3.1.2
+more-itertools==8.2.0
+packaging==20.3
+pika==1.1.0
+pluggy==0.13.1
+py==1.8.1
+pyparsing==2.4.7
+pytest==5.4.1
+pytz==2020.1
+pyzmq==19.0.0
+six==1.14.0
+sqlparse==0.4.1
+wcwidth==0.1.9
