@@ -38,4 +38,9 @@ class Command(BaseCommand):
                 client.broker.set_task_done(result)
                 self.stdout.write(str(result))
                 # sleep(5)
+            while True:
+                # Validate input queue and process one completed task
+                # Get list of ready to send tasks
+                # Send one task
+                pass
         self.stdout.write(self.style.SUCCESS('done'))

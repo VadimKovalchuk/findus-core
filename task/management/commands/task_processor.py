@@ -65,5 +65,10 @@ class Command(BaseCommand):
         for task in SystemTask.objects.all():
             self.stdout.write(f'Got task: {task.name}')
             TaskProcessor(task)
-
+        while True:
+            # Validate completed tasks and process one
+            # Validate parent tasks whether it has all child tasks completed and do post processing
+            # Get not-started tasks and init preprocessing for all
+            # Validate postponed tasks and init processing for all
+            pass
         self.stdout.write(self.style.SUCCESS('done'))
