@@ -14,6 +14,7 @@ class Task(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     name = models.CharField(max_length=100)
     created = models.DateTimeField(auto_now_add=True)
+    postponed = models.DateTimeField(null=True)
     started = models.DateTimeField(null=True)
     done = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices,

@@ -17,6 +17,13 @@ for module_name in modules:
 logger = logging.getLogger(__name__)
 
 
+def get_ready_to_send_tasks():
+    query_set = NetworkTask.objects.filter(started__iexact=None)
+    query_set = query_set.order_by('created')
+    tasks = [query_set.first()]
+    return tasks
+
+
 class Command(BaseCommand):
     help = 'Test'
 
@@ -41,6 +48,7 @@ class Command(BaseCommand):
             while True:
                 # Validate input queue and process one completed task
                 # Get list of ready to send tasks
+                tasks = get_ready_to_send_tasks()
                 # Send one task
                 pass
         self.stdout.write(self.style.SUCCESS('done'))
