@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from django.utils.timezone import now
 from time import sleep
 
 from task.commands import commands
@@ -44,7 +44,7 @@ class TaskProcessor:
         if child_tasks:
             for task_name in child_tasks:
                 create_task(task_name, self.task)
-        self.task.created = datetime.now()
+        self.task.started = now()
 
     def in_progress(self):
         pass

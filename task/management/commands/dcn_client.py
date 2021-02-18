@@ -1,7 +1,9 @@
 import logging
 import sys
 
+from django.utils.timezone import now
 from time import sleep
+from typing import List
 
 from django.core.management.base import BaseCommand, CommandError
 from client.client import Client
@@ -17,11 +19,11 @@ for module_name in modules:
 logger = logging.getLogger(__name__)
 
 
-def get_ready_to_send_tasks():
+def get_ready_to_send_tasks() -> List[NetworkTask]:
     query_set = NetworkTask.objects.filter(started__iexact=None)
     query_set = query_set.order_by('created')
     tasks = [query_set.first()]
-    return tasks
+    return [task for task in tasks if task]
 
 
 class Command(BaseCommand):
@@ -35,20 +37,26 @@ class Command(BaseCommand):
         with Client(name='django', token='localhost') as client:
             client.connect()
             client.get_client_queues()
-            for task in NetworkTask.objects.all():
-                self.stdout.write(f'Got task: {task}')
-                dcn_task = task.compose_for_dcn()
-                dcn_task['client'] = client.broker.input_queue
-                self.stdout.write(str(dcn_task))
-                client.broker.push(dcn_task)
-                result = next(client.broker.pulling_generator())
-                client.broker.set_task_done(result)
-                self.stdout.write(str(result))
-                # sleep(5)
+            client.broker._inactivity_timeout = 0.01
             while True:
-                # Validate input queue and process one completed task
-                # Get list of ready to send tasks
+                # Validate input queue and process completed tasks
+                for result in client.broker.pulling_generator():
+                    task_id = result.body['id']
+                    task: NetworkTask = NetworkTask.objects.get(pk=task_id)
+                    task.result = result.body['result']
+                    task.done = now()
+                    task.save()
+                    client.broker.set_task_done(result)
+
                 tasks = get_ready_to_send_tasks()
-                # Send one task
-                pass
+                for task in tasks:
+                    self.stdout.write(f'Got task: {task.name}')
+                    dcn_task = task.compose_for_dcn()
+                    dcn_task['client'] = client.broker.input_queue
+                    self.stdout.write(str(dcn_task))
+                    client.broker.push(dcn_task)
+                    task.started = now()
+                    task.save()
+                # self.stdout.write('Cycle done.')
+                # sleep(1)
         self.stdout.write(self.style.SUCCESS('done'))

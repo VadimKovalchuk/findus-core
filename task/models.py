@@ -41,7 +41,7 @@ class NetworkTask(Task):
     def compose_for_dcn(self):
         return {
             'id': self.id,
-            'client': {},
+            'client': '',
             'module': self.module,
             'function': self.function,
             'arguments': json.loads(self.arguments) if (self.arguments and '{' in self.arguments) else self.arguments
