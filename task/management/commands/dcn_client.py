@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_ready_to_send_tasks() -> List[NetworkTask]:
-    query_set = NetworkTask.objects.filter(started__iexact=None)
+    query_set = NetworkTask.objects.filter(started__isnull=True)
     query_set = query_set.order_by('created')
     tasks = [query_set.first()]
     return [task for task in tasks if task]
