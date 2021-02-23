@@ -1,10 +1,12 @@
 import logging
-from django.utils.timezone import now
 from time import sleep
 from typing import List, Union
 
-from task.commands import commands
 from django.core.management.base import BaseCommand, CommandError
+from django.utils.timezone import now
+
+from task.commands import commands
+from task.processing import *
 from task.models import NetworkTask, SystemTask
 
 logger = logging.getLogger(__name__)
@@ -22,8 +24,11 @@ def create_task(name: str, parent_task: SystemTask = None):
         task.priority = parent_task.priority
         task.arguments = parent_task.arguments
         task.parent_task = parent_task
-        task.save()
         print([parent_task.systemtask_set.all(), parent_task.networktask_set.all()])
+    on_start = command['run_on_start'](task) if command['run_on_start'] else True
+    if not on_start:
+        raise CommandError(f'Command {name} on_start flow failed')
+    task.save()
     print(f'Created: {task}')
 
 
@@ -56,29 +61,14 @@ def start_task(task: List[SystemTask]):
 
 
 def get_postponed_tasks() -> List[SystemTask]:
-    pass
+    query_set = SystemTask.objects.filter(started__isnull=False)
+    query_set = query_set.filter(done__isnull=True)
+    query_set = query_set.filter(postponed__isnull=False)
+    return query_set
 
 
 def trigger_postponed_task(task: List[SystemTask]):
     pass
-
-
-class TaskProcessor:
-
-    def __init__(self, task: SystemTask):
-        self.task = task
-        if not task.started and not task.done:
-            self.on_create()
-        elif task.done:
-            self.on_done()
-
-    def on_create(self):
-        child_tasks = commands[self.task.name]['child_tasks']
-        if child_tasks:
-            for task_name in child_tasks:
-                create_task(task_name, self.task)
-        self.task.started = now()
-        self.task.save()
 
 
 class Command(BaseCommand):
@@ -89,11 +79,6 @@ class Command(BaseCommand):
         # parser.add_argument('poll_ids', nargs='+', type=int)
 
     def handle(self, *args, **options):
-        self.stdout.write(f'Tasks: {len(SystemTask.objects.all())}')
-        for task in SystemTask.objects.all():
-            self.stdout.write(f'Got task: {task.name}')
-            TaskProcessor(task)
-        exit(0)
         while True:
             # Validate completed tasks and process all (once a second)
             done_tasks = get_done_network_tasks()
@@ -113,5 +98,7 @@ class Command(BaseCommand):
             postponed_tasks = get_postponed_tasks()
             for task in postponed_tasks:
                 trigger_postponed_task(task)
+            print('Cycle done')
+            sleep(1)
             # If no events occurred - idle for 5 seconds
         self.stdout.write(self.style.SUCCESS('done'))

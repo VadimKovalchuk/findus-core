@@ -13,9 +13,11 @@ from task.models import NetworkTask
 
 sys.path.append('./dcn')
 
-modules = [__name__, 'client.py', BROKER]
-for module_name in modules:
-    setup_module_logger(module_name, logging.DEBUG)
+modules = [(__name__, logging.DEBUG),
+           ('client.py', logging.DEBUG),
+           (BROKER, logging.INFO)]
+for module_name, level in modules:
+    setup_module_logger(module_name, level)
 logger = logging.getLogger(__name__)
 
 
@@ -39,24 +41,30 @@ class Command(BaseCommand):
             client.get_client_queues()
             client.broker._inactivity_timeout = 0.01
             while True:
+                idle = True
                 # Validate input queue and process completed tasks
                 for result in client.broker.pulling_generator():
                     task_id = result.body['id']
                     task: NetworkTask = NetworkTask.objects.get(pk=task_id)
+                    logger.info(f'Task {task.name} execution results received')
                     task.result = result.body['result']
                     task.done = now()
                     task.save()
                     client.broker.set_task_done(result)
-
+                    idle = False
+                # Shoot ready to send tasks
                 tasks = get_ready_to_send_tasks()
                 for task in tasks:
-                    self.stdout.write(f'Got task: {task.name}')
+                    self.stdout.write(f'Sending task: {task.name}')
                     dcn_task = task.compose_for_dcn()
                     dcn_task['client'] = client.broker.input_queue
                     self.stdout.write(str(dcn_task))
                     client.broker.push(dcn_task)
                     task.started = now()
                     task.save()
-                # self.stdout.write('Cycle done.')
-                # sleep(1)
-        self.stdout.write(self.style.SUCCESS('done'))
+                    idle = False
+                self.stdout.write('Cycle done.')
+                # If no events occurred - idle for 5 seconds
+                if idle:
+                    sleep(5)  # seconds
+        # self.stdout.write(self.style.SUCCESS('done'))
