@@ -6,7 +6,6 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils.timezone import now
 
 from task.commands import commands
-from task.processing import *
 from task.models import NetworkTask, SystemTask
 
 logger = logging.getLogger(__name__)
@@ -43,7 +42,15 @@ def search_tasks_with_completed_child(tasks: List[SystemTask]) -> List[SystemTas
 
 
 def finalize_task(task: Union[SystemTask, NetworkTask]):
-    pass
+    command = commands[task.name]
+    on_done = command['run_on_done'](task)
+    if not on_done:
+        raise CommandError(f'Command {task.name} on_done flow failed')
+    if isinstance(task, SystemTask) and not task.is_done():
+        return
+    if not task.done:
+        task.done = now()
+    task.processed = now()
 
 
 def get_new_tasks() -> List[SystemTask]:

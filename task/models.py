@@ -1,6 +1,9 @@
 import json
 
+from typing import List
+
 from django.db import models
+from django.utils.timezone import now
 
 
 class Task(models.Model):
@@ -43,11 +46,15 @@ class Task(models.Model):
 
 class SystemTask(Task):
 
-    def child_stats(self) -> dict:
-        children = []
-        result_stats = self._stats()
+    def get_children(self) -> List[Task]:
+        children = list()
         children.extend(self.systemtask_set.all())
         children.extend(self.networktask_set.all())
+        return children
+
+    def child_stats(self) -> dict:
+        result_stats = self._stats()
+        children = self.get_children()
         for task in children:
             if isinstance(task, SystemTask):
                 stats = task.child_stats()
@@ -58,6 +65,16 @@ class SystemTask(Task):
             for key in stats:
                 result_stats[key] += stats[key]
         return result_stats
+
+    def is_done(self) -> bool:
+        children = self.get_children()
+        lst_cmp = [task.processed for task in children]
+        if all(lst_cmp):
+            if not self.done:
+                self.done = now()
+            return True
+        else:
+            return False
 
 
 class NetworkTask(Task):

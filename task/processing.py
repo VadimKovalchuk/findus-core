@@ -1,3 +1,5 @@
+import json
+
 from task.models import Task
 from ticker.models import Stock
 
@@ -20,6 +22,6 @@ def append_fundamentals(task: Task):
 
 def process_ticker_list(task: Task):
     all_tickers = [stock.ticker for stock in Stock.objects.all()]
-    missing = [ticker for ticker in task.result if ticker not in all_tickers]
+    missing = [ticker for ticker in json.loads(task.result.replace('\'', '\"')) if ticker not in all_tickers]
     print(len(missing))
     return True

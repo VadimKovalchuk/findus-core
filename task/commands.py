@@ -1,7 +1,6 @@
 from copy import deepcopy
 
-from task.processing import append_daily_data, append_fundamentals,\
-    process_ticker_list
+from task.processing import *
 
 
 template = {
@@ -32,7 +31,7 @@ update_sp500_ticker_list = deepcopy(template)
 update_sp500_ticker_list['dcn_task'] = True
 update_sp500_ticker_list['module'] = 'findus-collector.tickers'
 update_sp500_ticker_list['function'] = 'get_sp500_ticker_list'
-update_sp500_ticker_list['run_on_done'] = process_ticker_list.__name__
+update_sp500_ticker_list['run_on_done'] = process_ticker_list
 
 
 update_sp400_ticker_list = deepcopy(update_sp500_ticker_list)
