@@ -7,6 +7,7 @@ from django.utils.timezone import now
 
 from task.commands import commands
 from task.models import NetworkTask, SystemTask
+from task.processing import get_function
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def create_task(name: str, parent_task: SystemTask = None):
         task.arguments = parent_task.arguments
         task.parent_task = parent_task
         print([parent_task.systemtask_set.all(), parent_task.networktask_set.all()])
-    on_start = command['run_on_start'](task) if command['run_on_start'] else True
+    on_start = get_function(command['run_on_start'])(task) if command['run_on_start'] else True
     if not on_start:
         raise CommandError(f'Command {name} on_start flow failed')
     task.save()
@@ -43,7 +44,7 @@ def search_tasks_with_completed_child(tasks: List[SystemTask]) -> List[SystemTas
 
 def finalize_task(task: Union[SystemTask, NetworkTask]):
     command = commands[task.name]
-    on_done = command['run_on_done'](task)
+    on_done = get_function(command['run_on_done'])(task)
     if not on_done:
         raise CommandError(f'Command {task.name} on_done flow failed')
     if isinstance(task, SystemTask) and not task.is_done():
