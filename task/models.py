@@ -72,6 +72,8 @@ class SystemTask(Task):
         if all(lst_cmp):
             if not self.done:
                 self.done = now()
+                self.save()
+            print(f'{self} is done')
             return True
         else:
             return False

@@ -1,7 +1,7 @@
 import json
 
 from task.models import Task
-from ticker.models import Stock
+from ticker.models import Ticker
 
 
 def get_function(name: str):
@@ -21,10 +21,10 @@ def append_fundamentals(task: Task):
 
 
 def process_ticker_list(task: Task):
-    all_tickers = [stock.ticker for stock in Stock.objects.all()]
+    all_tickers = [ticker.symbol for ticker in Ticker.objects.all()]
     missing = [ticker for ticker in json.loads(task.result) if ticker not in all_tickers]
     print(len(missing))
     for ticker_name in missing:
-        # Stock(ticker=ticker_name)
-        pass
+        ticker = Ticker(symbol=ticker_name)
+        ticker.save()
     return True

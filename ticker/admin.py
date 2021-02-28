@@ -1,6 +1,5 @@
 from django.contrib import admin
 
-from .models import Etf, Stock
+from .models import Ticker
 
-admin.site.register(Etf)
-admin.site.register(Stock)
+admin.site.register(Ticker)

@@ -44,7 +44,7 @@ def search_tasks_with_completed_child(tasks: List[SystemTask]) -> List[SystemTas
 
 def finalize_task(task: Union[SystemTask, NetworkTask]):
     command = commands[task.name]
-    on_done = get_function(command['run_on_done'])(task)
+    on_done = get_function(command['run_on_done'])(task)  if command['run_on_done'] else True
     if not on_done:
         raise CommandError(f'Command {task.name} on_done flow failed')
     if isinstance(task, SystemTask) and not task.is_done():
@@ -52,6 +52,10 @@ def finalize_task(task: Union[SystemTask, NetworkTask]):
     if not task.done:
         task.done = now()
     task.processed = now()
+    task.save()
+    print(f'{task} processing completed')
+    if task.parent_task and task.parent_task.is_done():
+        finalize_task(task.parent_task)
 
 
 def get_new_tasks() -> List[SystemTask]:
