@@ -5,6 +5,7 @@ more-itertools==8.2.0
 packaging==20.3
 pika==1.1.0
 pluggy==0.13.1
+psycopg2-binary==2.8.6
 py==1.8.1
 pyparsing==2.4.7
 pytest==5.4.1

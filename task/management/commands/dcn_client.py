@@ -1,20 +1,23 @@
 import logging
 import sys
 
+from pathlib import Path
+
 from django.utils.timezone import now
 from time import sleep
 from typing import List
 
 from django.core.management.base import BaseCommand, CommandError
+
+
 from client.client import Client
 from common.constants import CLIENT, BROKER, SECOND
 from common.logging_tools import setup_module_logger
 from task.models import NetworkTask
-
-sys.path.append('./dcn')
+from task.management.commands.task_processor import wait_for_db_active
 
 modules = [(__name__, logging.DEBUG),
-           ('client.py', logging.DEBUG),
+           (CLIENT, logging.DEBUG),
            (BROKER, logging.INFO)]
 for module_name, level in modules:
     setup_module_logger(module_name, level)
@@ -36,7 +39,8 @@ class Command(BaseCommand):
         # parser.add_argument('poll_ids', nargs='+', type=int)
 
     def handle(self, *args, **options):
-        with Client(name='django', token='localhost') as client:
+        wait_for_db_active()
+        with Client(name='django', dsp_ip='dispatcher', token='docker') as client:
             client.connect()
             client.get_client_queues()
             client.broker._inactivity_timeout = 0.01
@@ -63,8 +67,8 @@ class Command(BaseCommand):
                     task.started = now()
                     task.save()
                     idle = False
-                self.stdout.write('Cycle done.')
+                logger.debug('Cycle done.')
                 # If no events occurred - idle for 5 seconds
                 if idle:
-                    sleep(5)  # seconds
+                    sleep(1)  # seconds
         # self.stdout.write(self.style.SUCCESS('done'))

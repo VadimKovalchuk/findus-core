@@ -136,3 +136,5 @@ dmypy.json
 /webapp/settings.cfg
 /client/
 /common/
+/requirements-dcn.txt
+/log/
