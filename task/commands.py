@@ -13,7 +13,8 @@ template = {
 
 update_all = deepcopy(template)
 update_all['child_tasks'] = [
-    'update_ticker_list',
+    'update_ticker_list',  # In case if new ticker found
+                           # call get_full_ticker_data
     # 'update_all_daily_parameters',
     # 'update_all_fundamental_parameters'
 ]
@@ -55,6 +56,20 @@ update_all_fundamental_parameters = deepcopy(template)
 update_all_fundamental_parameters['run_on_done'] = append_fundamentals.__name__
 
 
+get_full_ticker_data = deepcopy(template)
+get_full_ticker_data['child_tasks'] = [
+    'get_full_price_history',
+    'get_full_dividend_history',
+]
+
+
+get_full_price_history = deepcopy(template)
+get_full_price_history['run_on_done'] = ''
+
+
+get_full_dividend_history = deepcopy(template)
+get_full_dividend_history['run_on_done'] = ''
+
 commands = {
     'update_all': update_all,
     'update_ticker_list': update_ticker_list,
@@ -63,4 +78,7 @@ commands = {
     'update_sp600_ticker_list': update_sp600_ticker_list,
     # 'update_all_daily_parameters': update_all_daily_parameters,
     # 'update_all_fundamental_parameters': update_all_fundamental_parameters
+    'get_full_ticker_data': get_full_ticker_data,
+    'get_full_price_history': get_full_price_history,
+    'get_full_dividend_history': get_full_dividend_history,
 }
