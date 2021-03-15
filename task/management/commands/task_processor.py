@@ -1,56 +1,33 @@
 import logging
-from datetime import datetime
 from time import sleep
 
-from task.commands import commands
 from django.core.management.base import BaseCommand, CommandError
-from task.models import NetworkTask, SystemTask
+from django.db import connection
+from django.db.utils import OperationalError
+
+from task.processing import (
+    get_done_network_tasks,
+    finalize_task,
+    get_new_tasks,
+    start_task,
+    get_postponed_tasks,
+    trigger_postponed_task
+)
 
 logger = logging.getLogger(__name__)
 
 
-def create_task(name: str, parent_task: SystemTask = None):
-    command = commands[name]
-    if command['dcn_task']:
-        task: NetworkTask = NetworkTask.objects.create(name=name)
-        task.module = command['module']
-        task.function = command['function']
-    else:
-        task = SystemTask.objects.create(name=name)
-    if parent_task:
-        task.priority = parent_task.priority
-        task.arguments = parent_task.arguments
-        task.save()
-        if isinstance(task, SystemTask):
-            parent_task.child_tasks.add(task)
-        else:
-            parent_task.network_tasks.add(task)
-        parent_task.save()
-        print(parent_task.child_tasks.all(), parent_task.network_tasks.all())
-    print(task)
-
-
-class TaskProcessor:
-
-    def __init__(self, task: SystemTask):
-        self.task = task
-        if not task.started and not task.done:
-            self.on_create()
-        elif task.done:
-            self.on_done()
-
-    def on_create(self):
-        child_tasks = commands[self.task.name]['child_tasks']
-        if child_tasks:
-            for task_name in child_tasks:
-                create_task(task_name, self.task)
-        self.task.created = datetime.now()
-
-    def in_progress(self):
-        pass
-
-    def on_done(self):
-        pass
+def wait_for_db_active():
+    logger.info('Waiting for database')
+    db_conn = None
+    while not db_conn:
+        try:
+            connection.ensure_connection()
+            db_conn = True
+        except OperationalError:
+            logger.info('Database unavailable, waiting 1 second...')
+            sleep(1)
+    logger.info('Database connection reached')
 
 
 class Command(BaseCommand):
@@ -61,9 +38,28 @@ class Command(BaseCommand):
         # parser.add_argument('poll_ids', nargs='+', type=int)
 
     def handle(self, *args, **options):
-        self.stdout.write(f'Tasks: {len(SystemTask.objects.all())}')
-        for task in SystemTask.objects.all():
-            self.stdout.write(f'Got task: {task.name}')
-            TaskProcessor(task)
-
+        wait_for_db_active()
+        while True:
+            # Validate completed tasks and process all (once a second)
+            done_tasks = get_done_network_tasks()
+            # Once a minute do search for tasks with all completed children
+            # done_tasks.extend(search_tasks_with_completed_child())
+            # Collect list of tasks that has completed children
+            # Validate parent tasks whether they has all child tasks completed and do post processing
+            # tasks_may_be_done = {finalize_task(task) for task in done_tasks}
+            # At this stage done from child task each time task is done
+            for task in done_tasks:
+                finalize_task(task)
+            # Get not-started tasks and init preprocessing for all
+            new_tasks = get_new_tasks()
+            for task in new_tasks:
+                start_task(task)
+            # Validate postponed tasks and init processing for all
+            postponed_tasks = get_postponed_tasks()
+            for task in postponed_tasks:
+                start_task(task)
+            logger.debug('Cycle done')
+            # If no events occurred - idle for 10 seconds
+            if not any((done_tasks, new_tasks, postponed_tasks)):
+                sleep(10)
         self.stdout.write(self.style.SUCCESS('done'))

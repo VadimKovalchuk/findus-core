@@ -1,0 +1,53 @@
+version: "3.8"
+services:
+  database:
+    image: "postgres:13"
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - /home/vadym/db:/var/lib/postgresql/data
+  adminer:
+    image: "adminer"
+    restart: always
+    ports:
+      - 8080:8080
+  rabbitmq:
+    image: "rabbitmq:3.8.4-management"
+    restart: always
+    deploy:
+      mode: global
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  dispatcher:
+    image: "dcn:latest"
+    deploy:
+      mode: global
+    ports:
+      - "9999:9999"
+    command: ["python", "dispatcher/service.py", "rabbitmq"]
+    volumes:
+      - ./log/dispatcher/:/src/log/dispatcher/
+  agent:
+    image: "dcn:latest"
+    command: ["python", "agent/service.py", "dispatcher", "docker"]
+    volumes:
+      - ./log/agent/:/src/log/agent/
+    deploy:
+      mode: replicated
+      replicas: 1
+  dcn_client:
+    image: "findus:latest"
+    command: ["python", "manage.py", "dcn_client"]
+    volumes:
+      - ./log/client/:/src/log/django/
+    deploy:
+      mode: global
+  task_processor:
+    image: "findus:latest"
+    command: ["python", "manage.py", "task_processor"]
+    volumes:
+      - ./log/task_processor/:/src/log/django/
+    deploy:
+      mode: global
