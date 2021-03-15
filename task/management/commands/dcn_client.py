@@ -68,7 +68,7 @@ class Command(BaseCommand):
                     task.save()
                     idle = False
                 logger.debug('Cycle done.')
-                # If no events occurred - idle for 5 seconds
+                # If no events occurred - idle for 10 seconds
                 if idle:
-                    sleep(1)  # seconds
+                    sleep(10)  # seconds
         # self.stdout.write(self.style.SUCCESS('done'))

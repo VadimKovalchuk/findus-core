@@ -57,9 +57,9 @@ class Command(BaseCommand):
             # Validate postponed tasks and init processing for all
             postponed_tasks = get_postponed_tasks()
             for task in postponed_tasks:
-                trigger_postponed_task(task)
+                start_task(task)
             logger.debug('Cycle done')
-            # If no events occurred - idle for 1 seconds
+            # If no events occurred - idle for 10 seconds
             if not any((done_tasks, new_tasks, postponed_tasks)):
-                sleep(1)
+                sleep(10)
         self.stdout.write(self.style.SUCCESS('done'))

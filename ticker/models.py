@@ -14,3 +14,21 @@ class AbstractTicker(models.Model):
 
 class Ticker(AbstractTicker):
     company = models.CharField(max_length=100)
+
+
+class Price(models.Model):
+    id = models.AutoField(primary_key=True, help_text='Internal ID')
+    ticker = models.ForeignKey(Ticker, on_delete=models.CASCADE)
+    date = models.DateTimeField()
+    open = models.FloatField(null=True)
+    high = models.FloatField(null=True)
+    low = models.FloatField(null=True)
+    close = models.FloatField(null=True)
+    volume = models.FloatField(null=True)
+
+
+class Dividend(models.Model):
+    id = models.AutoField(primary_key=True, help_text='Internal ID')
+    ticker = models.ForeignKey(Ticker, on_delete=models.CASCADE)
+    date = models.DateTimeField()
+    size = models.FloatField()
