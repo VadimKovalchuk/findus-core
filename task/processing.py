@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 
@@ -17,6 +18,7 @@ def get_function(name: str):
     functions = {
         append_daily_data.__name__: append_daily_data,
         convert_args_for_dcn.__name__: convert_args_for_dcn,
+        daily_collection_start_date.__name__: daily_collection_start_date,
         new_tickers_processing.__name__: new_tickers_processing,
         process_ticker_list.__name__: process_ticker_list
     }
@@ -107,11 +109,17 @@ def append_daily_data(task: Task):
     prices = history.get('prices', [])
     for price_list in prices:
         date, _open, high, low, close, volume = price_list
-        Price.objects.create(ticker=ticker, date=date, open=_open, high=high, low=low, close=close, volume=volume)
+        if len(ticker.price_set.filter(date=date)):
+            logger.debug(f'{ticker_name} price for {date} already exists')
+        else:
+            Price.objects.create(ticker=ticker, date=date, open=_open, high=high, low=low, close=close, volume=volume)
     dividends = history.get('dividends', [])
     for dividend in dividends:
         date, size = dividend
-        Dividend.objects.create(ticker=ticker, date=date, size=size)
+        if len(ticker.dividend_set.filter(date=date)):
+            logger.debug(f'{ticker_name} dividend for {date} already exists')
+        else:
+            Dividend.objects.create(ticker=ticker, date=date, size=size)
     return True
 
 
@@ -152,4 +160,17 @@ def new_tickers_processing(task: SystemTask):
     for tkr in tickers:
         create_task(name='get_full_ticker_data', parent_task=task, own_args=tkr)  # , postpone=postpone)
         postpone += 1  # seconds
+    return True
+
+
+def daily_collection_start_date(task: SystemTask):
+    arguments = json.loads(task.arguments)
+    symbol = arguments['ticker']
+    ticker = Ticker.objects.get(symbol=symbol)
+    latest_price = ticker.price_set.latest('date')
+    latest_date: datetime.datetime = latest_price.date
+    logger.debug(f'Latest price date for {symbol}: {latest_date}')
+    arguments['start'] = f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
+    task.arguments = json.dumps(arguments)
+    task.save()
     return True

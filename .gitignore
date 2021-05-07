@@ -138,3 +138,4 @@ dmypy.json
 /requirements-dcn.txt
 /log/
 /settings.yaml
+/debug/

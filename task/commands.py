@@ -41,16 +41,18 @@ update_sp600_ticker_list = deepcopy(update_sp500_ticker_list)
 update_sp600_ticker_list['function'] = 'get_sp600_ticker_list'
 
 
-update_all_daily_parameters = deepcopy(template)
-update_all_daily_parameters['dcn_task'] = True
-update_all_daily_parameters['module'] = 'findus-edge.yahoo'
-update_all_daily_parameters['function'] = 'ticker_history'
-update_all_daily_parameters['arguments'] = '{"ticker": "MSFT", "start": "2021-01-01"}'
-update_all_daily_parameters['run_on_done'] = 'append_daily_data'
+append_all_daily_parameters = deepcopy(template)
+append_all_daily_parameters['run_on_start'] = 'daily_ticker_schedule'
+
+
+append_ticker_daily = deepcopy(template)
+append_ticker_daily['child_tasks'] = [
+    'append_daily_history',
+    # 'append_daily_fundamental',
+]
 
 
 update_all_fundamental_parameters = deepcopy(template)
-# update_all_fundamental_parameters['dcn_task'] = True
 update_all_fundamental_parameters['run_on_done'] = 'append_fundamentals'
 
 
@@ -68,15 +70,25 @@ get_full_daily_history['run_on_start'] = 'convert_args_for_dcn'
 get_full_daily_history['run_on_done'] = 'append_daily_data'
 
 
+append_daily_history = deepcopy(template)
+append_daily_history['dcn_task'] = True
+append_daily_history['module'] = 'findus-edge.yahoo'
+append_daily_history['function'] = 'ticker_history'
+append_daily_history['run_on_start'] = 'daily_collection_start_date'
+append_daily_history['run_on_done'] = 'append_daily_data'
+
+
 commands = {
     'update_all': update_all,
     'update_ticker_list': update_ticker_list,
     'update_sp500_ticker_list': update_sp500_ticker_list,
     'update_sp400_ticker_list': update_sp400_ticker_list,
     'update_sp600_ticker_list': update_sp600_ticker_list,
-    # 'update_all_daily_parameters': update_all_daily_parameters,
+    'append_all_daily_parameters': append_all_daily_parameters,
+    'append_ticker_daily': append_ticker_daily,
     # 'update_all_fundamental_parameters': update_all_fundamental_parameters
     'get_full_ticker_data': get_full_ticker_data,
     'get_full_daily_history': get_full_daily_history,
     # 'get_full_quarterly_history': get_full_quarterly_history,
+    'append_daily_history': append_daily_history,
 }
