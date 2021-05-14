@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import traceback
 
 from datetime import timedelta
 from typing import List, Union
@@ -15,6 +16,7 @@ from ticker.models import Ticker, Price, Dividend
 logger = logging.getLogger('task_processor')
 logger.debug(log_path)
 
+
 def get_function(name: str):
     functions = {
         append_daily_data.__name__: append_daily_data,
@@ -24,7 +26,7 @@ def get_function(name: str):
         new_tickers_processing.__name__: new_tickers_processing,
         process_ticker_list.__name__: process_ticker_list
     }
-    return functions[name]
+    return functions.get(name)
 
 
 def create_task(name: str, parent_task: SystemTask = None, own_args: str = '', postpone: int = 0):
@@ -39,15 +41,22 @@ def create_task(name: str, parent_task: SystemTask = None, own_args: str = '', p
     if own_args:
         task.arguments = own_args
     if parent_task:
+        logger.debug(f'Task is created by parent: {parent_task.name} ({parent_task.id})')
         task.parent_task = parent_task
         task.priority = parent_task.priority
         if not own_args and parent_task.arguments:
             task.arguments = parent_task.arguments
-        logger.debug([parent_task.systemtask_set.all(), parent_task.networktask_set.all()])
-    on_start = get_function(command['run_on_start'])(task) if command['run_on_start'] else True
-    if not on_start:
-        task.delete()
-        raise SystemError(f'Command {name} "on_start" flow failed')
+        # logger.debug([parent_task.systemtask_set.all(), parent_task.networktask_set.all()])
+    if command['run_on_start']:
+        on_start_function = get_function(command['run_on_start'])
+        try:
+            on_start_result = on_start_function(task)
+        except Exception as err:
+            logger.error(f'{err.args}\n{traceback.format_exc()}')
+            on_start_result = False
+        if not on_start_result:
+            task.delete()
+            raise SystemError(f'Command {name} "on_start" flow failed')
     if postpone:
         task.postponed = now() + timedelta(seconds=postpone)
     task.save()
@@ -182,12 +191,13 @@ def daily_collection_start_date(task: SystemTask):
     arguments = json.loads(task.arguments)
     symbol = arguments['ticker']
     ticker = Ticker.objects.get(symbol=symbol)
-    latest_price = ticker.price_set.latest('date')
-    latest_date: datetime.datetime = latest_price.date
-    logger.debug(f'Latest price date for {symbol}: {latest_date}')
-    arguments['start'] = f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
-    task.arguments = json.dumps(arguments)
-    task.save()
+    if ticker.price_set.count():
+        latest_price = ticker.price_set.latest('date')
+        latest_date: datetime.datetime = latest_price.date
+        logger.debug(f'Latest price date for {symbol}: {latest_date}')
+        arguments['start'] = f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
+        task.arguments = json.dumps(arguments)
+        task.save()
     return True
 
 

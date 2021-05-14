@@ -63,4 +63,4 @@ class Command(BaseCommand):
             if not any((done_tasks, new_tasks)):  # , postponed_tasks
                 logger.debug('Idle.')
                 sleep(10)
-        self.stdout.write(self.style.SUCCESS('done'))
+        # self.stdout.write(self.style.SUCCESS('done'))

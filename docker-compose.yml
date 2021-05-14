@@ -36,7 +36,7 @@ services:
       - ./log/agent/:/src/log/agent/
     deploy:
       mode: replicated
-      replicas: 1
+      replicas: 10
   dcn_client:
     image: "findus:latest"
     command: ["python", "manage.py", "dcn_client"]
