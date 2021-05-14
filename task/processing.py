@@ -7,18 +7,20 @@ from typing import List, Union
 
 from django.utils.timezone import now
 
+from settings import log_path
 from task.commands import commands
 from task.models import Task, SystemTask, NetworkTask
 from ticker.models import Ticker, Price, Dividend
 
-logger = logging.getLogger(__name__)
-
+logger = logging.getLogger('task_processor')
+logger.debug(log_path)
 
 def get_function(name: str):
     functions = {
         append_daily_data.__name__: append_daily_data,
-        convert_args_for_dcn.__name__: convert_args_for_dcn,
+        # convert_args_for_dcn.__name__: convert_args_for_dcn,
         daily_collection_start_date.__name__: daily_collection_start_date,
+        daily_tickers_schedule.__name__: daily_tickers_schedule,
         new_tickers_processing.__name__: new_tickers_processing,
         process_ticker_list.__name__: process_ticker_list
     }
@@ -26,6 +28,7 @@ def get_function(name: str):
 
 
 def create_task(name: str, parent_task: SystemTask = None, own_args: str = '', postpone: int = 0):
+    logger.debug(f'Creating task: {name}')
     command = commands[name]
     if command['dcn_task']:
         task: NetworkTask = NetworkTask.objects.create(name=name)
@@ -62,9 +65,12 @@ def search_tasks_with_completed_child(tasks: List[SystemTask]) -> List[SystemTas
 
 
 def finalize_task(task: Union[SystemTask, NetworkTask]):
+    logger.info(f'Finalizing task "{task.name}"({task.id})')
     command = commands[task.name]
     on_done = get_function(command['run_on_done'])(task) if command['run_on_done'] else True
     if not on_done:
+        task.done = now()
+        task.save()
         raise SystemError(f'Command {task.name} on_done flow failed')
     if isinstance(task, SystemTask) and not task.is_done():
         return
@@ -83,8 +89,9 @@ def get_new_tasks() -> List[SystemTask]:
     return query_set
 
 
-def start_task(task: List[SystemTask]):
+def start_task(task: SystemTask):
     child_tasks = commands[task.name]['child_tasks']
+    logger.debug(f'Task "{task.name}" has {len(child_tasks)} child tasks')
     if child_tasks:
         for task_name in child_tasks:
             create_task(task_name, task)
@@ -102,7 +109,14 @@ def trigger_postponed_task(task: List[SystemTask]):
 
 
 def append_daily_data(task: Task):
-    ticker_name = json.loads(task.arguments)['ticker']
+    try:
+        ticker_name = json.loads(task.arguments)['ticker']
+    except TypeError:
+        logger.error(f'Failed to load JSON:\n{task.arguments}')
+        return False
+    except KeyError:
+        logger.error(f'"Ticker key is missing in task arguments when expected"')
+        return False
     logger.info(f'Processing prices and dividends for {ticker_name}')
     ticker = Ticker.objects.get(symbol=ticker_name)
     history = json.loads(task.result)
@@ -142,11 +156,11 @@ def process_ticker_list(task: Task):
     return True
 
 
-def convert_args_for_dcn(task: NetworkTask):
-    str_args = task.arguments
-    task.arguments = json.dumps({'ticker': str_args})
-    task.save()
-    return True
+# def convert_args_for_dcn(task: NetworkTask):
+#     str_args = task.arguments
+#     task.arguments = json.dumps({'ticker': str_args})
+#     task.save()
+#     return True
 
 
 def new_tickers_processing(task: SystemTask):
@@ -158,7 +172,8 @@ def new_tickers_processing(task: SystemTask):
     task.save()
     postpone = 0
     for tkr in tickers:
-        create_task(name='get_full_ticker_data', parent_task=task, own_args=tkr)  # , postpone=postpone)
+        task_args = json.dumps({'ticker': tkr})
+        create_task(name='get_full_ticker_data', parent_task=task, own_args=task_args)  # , postpone=postpone)
         postpone += 1  # seconds
     return True
 
@@ -173,4 +188,12 @@ def daily_collection_start_date(task: SystemTask):
     arguments['start'] = f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
     task.arguments = json.dumps(arguments)
     task.save()
+    return True
+
+
+def daily_tickers_schedule(task: SystemTask):
+    tickers: List[Ticker] = Ticker.objects.all()
+    for ticker in tickers:
+        task_args = json.dumps({'ticker': ticker.symbol})
+        create_task(name='append_daily_ticker_data', parent_task=task, own_args=task_args)  # , postpone=postpone)
     return True
