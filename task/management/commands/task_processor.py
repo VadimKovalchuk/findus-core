@@ -53,13 +53,14 @@ class Command(BaseCommand):
             # Get not-started tasks and init preprocessing for all
             new_tasks = get_new_tasks()
             for task in new_tasks:
+                logger.debug(f'Starting task "{task.name}" processing')
                 start_task(task)
             # Validate postponed tasks and init processing for all
             postponed_tasks = get_postponed_tasks()
             for task in postponed_tasks:
                 start_task(task)
-            logger.debug('Cycle done')
             # If no events occurred - idle for 10 seconds
-            if not any((done_tasks, new_tasks, postponed_tasks)):
+            if not any((done_tasks, new_tasks)):  # , postponed_tasks
+                logger.debug('Idle.')
                 sleep(10)
-        self.stdout.write(self.style.SUCCESS('done'))
+        # self.stdout.write(self.style.SUCCESS('done'))
