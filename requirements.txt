@@ -1,6 +1,8 @@
 asgiref==3.2.10
 attrs==19.3.0
 Django==3.1.2
+docker==5.0.0
+docker-compose==1.29.2
 more-itertools==8.2.0
 packaging==20.3
 pika==1.1.0
