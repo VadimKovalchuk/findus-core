@@ -1,0 +1,47 @@
+- name: Pull Python 3.8 image
+  community.docker.docker_image:
+    name: python:3.8
+    source: pull
+    pull:
+      platform: amd64
+
+- name: Pull Postgress DB image
+  community.docker.docker_image:
+    name: postgres:13
+    source: pull
+    pull:
+      platform: amd64
+
+- name: Pull Adminer image
+  community.docker.docker_image:
+    name: adminer
+    source: pull
+    pull:
+      platform: amd64
+
+- name: Pull RabbitMQ image
+  community.docker.docker_image:
+    name: rabbitmq:3.8.4-management
+    source: pull
+    pull:
+      platform: amd64
+
+- name: Build DCN image
+  community.docker.docker_image:
+    name: dcn
+    build:
+      path: ~/findus/dcn/
+    source: build
+  vars:
+    ansible_python_interpreter: ~/findus/venv/dcn/bin/python3
+  tags: build
+
+- name: Build Findus image
+  community.docker.docker_image:
+    name: findus
+    build:
+      path: ~/findus/core/
+    source: build
+  vars:
+    ansible_python_interpreter: ~/findus/venv/core/bin/python3
+  tags: build

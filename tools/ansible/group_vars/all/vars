@@ -1,0 +1,6 @@
+---
+user: scorcher
+
+core_branch: develop
+edge_branch: main
+dcn_branch: develop

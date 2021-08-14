@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+GniloeAloe# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -139,3 +139,4 @@ dmypy.json
 /log/
 /settings.yaml
 /debug/
+/tools/ansible/vault_pass
