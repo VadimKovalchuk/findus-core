@@ -1,0 +1,10 @@
+---
+- name: Deploy development environment
+  hosts: all
+  vars_files:
+      - group_vars/all/vault
+      - group_vars/all/vars
+  roles:
+    - docker
+    - repositories
+    - images
