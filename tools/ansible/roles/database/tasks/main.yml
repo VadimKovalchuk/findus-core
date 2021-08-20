@@ -1,0 +1,4 @@
+- name: Creating config file for Django settings
+  template:
+    src: database.env
+    dest: '~/findus/core/database.env'

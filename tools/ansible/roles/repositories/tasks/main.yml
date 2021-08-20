@@ -1,36 +1,36 @@
 - name: Create Findus project folder
   ansible.builtin.file:
-    path: ~/findus
+    path: '{{ project_path }}'
     state: directory
     mode: '0764'
 
 - name: Clone DCN repository
   ansible.builtin.git:
     repo: https://github.com/VadimKovalchuk/DCN.git
-    dest: ~/findus/dcn
-    version: develop
+    dest: '{{ project_path }}/dcn'
+    version: '{{ dcn_branch }}'
 
 - name: Clone findus-core repository
   ansible.builtin.git:
     repo: https://github.com/VadimKovalchuk/findus-core.git
-    dest: ~/findus/core
-    version: develop
+    dest: '{{ core_path }}'
+    version: '{{ core_branch }}'
 
 - name: Clone findus-edge repository
   ansible.builtin.git:
     repo: https://github.com/VadimKovalchuk/findus-edge.git
-    dest: ~/findus/edge
-    version: main
+    dest: '{{ project_path }}/edge'
+    version: '{{ edge_branch }}'
 
 - name: Initiate virtualenv for findus-edge
   pip:
-    virtualenv: ~/findus/venv/edge
+    virtualenv: '{{ general_venv }}/edge'
     virtualenv_command: python3 -m venv
     requirements: ~/findus/edge/requirements.txt
 
 - name: Initiate virtualenv for DCN
   pip:
-    virtualenv: ~/findus/venv/dcn
+    virtualenv: '{{ general_venv }}/dcn'
     virtualenv_command: python3 -m venv
     requirements: ~/findus/dcn/requirements.txt
 
@@ -38,7 +38,7 @@
   pip:
     virtualenv: ~/findus/venv/core
     virtualenv_command: python3 -m venv
-    requirements: ~/findus/core/requirements.txt
+    requirements: '{{ core_path }}/requirements.txt'
 
 - name: Extend findus-core requirements with requirements from DCN
   pip:
@@ -65,7 +65,7 @@
 - name: Embadding DCN common module into findus-core
   copy:
     src: ~/findus/dcn/common/
-    dest: ~/findus/core/common
+    dest: '{{ core_path }}/common'
     remote_src: yes
     directory_mode: yes
     owner: scorcher
@@ -74,7 +74,7 @@
 - name: Embadding DCN client module into findus-core
   copy:
     src: ~/findus/dcn/client/
-    dest: ~/findus/core/client
+    dest: '{{ core_path }}/client'
     remote_src: yes
     directory_mode: yes
     owner: scorcher
@@ -83,13 +83,18 @@
 - name: Copy DCN recuirements file into findus folder
   copy:
     src: ~/findus/dcn/requirements.txt
-    dest: ~/findus/core/requirements-dcn.txt
+    dest: '{{ core_path }}/requirements-dcn.txt'
     remote_src: yes
     mode: '0664'
+
+- name: Create debug log folder
+  ansible.builtin.file:
+    path: '{{ core_path }}/log'
+    state: directory
+    mode: '0764'
 
 # TODO: Move to Django role
 - name: Creating config file for Django settings
   template:
     src: settings.yaml
-    dest: '~/findus/core/settings.yaml'
-  tags: dbg
+    dest: '{{ core_path }}/settings.yaml'

@@ -4,4 +4,4 @@ database:
     user: {{ postgres_user }}
     password: {{ postgres_password }}
 django:
-    secret_key: {{ django_secret_key }}
+    secret_key: "{{ django_secret_key }}"

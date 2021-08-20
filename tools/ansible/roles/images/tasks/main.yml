@@ -4,6 +4,8 @@
     source: pull
     pull:
       platform: amd64
+  vars:
+    ansible_python_interpreter: ~/findus/venv/core/bin/python3
 
 - name: Pull Postgress DB image
   community.docker.docker_image:
@@ -11,6 +13,8 @@
     source: pull
     pull:
       platform: amd64
+  vars:
+    ansible_python_interpreter: ~/findus/venv/core/bin/python3
 
 - name: Pull Adminer image
   community.docker.docker_image:
@@ -18,6 +22,8 @@
     source: pull
     pull:
       platform: amd64
+  vars:
+    ansible_python_interpreter: ~/findus/venv/core/bin/python3
 
 - name: Pull RabbitMQ image
   community.docker.docker_image:
@@ -25,6 +31,8 @@
     source: pull
     pull:
       platform: amd64
+  vars:
+    ansible_python_interpreter: ~/findus/venv/core/bin/python3
 
 - name: Build DCN image
   community.docker.docker_image:

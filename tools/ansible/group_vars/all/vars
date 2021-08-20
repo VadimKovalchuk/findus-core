@@ -4,3 +4,8 @@ user: scorcher
 core_branch: develop
 edge_branch: main
 dcn_branch: develop
+
+project_path: "/home/{{ user }}/findus"
+core_path: "{{ project_path }}/core"
+
+general_venv: "{{ project_path }}/venv"

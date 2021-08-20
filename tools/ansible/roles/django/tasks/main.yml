@@ -1,0 +1,7 @@
+- name: Create migrations in database
+  community.general.django_manage:
+    command: makemigrations
+    project_path: "{{ django_dir }}"
+    settings: "{{ settings_app_name }}"
+    pythonpath: "{{ settings_dir }}"
+    virtualenv: "{{ virtualenv_dir }}"
