@@ -3,10 +3,12 @@ services:
   database:
     image: "postgres:13"
     restart: always
+    env_file:
+      - database.env
     ports:
       - 5432:5432
     volumes:
-      - /home/vadym/db:/var/lib/postgresql/data
+      - /var/lib/postgresql/data:/var/lib/postgresql/data
   adminer:
     image: "adminer"
     restart: always

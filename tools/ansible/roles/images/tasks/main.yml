@@ -5,7 +5,7 @@
     pull:
       platform: amd64
   vars:
-    ansible_python_interpreter: ~/findus/venv/core/bin/python3
+    ansible_python_interpreter: '{{ core_python }}'
 
 - name: Pull Postgress DB image
   community.docker.docker_image:
@@ -14,7 +14,7 @@
     pull:
       platform: amd64
   vars:
-    ansible_python_interpreter: ~/findus/venv/core/bin/python3
+    ansible_python_interpreter: '{{ core_python }}'
 
 - name: Pull Adminer image
   community.docker.docker_image:
@@ -23,7 +23,7 @@
     pull:
       platform: amd64
   vars:
-    ansible_python_interpreter: ~/findus/venv/core/bin/python3
+    ansible_python_interpreter: '{{ core_python }}'
 
 - name: Pull RabbitMQ image
   community.docker.docker_image:
@@ -32,24 +32,24 @@
     pull:
       platform: amd64
   vars:
-    ansible_python_interpreter: ~/findus/venv/core/bin/python3
+    ansible_python_interpreter: '{{ core_python }}'
 
 - name: Build DCN image
   community.docker.docker_image:
     name: dcn
     build:
-      path: ~/findus/dcn/
+      path: '{{ project_path }}/dcn/'
     source: build
   vars:
-    ansible_python_interpreter: ~/findus/venv/dcn/bin/python3
+    ansible_python_interpreter: '{{ core_python }}'
   tags: build
 
 - name: Build Findus image
   community.docker.docker_image:
     name: findus
     build:
-      path: ~/findus/core/
+      path: '{{ core_path }}'
     source: build
   vars:
-    ansible_python_interpreter: ~/findus/venv/core/bin/python3
+    ansible_python_interpreter: '{{ core_python }}'
   tags: build
