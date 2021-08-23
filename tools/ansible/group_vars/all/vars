@@ -11,3 +11,7 @@ core_path: "{{ project_path }}/core"
 general_venv: "{{ project_path }}/venv"
 core_venv: "{{ general_venv }}/core"
 core_python: "{{ core_venv }}/bin/python3"
+
+django_apps:
+  - task
+  - ticker
