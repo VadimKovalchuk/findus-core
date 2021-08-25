@@ -1,0 +1,10 @@
+---
+- name: Deploy database structure
+  hosts: all
+  vars_files:
+      - group_vars/all/vault
+      - group_vars/all/vars
+  roles:
+    - django
+  environment:
+      INSTANCE_TYPE: local
