@@ -53,3 +53,12 @@ services:
       - ./log/task_processor/:/src/log/django/
     deploy:
       mode: global
+  web_server:
+    image: "findus:latest"
+    command: [ "python", "manage.py", "runserver", "0.0.0.0:8000" ]
+    volumes:
+      - ./log/web_server/:/src/log/django/
+    deploy:
+      mode: global
+    ports:
+      - 8000:8000
