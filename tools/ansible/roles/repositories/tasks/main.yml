@@ -6,19 +6,19 @@
 
 - name: Clone DCN repository
   ansible.builtin.git:
-    repo: https://github.com/VadimKovalchuk/DCN.git
+    repo: git@github.com:VadimKovalchuk/DCN.git
     dest: '{{ project_path }}/dcn'
     version: '{{ dcn_branch }}'
 
 - name: Clone findus-core repository
   ansible.builtin.git:
-    repo: https://github.com/VadimKovalchuk/findus-core.git
+    repo: git@github.com:VadimKovalchuk/findus-core.git
     dest: '{{ core_path }}'  # findus/core
     version: '{{ core_branch }}'
 
 - name: Clone findus-edge repository
   ansible.builtin.git:
-    repo: https://github.com/VadimKovalchuk/findus-edge.git
+    repo: git@github.com:VadimKovalchuk/findus-edge.git
     dest: '{{ project_path }}/edge'
     version: '{{ edge_branch }}'
 
@@ -58,7 +58,7 @@
 #        directory_mode: yes
 #        mode: '0644'
   ansible.builtin.git:
-    repo: https://github.com/VadimKovalchuk/findus-edge.git
+    repo: git@github.com:VadimKovalchuk/findus-edge.git
     dest: '{{ project_path }}/dcn/agent/modules/findus-edge'
     version: main
 
