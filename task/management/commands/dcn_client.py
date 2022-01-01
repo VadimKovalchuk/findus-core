@@ -41,8 +41,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         wait_for_db_active()
         with Client(name='django', dsp_ip='dispatcher', token='docker') as client:
-            client.connect()
-            client.get_client_queues()
+            # client.connect()
+            while not client.broker:
+                client.get_client_queues()
+                sleep(10)
             client.broker._inactivity_timeout = 0.01
             while True:
                 idle = True
