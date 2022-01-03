@@ -15,7 +15,7 @@ services:
     ports:
       - 8080:8080
   rabbitmq:
-    image: "rabbitmq:3.8.4-management"
+    image: "rabbitmq:3.9.11-management"
     restart: always
     deploy:
       mode: global
