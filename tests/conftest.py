@@ -18,7 +18,7 @@ from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
 logger = logging.getLogger(__name__)
 
 
-BROKER_HOST = '*'
+BROKER_HOST = 'localhost'
 DISPATCHER_LISTEN_TIMEOUT = 0.01
 
 log_file_formatter = None
@@ -44,29 +44,23 @@ def flush_queue(broker: str,
             assert empty, f'Flushed queue {queue} is not empty'
 
 
-def polling_expiration(is_expired: bool):
-    assert is_expired, "Dispatcher haven't got request when expected"
-    return True
+def get_container(client, container_filter: str):
+    container_list = client.containers.list(filters={'name': container_filter})
+    assert container_list, f'Target container ({container_filter}) is not found'
+    container = container_list[0]
+    logger.info(f'Container {container.name} found')
+    return container
 
 
 @pytest.fixture(autouse=True, scope='session')
-def rabbit_mq():
+def docker_client():
     client = docker.from_env()
-    containers_list = client.containers.list(filters={'name': 'rabbitmq'})
-    logger.info([container.name for container in containers_list])
-    if containers_list:
-        container = containers_list[0]
-    else:
-        container = client.containers.run(
-            image='rabbitmq:3.9.11-management',
-            auto_remove=True,
-            detach=True,
-            name='rabbitmq',
-            ports={
-                '5672': '5672',
-                '15672': '15672'
-            }
-        )
+    yield client
+
+
+@pytest.fixture(autouse=True, scope='session')
+def rabbit_mq(docker_client):
+    container = get_container(docker_client, 'rabbitmq')
     with Broker(BROKER_HOST) as broker:
         while not broker.connect():
             sleep(10)
@@ -74,27 +68,20 @@ def rabbit_mq():
 
 
 @pytest.fixture(autouse=True, scope='session')
-def dispatcher():
-    client = docker.from_env()
-    containers_list = client.containers.list(filters={'name': 'dispatcher'})
-    logger.info([container.name for container in containers_list])
-    if containers_list:
-        container = containers_list[0]
-    else:
-        container = client.containers.run(
-            image='dcn:latest',
-            command=["python", "dispatcher/service.py", "rabbitmq"],
-            auto_remove=True,
-            detach=True,
-            name='dispatcher',
-            ports={
-                '9999': '9999'
-            }
-        )
-    with Broker(BROKER_HOST) as broker:
-        while not broker.connect():
-            sleep(10)
+def dispatcher(docker_client, rabbit_mq):
+    container = get_container(docker_client, 'dispatcher')
     yield container
+
+
+@pytest.fixture(autouse=True, scope='session')
+def agent(docker_client, dispatcher):
+    container = get_container(docker_client, 'agent')
+    yield container
+
+
+@pytest.fixture(autouse=True, scope='session')
+def dcn_network(dispatcher, agent):
+    yield
 
 
 @pytest.fixture
@@ -112,16 +99,18 @@ def broker():
 
 @pytest.fixture
 def client():
-    with Client(name='test_client',
+    with Client(name='localhost',
                 token=CLIENT_TEST_TOKEN,
                 dsp_port=DISPATCHER_PORT) as client:
         yield client
-        flush_queue(client.broker.host, client.broker.input_queue)
+        if client.broker:
+            flush_queue(client.broker.host, client.broker.input_queue)
 
 
 @pytest.fixture()
-def client_on_dispatcher(client: Client):
-    client.get_client_queues()
+def client_on_dispatcher(dispatcher, client: Client):
+    while not client.get_client_queues():
+        sleep(10)
     client.broker._inactivity_timeout = 0.1 * SECOND
     yield client
 
