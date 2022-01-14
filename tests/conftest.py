@@ -79,39 +79,25 @@ def agent(docker_client, dispatcher):
     yield container
 
 
-@pytest.fixture(autouse=True, scope='session')
-def dcn_network(dispatcher, agent):
-    yield
-
-
-@pytest.fixture
-def broker():
-    with Broker(BROKER_HOST) as broker:
-        while not broker.connect():
-            sleep(10)
-        broker._inactivity_timeout = 0.1 * SECOND
-        broker.declare(input_queue=task_queue,
-                       output_queue=compose_queue(RoutingKeys.RESULTS))
-        yield broker
-        input_queue = broker.input_queue
-    flush_queue(BROKER_HOST, input_queue)
-
-
-@pytest.fixture
+@pytest.fixture(scope='session')
 def client():
-    with Client(name='localhost',
+    with Client(name='pytest_client',
                 token=CLIENT_TEST_TOKEN,
                 dsp_port=DISPATCHER_PORT) as client:
         yield client
         if client.broker:
-            flush_queue(client.broker.host, client.broker.input_queue)
+            host = client.broker.host
+            input_queue = client.broker.input_queue
+        else:
+            return
+    flush_queue(host, input_queue)
 
 
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def client_on_dispatcher(dispatcher, client: Client):
     while not client.get_client_queues():
         sleep(10)
-    client.broker._inactivity_timeout = 0.1 * SECOND
+    client.broker._inactivity_timeout = 1 * SECOND
     yield client
 
 
