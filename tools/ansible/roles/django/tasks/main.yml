@@ -1,0 +1,24 @@
+- name: Create migrations for database
+  community.general.django_manage:
+    command: 'makemigrations {{ item }}'
+    project_path: "{{ core_path }}"
+    pythonpath: "{{ core_path }}"
+    virtualenv: "{{ core_venv }}"
+  loop:
+    '{{ django_apps }}'
+
+- name: Apply migrations for database
+  community.general.django_manage:
+    command: migrate
+    project_path: "{{ core_path }}"
+    pythonpath: "{{ core_path }}"
+    virtualenv: "{{ core_venv }}"
+
+- name: Create superuser accaunt
+  community.general.django_manage:
+    command: "createsuperuser --noinput --username={{ postgres_user }} --email=a@b.com"
+    project_path: "{{ core_path }}"
+    pythonpath: "{{ core_path }}"
+    virtualenv: "{{ core_venv }}"
+  environment:
+    DJANGO_SUPERUSER_PASSWORD: '{{ postgres_password }}'

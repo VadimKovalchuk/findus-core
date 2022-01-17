@@ -66,7 +66,9 @@ def create_task(name: str, parent_task: SystemTask = None, own_args: str = '', p
 def get_done_network_tasks() -> List[NetworkTask]:
     query_set = NetworkTask.objects.filter(done__isnull=False)
     query_set = query_set.filter(processed__isnull=True)
-    return query_set
+    query_set = query_set.order_by('done')
+    tasks = [query_set.first()]
+    return [task for task in tasks if task]
 
 
 def search_tasks_with_completed_child(tasks: List[SystemTask]) -> List[SystemTask]:
@@ -92,10 +94,12 @@ def finalize_task(task: Union[SystemTask, NetworkTask]):
         finalize_task(task.parent_task)
 
 
-def get_new_tasks() -> List[SystemTask]:
+def get_new_system_tasks() -> List[SystemTask]:
     query_set = SystemTask.objects.filter(started__isnull=True)
     query_set = query_set.filter(postponed__isnull=True)
-    return query_set
+    query_set = query_set.order_by('created')
+    tasks = [query_set.first()]
+    return [task for task in tasks if task]
 
 
 def start_task(task: SystemTask):
@@ -109,8 +113,11 @@ def start_task(task: SystemTask):
 
 
 def get_postponed_tasks() -> List[SystemTask]:
-    query_set = SystemTask.objects.filter(postponed__gt=now())
-    return query_set
+    query_set = SystemTask.objects.filter(started__isnull=True)
+    query_set = query_set.filter(postponed__gt=now())
+    query_set = query_set.order_by('postponed')
+    tasks = [query_set.first()]
+    return [task for task in tasks if task]
 
 
 def trigger_postponed_task(task: List[SystemTask]):

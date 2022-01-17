@@ -1,0 +1,100 @@
+- name: Create Findus project folder
+  ansible.builtin.file:
+    path: '{{ project_path }}'
+    state: directory
+    mode: '0764'
+
+- name: Clone DCN repository
+  ansible.builtin.git:
+    repo: git@github.com:VadimKovalchuk/DCN.git
+    dest: '{{ project_path }}/dcn'
+    version: '{{ dcn_branch }}'
+
+- name: Clone findus-core repository
+  ansible.builtin.git:
+    repo: git@github.com:VadimKovalchuk/findus-core.git
+    dest: '{{ core_path }}'  # findus/core
+    version: '{{ core_branch }}'
+
+- name: Clone findus-edge repository
+  ansible.builtin.git:
+    repo: git@github.com:VadimKovalchuk/findus-edge.git
+    dest: '{{ project_path }}/edge'
+    version: '{{ edge_branch }}'
+
+- name: Initiate virtualenv for findus-edge
+  pip:
+    virtualenv: '{{ general_venv }}/edge'
+    virtualenv_command: python3 -m venv
+    requirements: '{{ project_path }}/edge/requirements.txt'
+
+- name: Initiate virtualenv for DCN
+  pip:
+    virtualenv: '{{ general_venv }}/dcn'
+    virtualenv_command: python3 -m venv
+    requirements: '{{ project_path }}/dcn/requirements.txt'
+
+- name: Initiate virtualenv for findus-core
+  pip:
+    virtualenv: '{{ core_venv }}'  # findus/venv/core
+    virtualenv_command: python3 -m venv
+    requirements: '{{ core_path }}/requirements.txt'
+
+- name: Extend findus-core requirements with requirements from DCN
+  pip:
+    requirements: '{{ project_path }}/dcn/requirements.txt'
+    virtualenv: '{{ core_venv }}'
+
+- name: Extend DCN requirements with requirements from findus-edge
+  pip:
+    requirements: '{{ project_path }}/edge/requirements.txt'
+    virtualenv: '{{ general_venv }}/dcn'
+
+- name: Embadding findus-edge into DCN agent
+#      copy:
+#        src: ~/findus/edge/
+#        dest: ~/findus/dcn/agent/modules/findus-edge/
+#        remote_src: yes
+#        directory_mode: yes
+#        mode: '0644'
+  ansible.builtin.git:
+    repo: git@github.com:VadimKovalchuk/findus-edge.git
+    dest: '{{ project_path }}/dcn/agent/modules/findus-edge'
+    version: main
+
+- name: Embadding DCN common module into findus-core
+  copy:
+    src: '{{ project_path }}/dcn/common/'
+    dest: '{{ core_path }}/common'
+    remote_src: yes
+    directory_mode: yes
+    owner: '{{ user }}'
+    mode: '0764'
+
+- name: Embadding DCN client module into findus-core
+  copy:
+    src: '{{ project_path }}/dcn/client/'
+    dest: '{{ core_path }}/client'
+    remote_src: yes
+    directory_mode: yes
+    owner: '{{ user }}'
+    mode: '0764'
+
+- name: Copy DCN recuirements file into core folder
+  copy:
+    src: '{{ project_path }}/dcn/requirements.txt'
+    dest: '{{ core_path }}/requirements-dcn.txt'
+    remote_src: yes
+    mode: '0664'
+
+- name: Create debug log folder
+  ansible.builtin.file:
+    path: '{{ core_path }}/log'
+    state: directory
+    mode: '0764'
+
+# TODO: Move to Django role
+- name: Creating config file for Django settings
+  template:
+    src: settings.yaml
+    dest: '{{ core_path }}/settings.yaml'

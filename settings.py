@@ -16,6 +16,6 @@ env_db_settings = os.getenv('DB_HOST', '127.0.0.1')
 
 db_host = 'database' if instance_type == 'docker' else env_db_settings
 db_creds = yaml_dict['database']
-log_path = f'/src/log/django/log_{get_datetime_stamp()}.txt' if instance_type == 'docker' else f'debug/log_{get_datetime_stamp()}.txt'
+log_path = f'/src/log/django/log_{get_datetime_stamp()}.txt' if instance_type == 'docker' else f'log/log_{get_datetime_stamp()}.txt'
 
 secret_key = yaml_dict['django']['secret_key']

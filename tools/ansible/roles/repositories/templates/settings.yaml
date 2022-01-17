@@ -1,0 +1,7 @@
+---
+database:
+    name: {{ postgres_db }}
+    user: {{ postgres_user }}
+    password: {{ postgres_password }}
+django:
+    secret_key: "{{ django_secret_key }}"

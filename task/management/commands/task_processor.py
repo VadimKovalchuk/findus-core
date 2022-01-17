@@ -8,7 +8,7 @@ from django.db.utils import OperationalError
 from task.processing import (
     get_done_network_tasks,
     finalize_task,
-    get_new_tasks,
+    get_new_system_tasks,
     start_task,
     get_postponed_tasks,
     trigger_postponed_task
@@ -51,7 +51,7 @@ class Command(BaseCommand):
             for task in done_tasks:
                 finalize_task(task)
             # Get not-started tasks and init preprocessing for all
-            new_tasks = get_new_tasks()
+            new_tasks = get_new_system_tasks()
             for task in new_tasks:
                 logger.debug(f'Starting task "{task.name}" processing')
                 start_task(task)

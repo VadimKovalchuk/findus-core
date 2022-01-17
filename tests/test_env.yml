@@ -4,7 +4,7 @@ services:
     image: "postgres:13"
     restart: always
     env_file:
-      - database.env
+      - ../database.env
     ports:
       - 5432:5432
     volumes:
@@ -39,26 +39,3 @@ services:
     deploy:
       mode: replicated
       replicas: 1
-  dcn_client:
-    image: "findus:latest"
-    command: ["python", "manage.py", "dcn_client"]
-    volumes:
-      - ./log/client/:/src/log/django/
-    deploy:
-      mode: global
-  task_processor:
-    image: "findus:latest"
-    command: ["python", "manage.py", "task_processor"]
-    volumes:
-      - ./log/task_processor/:/src/log/django/
-    deploy:
-      mode: global
-  web_server:
-    image: "findus:latest"
-    command: [ "python", "manage.py", "runserver", "0.0.0.0:8000" ]
-    volumes:
-      - ./log/web_server/:/src/log/django/
-    deploy:
-      mode: global
-    ports:
-      - 8000:8000

@@ -1,0 +1,55 @@
+- name: Pull Python 3.8 image
+  community.docker.docker_image:
+    name: python:3.8
+    source: pull
+    pull:
+      platform: amd64
+  vars:
+    ansible_python_interpreter: '{{ core_python }}'
+
+- name: Pull Postgress DB image
+  community.docker.docker_image:
+    name: postgres:13
+    source: pull
+    pull:
+      platform: amd64
+  vars:
+    ansible_python_interpreter: '{{ core_python }}'
+
+- name: Pull Adminer image
+  community.docker.docker_image:
+    name: adminer
+    source: pull
+    pull:
+      platform: amd64
+  vars:
+    ansible_python_interpreter: '{{ core_python }}'
+
+- name: Pull RabbitMQ image
+  community.docker.docker_image:
+    name: rabbitmq:3.8.4-management
+    source: pull
+    pull:
+      platform: amd64
+  vars:
+    ansible_python_interpreter: '{{ core_python }}'
+
+- name: Build DCN image
+  community.docker.docker_image:
+    name: dcn
+    build:
+      path: '{{ project_path }}/dcn/'
+    source: build
+  vars:
+    ansible_python_interpreter: '{{ core_python }}'
+  tags: build
+
+- name: Build Findus image
+  community.docker.docker_image:
+    name: findus
+    build:
+      path: '{{ core_path }}'
+    source: build
+  vars:
+    ansible_python_interpreter: '{{ core_python }}'
+  tags: build
