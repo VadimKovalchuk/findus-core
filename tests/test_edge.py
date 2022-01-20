@@ -85,3 +85,21 @@ def test_price_history(client_on_dispatcher: Client):
     _min, _max = calculate_boundaries(62, 5)
     assert _min <= price_count <= _max, f'Price count does not fit expected boundaries({_min},{_max})'
     assert dividend_count, 'Dividend rows are missing'
+
+
+def test_fundamental(client_on_dispatcher: Client):
+    client = client_on_dispatcher
+    test_task = deepcopy(task_body)
+    test_task['client'] = client.broker.input_queue
+    test_task['module'] = 'findus-edge.finviz'
+    test_task['function'] = 'fundamental'
+    ticker_list = ['MSFT', 'GOOGL', 'AAPL', 'AMZN']
+    test_task['arguments'] = ticker_list
+    client.broker.push(test_task)
+    # Validating result on client
+    result = next(client.broker.pulling_generator())
+    client.broker.set_task_done(result)
+    data = json.loads(result.body['result'])
+    for ticker in ticker_list:
+        assert ticker in data, f'Ticker "{ticker}" is missing in fundamental data contents'
+        assert len(data[ticker]) == 77, f'Some fields are missing in fundamental data for ticker {ticker}'
