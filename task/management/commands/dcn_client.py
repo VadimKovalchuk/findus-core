@@ -1,20 +1,16 @@
 import logging
-import sys
-
-from pathlib import Path
 
 from django.utils.timezone import now
 from time import sleep
 from typing import List
 
-from django.core.management.base import BaseCommand, CommandError
-
+from django.core.management.base import BaseCommand
 
 from client.client import Client
-from common.constants import CLIENT, BROKER, SECOND
+from common.constants import CLIENT, BROKER
 from common.logging_tools import setup_module_logger
 from task.models import NetworkTask
-from task.management.commands.task_processor import wait_for_db_active
+from task.lib.db import wait_for_db_active
 
 modules = [(__name__, logging.DEBUG),
            (CLIENT, logging.DEBUG),

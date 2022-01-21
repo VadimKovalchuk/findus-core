@@ -1,33 +1,18 @@
 import logging
 from time import sleep
 
-from django.core.management.base import BaseCommand, CommandError
-from django.db import connection
-from django.db.utils import OperationalError
+from django.core.management.base import BaseCommand
 
+from task.lib.db import wait_for_db_active
 from task.processing import (
     get_done_network_tasks,
     finalize_task,
     get_new_system_tasks,
     start_task,
-    get_postponed_tasks,
-    trigger_postponed_task
+    get_postponed_tasks
 )
 
 logger = logging.getLogger(__name__)
-
-
-def wait_for_db_active():
-    logger.info('Waiting for database')
-    db_conn = None
-    while not db_conn:
-        try:
-            connection.ensure_connection()
-            db_conn = True
-        except OperationalError:
-            logger.info('Database unavailable, waiting 1 second...')
-            sleep(1)
-    logger.info('Database connection reached')
 
 
 class Command(BaseCommand):
