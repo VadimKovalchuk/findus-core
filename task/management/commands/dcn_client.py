@@ -2,7 +2,6 @@ import logging
 
 from django.utils.timezone import now
 from time import sleep
-from typing import List
 
 from django.core.management.base import BaseCommand
 
@@ -10,7 +9,7 @@ from client.client import Client
 from common.constants import CLIENT, BROKER
 from common.logging_tools import setup_module_logger
 from task.models import NetworkTask
-from task.lib.db import wait_for_db_active
+from task.lib.db import wait_for_db_active, get_ready_to_send_tasks
 
 modules = [(__name__, logging.DEBUG),
            (CLIENT, logging.DEBUG),
@@ -18,13 +17,6 @@ modules = [(__name__, logging.DEBUG),
 for module_name, level in modules:
     setup_module_logger(module_name, level)
 logger = logging.getLogger(__name__)
-
-
-def get_ready_to_send_tasks() -> List[NetworkTask]:
-    query_set = NetworkTask.objects.filter(started__isnull=True)
-    query_set = query_set.order_by('created')
-    tasks = [query_set.first()]
-    return [task for task in tasks if task]
 
 
 class Command(BaseCommand):

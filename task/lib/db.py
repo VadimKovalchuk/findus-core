@@ -1,7 +1,10 @@
 import logging
 from time import sleep
+from typing import List
 
 from django.db import connection, OperationalError
+
+from task.models import NetworkTask
 
 logger = logging.getLogger('task_processor')
 
@@ -21,21 +24,18 @@ def wait_for_db_active():
 
 class DatabaseMixin:
 
-    def wait_for_db(self, retry: bool = True, timeout: int = 10):
-        if not self.db_connected:
-            logger.info('Waiting for database')
-        else:
-            logger.info('Validating db connection')
-        self.db_connected = False
-        retry_left = 10  # TODO: Move to sutable place
-        while not self.db_connected and retry_left > 0:
-            try:
-                connection.ensure_connection()
-                self.db_connected = True
-                break
-            except OperationalError:
-                logger.info(f'Database unavailable, waiting {timeout} seconds')
-                if not retry:
-                    break
-                sleep(timeout)
-        logger.info('Database connection reached')
+    @property
+    def db_connected(self):
+        try:
+            connection.ensure_connection()
+            return True
+        except OperationalError:
+            logger.info(f'Database unavailable')
+            return False
+
+
+def get_ready_to_send_tasks() -> List[NetworkTask]:
+    query_set = NetworkTask.objects.filter(started__isnull=True)
+    query_set = query_set.order_by('created')
+    tasks = [query_set.first()]
+    return [task for task in tasks if task]
