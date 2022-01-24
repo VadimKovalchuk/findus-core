@@ -7,7 +7,7 @@ from common.broker import Task
 from task.lib.db import DatabaseMixin, get_ready_to_send_tasks
 from task.models import NetworkTask
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('dcn_client')
 
 
 class NetworkClient(DatabaseMixin):
@@ -16,8 +16,9 @@ class NetworkClient(DatabaseMixin):
                  dsp_host: str = 'dispatcher',
                  dsp_port: int = 9999,
                  token: str = 'docker'):
-        self._active = True
+        self.idle = False
         self.dcn = Client(name, token, dsp_host, dsp_port)
+        self._active = True
         self._pending_tasks = []
 
     def __enter__(self):
@@ -54,3 +55,12 @@ class NetworkClient(DatabaseMixin):
         task.done = now()
         task.save()
         self.dcn.broker.set_task_done(dcn_task)
+
+    def push_task_to_network(self, network_task: NetworkTask):
+        logger.info(f'Sending task: {network_task.name}')
+        dcn_task = network_task.compose_for_dcn()
+        dcn_task['client'] = self.dcn.broker.input_queue
+        logger.debug(str(dcn_task))
+        self.dcn.broker.push(dcn_task)
+        network_task.started = now()
+        network_task.save()

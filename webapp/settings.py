@@ -166,5 +166,10 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'task_db_tools': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
     },
 }

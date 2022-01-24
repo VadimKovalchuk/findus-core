@@ -6,7 +6,7 @@ from django.db import connection, OperationalError
 
 from task.models import NetworkTask
 
-logger = logging.getLogger('task_processor')
+logger = logging.getLogger('task_db_tools')
 
 
 def wait_for_db_active():
@@ -30,8 +30,21 @@ class DatabaseMixin:
             connection.ensure_connection()
             return True
         except OperationalError:
-            logger.info(f'Database unavailable')
+            logger.error(f'Database unavailable')
             return False
+
+    def ensure_db_connection(self, delay: int = 10, retry_count: int = 30):
+        _try = 0
+        while not self.db_connected:
+            if _try == retry_count:
+                return False
+            sleep(delay)
+        for _ in range(5):
+            if not self.db_connected:
+                return False
+            sleep(1)
+        logger.info('Database connection reached')
+        return True
 
 
 def get_ready_to_send_tasks() -> List[NetworkTask]:
