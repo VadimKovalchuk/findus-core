@@ -97,6 +97,8 @@ def client():
 def client_on_dispatcher(dispatcher, client: Client):
     while not client.get_client_queues():
         sleep(10)
+    client.broker.connect()
+    client.broker.declare()
     client.broker._inactivity_timeout = 10 * SECOND
     yield client
 

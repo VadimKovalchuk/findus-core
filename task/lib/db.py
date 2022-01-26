@@ -39,11 +39,12 @@ class DatabaseMixin:
             if _try == retry_count:
                 return False
             sleep(delay)
+        logger.info('Database connection reached')
         for _ in range(5):
             if not self.db_connected:
                 return False
             sleep(1)
-        logger.info('Database connection reached')
+        logger.info('Database connection is stable')
         return True
 
 
