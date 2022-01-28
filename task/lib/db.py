@@ -1,6 +1,6 @@
 import logging
 from time import sleep
-from typing import List
+from typing import Generator, List
 
 from django.db import connection, OperationalError
 
@@ -50,6 +50,16 @@ class DatabaseMixin:
 
 def get_ready_to_send_tasks() -> List[NetworkTask]:
     query_set = NetworkTask.objects.filter(started__isnull=True)
+    query_set = query_set.filter(postponed__isnull=True)
     query_set = query_set.order_by('created')
-    tasks = [query_set.first()]
-    return [task for task in tasks if task]
+    return query_set
+
+
+def pending_tasks() -> Generator:
+    while True:
+        query_set = get_ready_to_send_tasks()
+        if query_set:
+            for task in query_set:
+                yield task
+        else:
+            yield None

@@ -81,10 +81,10 @@ class SystemTask(Task):
 
 class NetworkTask(Task):
 
-    def compose_for_dcn(self):
+    def compose_for_dcn(self, client: str = ''):
         return {
             'id': self.id,
-            'client': '',
+            'client': client,
             'module': self.module,
             'function': self.function,
             'arguments': json.loads(self.arguments) if (self.arguments and '{' in self.arguments) else self.arguments
