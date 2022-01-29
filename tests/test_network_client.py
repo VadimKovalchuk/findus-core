@@ -5,6 +5,8 @@ from typing import Union
 
 import pytest
 
+from django.utils.timezone import now
+
 from common.broker import Task
 from task.lib.network_client import NetworkClient
 from task.models import NetworkTask
@@ -19,6 +21,7 @@ def create_network_task(module: str = 'findus-edge.stub', function: str = 'relay
     task.module = module
     task.function = function
     task.arguments = arguments
+    task.started = now()
     task.save()
     logger.debug(f'Network task is created: {task}')
     return task

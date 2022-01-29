@@ -3,9 +3,9 @@ from time import sleep
 
 from django.core.management.base import BaseCommand
 
-from task.lib.db import wait_for_db_active
+
+from task.lib.db import wait_for_db_active, get_processed_network_tasks
 from task.processing import (
-    get_done_network_tasks,
     finalize_task,
     get_new_system_tasks,
     start_task,
@@ -26,7 +26,7 @@ class Command(BaseCommand):
         wait_for_db_active()
         while True:
             # Validate completed tasks and process all (once a second)
-            done_tasks = get_done_network_tasks()
+            done_tasks = get_processed_network_tasks()
             # Once a minute do search for tasks with all completed children
             # done_tasks.extend(search_tasks_with_completed_child())
             # Collect list of tasks that has completed children

@@ -1,8 +1,9 @@
 import logging
 from time import sleep
-from typing import Generator, List
+from typing import Callable, Generator, List
 
 from django.db import connection, OperationalError
+from django.db.models.query import QuerySet
 
 from task.models import NetworkTask
 
@@ -48,18 +49,34 @@ class DatabaseMixin:
         return True
 
 
-def get_ready_to_send_tasks() -> List[NetworkTask]:
-    query_set = NetworkTask.objects.filter(started__isnull=True)
-    query_set = query_set.filter(postponed__isnull=True)
-    query_set = query_set.order_by('created')
-    return query_set
-
-
-def pending_tasks() -> Generator:
+def generic_query_set_generator(query_getter: Callable) -> QuerySet:
     while True:
-        query_set = get_ready_to_send_tasks()
+        query_set = query_getter()
         if query_set:
             for task in query_set:
                 yield task
         else:
             yield None
+
+
+def get_ready_to_send_tasks() -> QuerySet[NetworkTask]:
+    query_set = NetworkTask.objects.filter(started__isnull=False)
+    query_set = query_set.filter(postponed__isnull=True)
+    query_set = query_set.order_by('created')
+    return query_set
+
+
+def pending_network_tasks() -> Generator:
+    yield from generic_query_set_generator(get_ready_to_send_tasks)
+
+
+def get_processed_network_tasks() -> List[NetworkTask]:
+    query_set = NetworkTask.objects.filter(done__isnull=True)
+    query_set = query_set.filter(processed__isnull=False)
+    query_set = query_set.order_by('processed')
+    return query_set
+
+
+def processed_network_tasks() -> Generator:
+    yield from generic_query_set_generator(get_processed_network_tasks)
+

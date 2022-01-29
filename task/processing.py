@@ -63,14 +63,6 @@ def create_task(name: str, parent_task: SystemTask = None, own_args: str = '', p
     logger.info(f'Created: {task}')
 
 
-def get_done_network_tasks() -> List[NetworkTask]:
-    query_set = NetworkTask.objects.filter(done__isnull=False)
-    query_set = query_set.filter(processed__isnull=True)
-    query_set = query_set.order_by('done')
-    tasks = [query_set.first()]
-    return [task for task in tasks if task]
-
-
 def search_tasks_with_completed_child(tasks: List[SystemTask]) -> List[SystemTask]:
     pass
 

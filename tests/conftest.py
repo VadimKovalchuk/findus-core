@@ -80,7 +80,7 @@ def agent(docker_client, dispatcher):
     yield container
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def client():
     with Client(name='pytest_client',
                 token=CLIENT_TEST_TOKEN,
@@ -94,7 +94,7 @@ def client():
     flush_queue(host, input_queue)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def client_on_dispatcher(dispatcher, client: Client):
     while not client.get_client_queues():
         sleep(10)
@@ -104,7 +104,7 @@ def client_on_dispatcher(dispatcher, client: Client):
     yield client
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def network_client():
     with NetworkClient(
             name='pytest_client',
@@ -120,7 +120,7 @@ def network_client():
     flush_queue(host, input_queue)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def network_client_on_dispatcher(dispatcher, network_client: Client):
     while not network_client.get_client_queues():
         sleep(10)
