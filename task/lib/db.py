@@ -4,8 +4,9 @@ from typing import Callable, Generator, List
 
 from django.db import connection, OperationalError
 from django.db.models.query import QuerySet
+from django.utils.timezone import now
 
-from task.models import NetworkTask
+from task.models import NetworkTask, SystemTask
 
 logger = logging.getLogger('task_db_tools')
 
@@ -59,6 +60,17 @@ def generic_query_set_generator(query_getter: Callable) -> QuerySet:
             yield None
 
 
+def get_created_tasks() -> List[SystemTask]:
+    query_set = SystemTask.objects.filter(started__isnull=True)
+    query_set = query_set.filter(postponed__isnull=True)
+    query_set = query_set.order_by('created')
+    return query_set
+
+
+def created_tasks() -> Generator:
+    yield from generic_query_set_generator(get_created_tasks)
+
+
 def get_ready_to_send_tasks() -> QuerySet[NetworkTask]:
     query_set = NetworkTask.objects.filter(started__isnull=False)
     query_set = query_set.filter(postponed__isnull=True)
@@ -80,3 +92,24 @@ def get_processed_network_tasks() -> List[NetworkTask]:
 def processed_network_tasks() -> Generator:
     yield from generic_query_set_generator(get_processed_network_tasks)
 
+
+def get_postponed_tasks() -> List[SystemTask]:
+    query_set = SystemTask.objects.filter(started__isnull=True)
+    query_set = query_set.filter(postponed__gt=now())
+    query_set = query_set.order_by('postponed')
+    return query_set
+
+
+def postponed_tasks() -> Generator:
+    yield from generic_query_set_generator(get_postponed_tasks)
+
+
+def get_processed_tasks() -> List[SystemTask]:
+    query_set = SystemTask.objects.filter(done__isnull=True)
+    query_set = query_set.filter(processed__isnull=False)
+    query_set = query_set.order_by('processed')
+    return query_set
+
+
+def processed_tasks() -> Generator:
+    yield from generic_query_set_generator(get_processed_tasks)

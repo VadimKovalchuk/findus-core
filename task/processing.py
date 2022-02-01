@@ -63,10 +63,6 @@ def create_task(name: str, parent_task: SystemTask = None, own_args: str = '', p
     logger.info(f'Created: {task}')
 
 
-def search_tasks_with_completed_child(tasks: List[SystemTask]) -> List[SystemTask]:
-    pass
-
-
 def finalize_task(task: Union[SystemTask, NetworkTask]):
     logger.info(f'Finalizing task "{task.name}"({task.id})')
     command = commands[task.name]
@@ -86,14 +82,6 @@ def finalize_task(task: Union[SystemTask, NetworkTask]):
         finalize_task(task.parent_task)
 
 
-def get_new_system_tasks() -> List[SystemTask]:
-    query_set = SystemTask.objects.filter(started__isnull=True)
-    query_set = query_set.filter(postponed__isnull=True)
-    query_set = query_set.order_by('created')
-    tasks = [query_set.first()]
-    return [task for task in tasks if task]
-
-
 def start_task(task: SystemTask):
     child_tasks = commands[task.name]['child_tasks']
     logger.debug(f'Task "{task.name}" has {len(child_tasks)} child tasks')
@@ -102,18 +90,6 @@ def start_task(task: SystemTask):
             create_task(task_name, task)
     task.started = now()
     task.save()
-
-
-def get_postponed_tasks() -> List[SystemTask]:
-    query_set = SystemTask.objects.filter(started__isnull=True)
-    query_set = query_set.filter(postponed__gt=now())
-    query_set = query_set.order_by('postponed')
-    tasks = [query_set.first()]
-    return [task for task in tasks if task]
-
-
-def trigger_postponed_task(task: List[SystemTask]):
-    pass
 
 
 def append_daily_data(task: Task):
@@ -145,10 +121,6 @@ def append_daily_data(task: Task):
     return True
 
 
-def append_fundamentals(task: Task):
-    return True
-
-
 def process_ticker_list(task: Task):
     all_tickers = [ticker.symbol for ticker in Ticker.objects.all()]
     missing = [ticker for ticker in json.loads(task.result) if ticker not in all_tickers]
@@ -162,13 +134,6 @@ def process_ticker_list(task: Task):
         task.parent_task.arguments = f'{parent_args},{new_tickers}' if parent_args else new_tickers
         task.parent_task.save()
     return True
-
-
-# def convert_args_for_dcn(task: NetworkTask):
-#     str_args = task.arguments
-#     task.arguments = json.dumps({'ticker': str_args})
-#     task.save()
-#     return True
 
 
 def new_tickers_processing(task: SystemTask):

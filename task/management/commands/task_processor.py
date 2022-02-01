@@ -4,12 +4,10 @@ from time import sleep
 from django.core.management.base import BaseCommand
 
 
-from task.lib.db import wait_for_db_active, get_processed_network_tasks
+from task.lib.db import wait_for_db_active, get_processed_network_tasks, get_created_tasks, get_postponed_tasks
 from task.processing import (
     finalize_task,
-    get_new_system_tasks,
-    start_task,
-    get_postponed_tasks
+    start_task
 )
 
 logger = logging.getLogger(__name__)
@@ -36,7 +34,7 @@ class Command(BaseCommand):
             for task in done_tasks:
                 finalize_task(task)
             # Get not-started tasks and init preprocessing for all
-            new_tasks = get_new_system_tasks()
+            new_tasks = get_created_tasks()
             for task in new_tasks:
                 logger.debug(f'Starting task "{task.name}" processing')
                 start_task(task)
