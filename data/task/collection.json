@@ -1,0 +1,26 @@
+{
+  "update_ticker_list": {
+    "base": "base.base",
+    "child_tasks": [
+      "update_sp500_ticker_list",
+      "update_sp400_ticker_list",
+      "update_sp600_ticker_list"
+    ],
+    "run_on_done": ["new_tickers_processing"]
+  },
+  "update_sp500_ticker_list": {
+    "base": "base.base",
+    "dcn_task": true,
+    "module": "findus-edge.tickers",
+    "function": "get_sp500_ticker_list",
+    "run_on_done": "process_ticker_list"
+  },
+  "update_sp400_ticker_list": {
+    "base": "collection.update_sp500_ticker_list",
+    "function": "get_sp400_ticker_list"
+  },
+  "update_sp600_ticker_list": {
+    "base": "collection.update_sp500_ticker_list",
+    "function": "get_sp600_ticker_list"
+  }
+}

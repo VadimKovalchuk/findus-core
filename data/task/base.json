@@ -1,0 +1,9 @@
+{
+  "base": {
+    "base": "",
+    "dcn_task": false,
+    "run_on_start": [],
+    "child_tasks": [],
+    "run_on_done": []
+  }
+}

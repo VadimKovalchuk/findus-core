@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 
 
 from task.lib.db import wait_for_db_active, get_processed_network_tasks, get_created_tasks, get_postponed_tasks
-from task.processing import (
+from task.lib.processing import (
     finalize_task,
     start_task
 )
