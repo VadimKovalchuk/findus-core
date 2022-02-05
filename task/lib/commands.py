@@ -3,6 +3,7 @@ import logging
 
 from copy import deepcopy
 from typing import Callable, List
+from task.models import Task
 from pathlib import Path
 
 from task.lib.processing import get_function
@@ -51,6 +52,26 @@ class Command:
         self.function: str = cmd_dict['function']
         self.arguments: str = cmd_dict['arguments']
         self.run_on_done: List[Callable] = [get_function(func_name) for func_name in cmd_dict['run_on_done']]
+
+    def on_start(self, task: Task) -> bool:
+        for func in self.run_on_start:
+            if not self._apply_callable(task, func):
+                return False
+        else:
+            return True
+
+    def finalize(self, task: Task) -> bool:
+        for func in self.run_on_done:
+            if not self._apply_callable(task, func):
+                return False
+        else:
+            return True
+
+    def _apply_callable(self, task: Task, func: Callable) -> bool:
+        try:
+            return func(task)
+        except Exception as exc:
+            return False
 
     def __str__(self):
         return str(self.__dict__)

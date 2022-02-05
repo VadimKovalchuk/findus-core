@@ -1,10 +1,11 @@
 import logging
 
+from datetime import datetime, timedelta
 from typing import Generator, Union
 
 from django.utils.timezone import now
 
-from task.commands import commands
+from task.lib.commands import COMMANDS, Command
 from task.lib.db import created_tasks, DatabaseMixin, postponed_tasks, processed_tasks, processed_network_tasks
 from task.lib.processing import get_function
 from task.models import SystemTask, NetworkTask
@@ -25,21 +26,19 @@ class TaskProcessor(DatabaseMixin):
     def finalization_stage(self):
         pass
 
+    def start_task(self):
+
+
     def finalize_task(self, task: Union[SystemTask, NetworkTask]):
         logger.info(f'Finalizing task "{task.name}"({task.id})')
-        command = commands[task.name]
-        on_done = get_function(command['run_on_done'])(task) if command['run_on_done'] else True
-        if not on_done:
-            task.done = now()
+        command: Command = COMMANDS[task.name]
+        if not command.finalize(task):
+            task.postponed = now() + timedelta(days=1)
             task.save()
             raise SystemError(f'Command {task.name} on_done flow failed')
-        if isinstance(task, SystemTask) and not task.is_done():
-            return
-        if not task.done:
-            task.done = now()
-        task.processed = now()
+        task.done = now()
         task.save()
-        logger.info(f'{task} processing completed')
+        logger.info(f'{task} is completed')
         if task.parent_task:
             self.processed_candidates.add(task.parent_task)
 
