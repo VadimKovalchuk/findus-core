@@ -13,7 +13,7 @@
     "dcn_task": true,
     "module": "findus-edge.tickers",
     "function": "get_sp500_ticker_list",
-    "run_on_done": "process_ticker_list"
+    "run_on_done": ["process_ticker_list"]
   },
   "update_sp400_ticker_list": {
     "base": "update_sp500_ticker_list",
