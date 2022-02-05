@@ -2,6 +2,8 @@ import datetime
 import json
 import logging
 import traceback
+import sys
+import inspect
 
 from datetime import timedelta
 from typing import List, Union
@@ -16,6 +18,8 @@ from ticker.models import Ticker, Price, Dividend
 logger = logging.getLogger('task_processor')
 logger.debug(log_path)
 
+FUNCTIONS = []
+
 
 def get_function(name: str):
     functions = {
@@ -24,9 +28,14 @@ def get_function(name: str):
         daily_collection_start_date.__name__: daily_collection_start_date,
         daily_tickers_schedule.__name__: daily_tickers_schedule,
         new_tickers_processing.__name__: new_tickers_processing,
-        process_ticker_list.__name__: process_ticker_list
+        process_ticker_list.__name__: process_ticker_list,
+        relay.__name__: relay
     }
     return functions.get(name)
+
+
+def relay(task: Union[SystemTask, NetworkTask]):
+    return task
 
 
 def create_task(name: str, parent_task: SystemTask = None, own_args: str = '', postpone: int = 0):
@@ -171,3 +180,6 @@ def daily_tickers_schedule(task: SystemTask):
         task_args = json.dumps({'ticker': ticker.symbol})
         create_task(name='append_daily_ticker_data', parent_task=task, own_args=task_args)  # , postpone=postpone)
     return True
+
+
+FUNCTIONS = {name: obj for name, obj in inspect.getmembers(sys.modules[__name__])}

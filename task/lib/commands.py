@@ -50,7 +50,6 @@ class Command:
         self.module: str = cmd_dict['module']
         self.function: str = cmd_dict['function']
         self.arguments: str = cmd_dict['arguments']
-        logger.debug(cmd_dict['run_on_done'])
         self.run_on_done: List[Callable] = [get_function(func_name) for func_name in cmd_dict['run_on_done']]
 
     def __str__(self):
