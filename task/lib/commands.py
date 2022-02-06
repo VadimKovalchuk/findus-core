@@ -71,6 +71,7 @@ class Command:
         try:
             return func(task)
         except Exception as exc:
+            # TODO: Create corresponding Event enry in DB
             return False
 
     def __str__(self):

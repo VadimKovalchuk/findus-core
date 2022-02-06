@@ -26,8 +26,19 @@ class TaskProcessor(DatabaseMixin):
     def finalization_stage(self):
         pass
 
-    def start_task(self):
-
+    def start_task(self, task: Union[SystemTask, NetworkTask]):
+        logger.debug(f'Starting task: {task}')
+        command = COMMANDS[task.name]
+        if command.on_start(task):
+            logger.info(f'{task} is started')
+            task.started = now()
+            task.save()
+        else:
+            task.postponed = now() + timedelta(days=1)
+            task.save()
+            # TODO: Generate Event entry in DB
+            logger.error(f'{task} start failure')
+            raise SystemError('Task start failure')
 
     def finalize_task(self, task: Union[SystemTask, NetworkTask]):
         logger.info(f'Finalizing task "{task.name}"({task.id})')
