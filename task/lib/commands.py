@@ -2,7 +2,7 @@ import json
 import logging
 
 from copy import deepcopy
-from typing import Callable, List
+from typing import Callable, List, Union
 from task.models import Task
 from pathlib import Path
 
@@ -52,6 +52,16 @@ class Command:
         self.function: str = cmd_dict['function']
         self.arguments: str = cmd_dict['arguments']
         self.run_on_done: List[Callable] = [get_function(func_name) for func_name in cmd_dict['run_on_done']]
+
+    def create_task(self, parent: Union[Task, None] = None, postpone: int = 0):
+        logger.debug(f'Creating task: {name}')
+        command = commands[name]
+        if command['dcn_task']:
+            task: NetworkTask = NetworkTask.objects.create(name=name)
+            task.module = command['module']
+            task.function = command['function']
+        else:
+            task = SystemTask.objects.create(name=name)
 
     def on_start(self, task: Task) -> bool:
         for func in self.run_on_start:
