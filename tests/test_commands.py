@@ -2,7 +2,8 @@ import logging
 
 import pytest
 
-from task.lib.commands import COMMANDS, COMMANDS_JSON
+from task.lib.commands import COMMANDS, COMMANDS_JSON, Command
+from task.models import NetworkTask, SystemTask
 
 logger = logging.getLogger(__name__)
 
@@ -33,3 +34,15 @@ def test_cmd_diff_from_base():
                 assert parent_value == child_value, \
                     f'Child value ({child_value}) for param {param} diff from one in parent ({parent_value})' \
                     f' when difference is expected'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('task_name', ['network_relay_task', 'system_relay_task'])
+def test_cmd_create_task(task_name: str):
+    command: Command = COMMANDS[task_name]
+    task_from_cmd = command.create_task()
+    assert task_from_cmd, 'Command instance has failed to create corresponding task'
+    task_from_db: NetworkTask = NetworkTask.objects.create(name=command.name)
+    assert task_from_db, 'Command issued task is missing in DB'
+    assert task_from_cmd == task_from_db, 'Command issued task does not corresponds to one from DB'
+

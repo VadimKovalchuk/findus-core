@@ -2,10 +2,12 @@ import json
 import logging
 
 from copy import deepcopy
+from datetime import timedelta
 from typing import Callable, List, Union
-from task.models import Task
 from pathlib import Path
 
+from django.utils.timezone import now
+from task.models import Task, SystemTask, NetworkTask
 from task.lib.processing import get_function
 
 logger = logging.getLogger('task_processor')
@@ -54,14 +56,19 @@ class Command:
         self.run_on_done: List[Callable] = [get_function(func_name) for func_name in cmd_dict['run_on_done']]
 
     def create_task(self, parent: Union[Task, None] = None, postpone: int = 0):
-        logger.debug(f'Creating task: {name}')
-        command = commands[name]
-        if command['dcn_task']:
-            task: NetworkTask = NetworkTask.objects.create(name=name)
-            task.module = command['module']
-            task.function = command['function']
+        logger.debug(f'Creating task: {self.name}')
+        if self.dcn_task:
+            task: NetworkTask = NetworkTask.objects.create(name=self.name)
+            task.module = self.module
+            task.function = self.function
         else:
-            task = SystemTask.objects.create(name=name)
+            task = SystemTask.objects.create(name=self.name)
+        if parent:
+            task.parent_task = parent
+        if postpone:
+            task.postponed = now() + timedelta(seconds=postpone)
+        task.save()
+        return task
 
     def on_start(self, task: Task) -> bool:
         for func in self.run_on_start:
