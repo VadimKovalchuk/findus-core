@@ -55,7 +55,7 @@ class Command:
         self.arguments: str = cmd_dict['arguments']
         self.run_on_done: List[Callable] = [get_function(func_name) for func_name in cmd_dict['run_on_done']]
 
-    def create_task(self, parent: Union[Task, None] = None, postpone: int = 0):
+    def create_task(self, parent: Union[Task, None] = None):
         logger.debug(f'Creating task: {self.name}')
         if self.dcn_task:
             task: NetworkTask = NetworkTask.objects.create(name=self.name)
@@ -65,8 +65,6 @@ class Command:
             task = SystemTask.objects.create(name=self.name)
         if parent:
             task.parent_task = parent
-        if postpone:
-            task.postponed = now() + timedelta(seconds=postpone)
         task.save()
         return task
 

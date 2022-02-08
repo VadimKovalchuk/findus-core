@@ -35,7 +35,14 @@ def get_function(name: str):
 
 
 def relay(task: Union[SystemTask, NetworkTask]):
-    return task
+    def extend(line: str):
+        line = f'{line}, relay' if line else 'relay'
+        # logger.debug('Relay test function call')
+        return line
+    task.arguments = extend(task.arguments)
+    task.result = extend(task.result)
+    task.save()
+    return True
 
 
 def create_task(name: str, parent_task: SystemTask = None, own_args: str = '', postpone: int = 0):

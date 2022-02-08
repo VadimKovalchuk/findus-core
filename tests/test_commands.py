@@ -1,9 +1,10 @@
+import json
 import logging
 
 import pytest
 
 from task.lib.commands import COMMANDS, COMMANDS_JSON, Command
-from task.models import NetworkTask, SystemTask
+from task.models import Task, NetworkTask, SystemTask
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +38,37 @@ def test_cmd_diff_from_base():
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('task_name', ['network_relay_task', 'system_relay_task'])
-def test_cmd_create_task(task_name: str):
+@pytest.mark.parametrize('task_name, task_type',
+        [
+            pytest.param('network_relay_task', NetworkTask, id='network_task'),
+            pytest.param('system_relay_task', SystemTask, id='system_task')
+        ]
+)
+def test_create_task(
+        task_name: str,
+        task_type: Task
+):
     command: Command = COMMANDS[task_name]
-    task_from_cmd = command.create_task()
-    assert task_from_cmd, 'Command instance has failed to create corresponding task'
-    task_from_db: NetworkTask = NetworkTask.objects.create(name=command.name)
+    task = command.create_task()
+    task.arguments = 'test'
+    task.save()
+    assert task, 'Command instance has failed to create corresponding task'
+    task_from_db = task_type.objects.get(name=command.name)
     assert task_from_db, 'Command issued task is missing in DB'
-    assert task_from_cmd == task_from_db, 'Command issued task does not corresponds to one from DB'
+    assert task == task_from_db, 'Command issued task does not corresponds to one from DB'
+    for param in ['name', 'module', 'function', 'argument']:
+        cmd_value = command.__dict__.get(param)
+        task_value = task.__dict__.get(param)
+        logger.info(f'Parameter "{param}": command- {cmd_value}, task- {task_value}')
+        assert cmd_value == task_value, \
+            f'Parameter "{param}" differs. Command: {cmd_value}, Task: {task_value}'
+    assert task.created, 'Task creation time is not defined'
+    assert not task.started, 'Task is started when not expected'
 
+
+@pytest.mark.django_db
+def test_start_task():
+    command: Command = COMMANDS['system_relay_task']
+    system_task: SystemTask = command.create_task()
+    command.on_start(system_task)
+    logger.debug(system_task.__dict__)

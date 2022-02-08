@@ -29,6 +29,9 @@ class TaskProcessor(DatabaseMixin):
     def start_task(self, task: Union[SystemTask, NetworkTask]):
         logger.debug(f'Starting task: {task}')
         command = COMMANDS[task.name]
+        for child_task_name in command.child_tasks:
+            child_cmd: Command = COMMANDS[child_task_name]
+            child_cmd.create_task(task)
         if command.on_start(task):
             logger.info(f'{task} is started')
             task.started = now()
@@ -52,4 +55,3 @@ class TaskProcessor(DatabaseMixin):
         logger.info(f'{task} is completed')
         if task.parent_task:
             self.processed_candidates.add(task.parent_task)
-
