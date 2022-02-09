@@ -4,6 +4,7 @@ import logging
 import pytest
 
 from task.lib.commands import COMMANDS, COMMANDS_JSON, Command
+from task.lib.processing import relay
 from task.models import Task, NetworkTask, SystemTask
 
 logger = logging.getLogger(__name__)
@@ -67,8 +68,32 @@ def test_create_task(
 
 
 @pytest.mark.django_db
-def test_start_task():
+@pytest.mark.parametrize('on_start, on_done, expected',
+        [
+            pytest.param([], [], None, id='empty'),
+            pytest.param([relay], [], 'relay', id='single-on_start'),
+            pytest.param([], [relay], 'relay', id='single-on_done'),
+            pytest.param([relay], [relay], 'relay, relay', id='single-both'),
+            pytest.param([relay, relay], [], 'relay, relay', id='multiple-on_start'),
+            pytest.param([], [relay, relay], 'relay, relay', id='multiple-on_done'),
+            pytest.param([relay, relay], [relay, relay], 'relay, relay, relay, relay', id='multiple-both'),
+        ]
+)
+def test_wrapping_functions(
+        on_start: list,
+        on_done: list,
+        expected: str
+):
     command: Command = COMMANDS['system_relay_task']
+    command.run_on_start = on_start
+    command.run_on_done = on_done
     system_task: SystemTask = command.create_task()
     command.on_start(system_task)
-    logger.debug(system_task.__dict__)
+    command.finalize(system_task)
+    logger.info(
+        f'arguments: {system_task.arguments}\n'
+        f'result: {system_task.result}\n'
+        f'expected: {expected}'
+    )
+    assert system_task.arguments == expected, 'Task arguments does not match expected ones'
+    assert system_task.result == expected, 'Task result does not match expected ones'

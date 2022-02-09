@@ -55,3 +55,7 @@ def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     assert pending_task.processed, f'Task result is processed but not marked as processed'
     logger.info('Completed')
 
+
+def test_db_interaction():
+    pass
+
