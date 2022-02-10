@@ -85,6 +85,7 @@ def pending_network_tasks() -> Generator:
 def get_processed_network_tasks() -> List[NetworkTask]:
     query_set = NetworkTask.objects.filter(done__isnull=True)
     query_set = query_set.filter(processed__isnull=False)
+    query_set = query_set.filter(postponed__isnull=True)
     query_set = query_set.order_by('processed')
     return query_set
 
@@ -94,8 +95,7 @@ def processed_network_tasks() -> Generator:
 
 
 def get_postponed_tasks() -> List[SystemTask]:
-    query_set = SystemTask.objects.filter(started__isnull=True)
-    query_set = query_set.filter(postponed__gt=now())
+    query_set = SystemTask.objects.filter(postponed__lt=now())
     query_set = query_set.order_by('postponed')
     return query_set
 
@@ -107,9 +107,20 @@ def postponed_tasks() -> Generator:
 def get_processed_tasks() -> List[SystemTask]:
     query_set = SystemTask.objects.filter(done__isnull=True)
     query_set = query_set.filter(processed__isnull=False)
+    query_set = query_set.filter(postponed__isnull=True)
     query_set = query_set.order_by('processed')
     return query_set
 
 
 def processed_tasks() -> Generator:
     yield from generic_query_set_generator(get_processed_tasks)
+
+
+def get_completed_tasks() -> List[SystemTask]:
+    query_set = SystemTask.objects.filter(done__isnull=False)
+    query_set = query_set.order_by('done')
+    return query_set
+
+
+def completed_tasks() -> Generator:
+    yield from generic_query_set_generator(get_completed_tasks)
