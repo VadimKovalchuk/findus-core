@@ -6,6 +6,15 @@ from django.db import models
 from django.utils.timezone import now
 
 
+class TaskState:
+    CREATED = 'created'
+    STARTED = 'started'
+    PROCESSED = 'processed'
+    DONE = 'done'
+    POSTPONED = 'postponed'
+    UNDEFINED = 'undefined'
+
+
 class Task(models.Model):
 
     class Priorities(models.IntegerChoices):
@@ -31,6 +40,22 @@ class Task(models.Model):
 
     class Meta:
         abstract = True
+
+    @property
+    def state(self):
+        if self.postponed:
+            return TaskState.POSTPONED
+        elif self.created and not any((self.started, self.processed, self.done)):
+            return TaskState.CREATED
+        elif all((self.created, self.started)) and not any((self.processed, self.done)):
+            return TaskState.STARTED
+        elif all((self.created, self.started, self.processed)) and not self.done:
+            return TaskState.PROCESSED
+        elif all((self.created, self.started, self.processed, self.done)):
+            return TaskState.DONE
+        else:
+            # TODO: Report Event to DB
+            return TaskState.UNDEFINED
 
     def _stats(self):
         return {
