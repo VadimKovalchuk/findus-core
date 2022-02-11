@@ -1,12 +1,12 @@
 import logging
 from time import sleep
-from typing import Callable, Generator, List
+from typing import Callable, Generator, List, Union
 
 from django.db import connection, OperationalError
 from django.db.models.query import QuerySet
 from django.utils.timezone import now
 
-from task.models import NetworkTask, SystemTask
+from task.models import NetworkTask, SystemTask, TaskState
 
 logger = logging.getLogger('task_db_tools')
 
@@ -50,9 +50,11 @@ class DatabaseMixin:
         return True
 
 
-def generic_query_set_generator(query_getter: Callable) -> QuerySet:
+def generic_query_set_generator(
+        query_getter: Callable,
+        task_model: Union[SystemTask, NetworkTask]) -> Generator:
     while True:
-        query_set = query_getter()
+        query_set = query_getter(task_model)
         if query_set:
             for task in query_set:
                 yield task
@@ -60,67 +62,54 @@ def generic_query_set_generator(query_getter: Callable) -> QuerySet:
             yield None
 
 
-def get_created_tasks() -> List[SystemTask]:
-    query_set = SystemTask.objects.filter(started__isnull=True)
+def get_created_tasks(task_model: Union[NetworkTask,SystemTask]) -> QuerySet:
+    query_set = task_model.objects.filter(started__isnull=True)
     query_set = query_set.filter(postponed__isnull=True)
     query_set = query_set.order_by('created')
     return query_set
 
 
-def created_tasks() -> Generator:
-    yield from generic_query_set_generator(get_created_tasks)
+def created_sys_tasks() -> Generator:
+    yield from generic_query_set_generator(get_created_tasks, SystemTask)
 
 
-def get_ready_to_send_tasks() -> QuerySet[NetworkTask]:
-    query_set = NetworkTask.objects.filter(started__isnull=False)
+def get_started_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
+    query_set = task_model.objects.filter(started__isnull=False)
     query_set = query_set.filter(postponed__isnull=True)
-    query_set = query_set.order_by('created')
+    query_set = query_set.order_by('started')
     return query_set
 
 
-def pending_network_tasks() -> Generator:
-    yield from generic_query_set_generator(get_ready_to_send_tasks)
-
-
-def get_processed_network_tasks() -> List[NetworkTask]:
-    query_set = NetworkTask.objects.filter(done__isnull=True)
+def get_processed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
+    query_set = task_model.objects.filter(done__isnull=True)
     query_set = query_set.filter(processed__isnull=False)
     query_set = query_set.filter(postponed__isnull=True)
     query_set = query_set.order_by('processed')
     return query_set
 
 
-def processed_network_tasks() -> Generator:
-    yield from generic_query_set_generator(get_processed_network_tasks)
-
-
-def get_postponed_tasks() -> List[SystemTask]:
-    query_set = SystemTask.objects.filter(postponed__lt=now())
+def get_postponed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
+    query_set = task_model.objects.filter(postponed__lt=now())
     query_set = query_set.order_by('postponed')
     return query_set
 
 
-def postponed_tasks() -> Generator:
-    yield from generic_query_set_generator(get_postponed_tasks)
-
-
-def get_processed_tasks() -> List[SystemTask]:
-    query_set = SystemTask.objects.filter(done__isnull=True)
-    query_set = query_set.filter(processed__isnull=False)
+def get_completed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
+    query_set = task_model.objects.filter(done__isnull=False)
     query_set = query_set.filter(postponed__isnull=True)
-    query_set = query_set.order_by('processed')
-    return query_set
-
-
-def processed_tasks() -> Generator:
-    yield from generic_query_set_generator(get_processed_tasks)
-
-
-def get_completed_tasks() -> List[SystemTask]:
-    query_set = SystemTask.objects.filter(done__isnull=False)
     query_set = query_set.order_by('done')
     return query_set
 
 
-def completed_tasks() -> Generator:
-    yield from generic_query_set_generator(get_completed_tasks)
+QUERYSET_MAP = {
+    TaskState.CREATED: get_created_tasks,
+    TaskState.STARTED: get_started_tasks,
+    TaskState.PROCESSED: get_processed_tasks,
+    TaskState.DONE: get_completed_tasks,
+    TaskState.POSTPONED: get_postponed_tasks
+}
+
+
+def compose_queryset_gen(task_state: str, task_model: Union[NetworkTask, SystemTask]):
+    getter = QUERYSET_MAP[task_state]
+    yield from generic_query_set_generator(getter, task_model)

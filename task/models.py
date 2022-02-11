@@ -13,6 +13,7 @@ class TaskState:
     DONE = 'done'
     POSTPONED = 'postponed'
     UNDEFINED = 'undefined'
+    STATES = [CREATED, STARTED, PROCESSED, DONE, POSTPONED, UNDEFINED]
 
 
 class Task(models.Model):

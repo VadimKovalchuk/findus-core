@@ -6,8 +6,8 @@ from django.utils.timezone import now
 
 from client.client import Client
 from common.broker import Task
-from task.lib.db import DatabaseMixin, pending_network_tasks
-from task.models import NetworkTask
+from task.lib.db import DatabaseMixin, compose_queryset_gen
+from task.models import NetworkTask, TaskState
 
 logger = logging.getLogger('dcn_client')
 
@@ -18,7 +18,7 @@ class NetworkClient(Client, DatabaseMixin):
         super().__init__(name, token, dsp_host, dsp_port)
         self.idle = False
         self._active = True
-        self.pending_tasks: Generator = pending_network_tasks()
+        self.pending_tasks: Generator = compose_queryset_gen(TaskState.STARTED, NetworkTask)
         self.task_results: Generator = self._pull_task_result()
 
     @property

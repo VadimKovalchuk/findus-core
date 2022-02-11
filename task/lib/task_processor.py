@@ -6,9 +6,9 @@ from typing import Generator, Union
 from django.utils.timezone import now
 
 from task.lib.commands import COMMANDS, Command
-from task.lib.db import created_tasks, DatabaseMixin, postponed_tasks, processed_tasks, processed_network_tasks
+from task.lib.db import DatabaseMixin, compose_queryset_gen
 from task.lib.processing import get_function
-from task.models import SystemTask, NetworkTask
+from task.models import SystemTask, NetworkTask, TaskState
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +17,11 @@ class TaskProcessor(DatabaseMixin):
     def __init__(self):
         self.idle = False
         self._active = True
-        self.processed_network_tasks: Generator = processed_network_tasks()
-        self.created_tasks: Generator = created_tasks()
-        self.postponed_tasks: Generator = postponed_tasks()
+        self.queues = {
+            SystemTask.__name__: {state: compose_queryset_gen(state, SystemTask) for state in TaskState.STATES},
+            NetworkTask.__name__: {state: compose_queryset_gen(state, NetworkTask) for state in TaskState.STATES}
+        }
         self.processed_candidates = set()
-        self.processed_tasks: Generator = processed_tasks()
 
     def finalization_stage(self):
         pass
