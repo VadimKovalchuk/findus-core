@@ -27,7 +27,14 @@ def validate_task_state(task: Task, expected_state: str):
 
 
 def validate_task_queue(task: Task, expected_queue: Generator, task_proc: TaskProcessor):
-    queues = [task_proc.created_sys_tasks, task_proc.started_sys_task]
+    queues = [queue for queue in task_proc.queues[NetworkTask.__name__]]
+    queues.extend([queue for queue in task_proc.queues[NetworkTask.__name__]])
+    for queue in queues:
+        received_task = next(queue)
+        if queue == expected_queue:
+            assert received_task == task, 'Task is missing in corresponding queue'
+        else:
+            assert not received_task, 'Task is received from unexpected queue'
 
 
 def test_task_queues_range():
@@ -58,6 +65,7 @@ def test_task_queues(task_name: str, task_type: str):
     validate_task_state(task, TaskState.CREATED)
     task_from_queue = next(task_processor.queues[task_type][TaskState.CREATED])
     assert task_from_queue == task, 'Task does not corresponds to expected one'
+    validate_task_queue(task, task_processor.queues[task_type][TaskState.CREATED], task_processor)
     task.started = now()
     task.save()
 
