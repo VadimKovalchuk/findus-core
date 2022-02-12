@@ -62,9 +62,11 @@ def generic_query_set_generator(
             yield None
 
 
-def get_created_tasks(task_model: Union[NetworkTask,SystemTask]) -> QuerySet:
-    query_set = task_model.objects.filter(started__isnull=True)
-    query_set = query_set.filter(postponed__isnull=True)
+def get_created_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
+    query_set = task_model.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(done__isnull=True)
+    query_set = query_set.filter(processed__isnull=True)
+    query_set = query_set.filter(started__isnull=True)
     query_set = query_set.order_by('created')
     return query_set
 
@@ -74,16 +76,19 @@ def created_sys_tasks() -> Generator:
 
 
 def get_started_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
-    query_set = task_model.objects.filter(started__isnull=False)
-    query_set = query_set.filter(postponed__isnull=True)
+    query_set = task_model.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(done__isnull=True)
+    query_set = query_set.filter(processed__isnull=True)
+    query_set = query_set.filter(started__isnull=False)
     query_set = query_set.order_by('started')
     return query_set
 
 
 def get_processed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
-    query_set = task_model.objects.filter(done__isnull=True)
+    query_set = task_model.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(done__isnull=True)
     query_set = query_set.filter(processed__isnull=False)
-    query_set = query_set.filter(postponed__isnull=True)
+    query_set = query_set.filter(started__isnull=False)
     query_set = query_set.order_by('processed')
     return query_set
 
@@ -95,8 +100,10 @@ def get_postponed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
 
 
 def get_completed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
-    query_set = task_model.objects.filter(done__isnull=False)
-    query_set = query_set.filter(postponed__isnull=True)
+    query_set = task_model.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(done__isnull=False)
+    query_set = query_set.filter(processed__isnull=False)
+    query_set = query_set.filter(started__isnull=False)
     query_set = query_set.order_by('done')
     return query_set
 
