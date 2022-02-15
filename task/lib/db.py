@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from time import sleep
 from typing import Callable, Generator, List, Union
 
@@ -71,10 +72,6 @@ def get_created_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
     return query_set
 
 
-def created_sys_tasks() -> Generator:
-    yield from generic_query_set_generator(get_created_tasks, SystemTask)
-
-
 def get_started_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
     query_set = task_model.objects.filter(postponed__isnull=True)
     query_set = query_set.filter(done__isnull=True)
@@ -120,3 +117,31 @@ QUERYSET_MAP = {
 def compose_queryset_gen(task_state: str, task_model: Union[NetworkTask, SystemTask]):
     getter = QUERYSET_MAP[task_state]
     yield from generic_query_set_generator(getter, task_model)
+
+
+def get_pending_network_tasks(task_model: NetworkTask) -> QuerySet:
+    query_set = task_model.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(done__isnull=True)
+    query_set = query_set.filter(processed__isnull=True)
+    query_set = query_set.filter(sent__isnull=True)
+    query_set = query_set.filter(started__isnull=False)
+    query_set = query_set.order_by('started')
+    return query_set
+
+
+def get_overdue_network_tasks(task_model: NetworkTask) -> QuerySet:
+    query_set = task_model.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(done__isnull=True)
+    query_set = query_set.filter(processed__isnull=True)
+    query_set = query_set.filter(sent__lt=now() - timedelta(days=1))
+    query_set = query_set.filter(started__isnull=False)
+    query_set = query_set.order_by('started')
+    return query_set
+
+
+def pending_network_tasks():
+    yield from generic_query_set_generator(get_pending_network_tasks, NetworkTask)
+
+
+def overdue_network_tasks():
+    yield from generic_query_set_generator(get_overdue_network_tasks, NetworkTask)

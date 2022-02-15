@@ -57,7 +57,8 @@ def test_create_task(
     task_from_db = task_type.objects.get(name=command.name)
     assert task_from_db, 'Command issued task is missing in DB'
     assert task == task_from_db, 'Command issued task does not corresponds to one from DB'
-    for param in ['name', 'module', 'function', 'argument']:
+    validation_list = ['name', 'module', 'function', 'argument'] if command.dcn_task else ['name', 'argument']
+    for param in validation_list:
         cmd_value = command.__dict__.get(param)
         task_value = task.__dict__.get(param)
         logger.info(f'Parameter "{param}": command- {cmd_value}, task- {task_value}')

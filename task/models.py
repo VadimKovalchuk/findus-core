@@ -27,15 +27,13 @@ class Task(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     name = models.CharField(max_length=100)
     created = models.DateTimeField(auto_now_add=True)
-    postponed = models.DateTimeField(null=True)
     started = models.DateTimeField(null=True)
-    done = models.DateTimeField(null=True)
     processed = models.DateTimeField(null=True)
+    done = models.DateTimeField(null=True)
+    postponed = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices,
                                    default=Priorities.MEDIUM)
     parent_task = models.ForeignKey('SystemTask', null=True, on_delete=models.CASCADE)
-    module = models.CharField(max_length=100)
-    function = models.CharField(max_length=100)
     arguments = models.TextField(null=True)
     result = models.TextField(null=True)
 
@@ -60,10 +58,11 @@ class Task(models.Model):
 
     def _stats(self):
         return {
-            'created': 1 if (self.created and not self.started) else 0,
-            'started': 1 if (self.started and not self.done) else 0,
-            'done': 1 if (self.done and not self.processed) else 0,
-            'processed': 1 if self.processed else 0
+            'created': 1 if self.state == TaskState.CREATED else 0,
+            'started': 1 if self.state == TaskState.STARTED else 0,
+            'processed': 1 if self.state == TaskState.PROCESSED else 0,
+            'done': 1 if self.state == TaskState.DONE else 0,
+            'postponed': 1 if self.state == TaskState.POSTPONED else 0,
         }
 
     def __str__(self):
@@ -92,20 +91,17 @@ class SystemTask(Task):
                 result_stats[key] += stats[key]
         return result_stats
 
-    def is_done(self) -> bool:
+    def is_processed(self) -> bool:
         children = self.get_children()
-        lst_cmp = [task.processed for task in children]
-        if all(lst_cmp):
-            if not self.done:
-                self.done = now()
-                self.save()
-            print(f'{self} is done')
-            return True
-        else:
-            return False
+        processed = [task.state == TaskState.DONE for task in children]
+        return all(processed)
 
 
 class NetworkTask(Task):
+
+    sent = models.DateTimeField(null=True)
+    module = models.CharField(max_length=100)
+    function = models.CharField(max_length=100)
 
     def compose_for_dcn(self, client: str = ''):
         return {

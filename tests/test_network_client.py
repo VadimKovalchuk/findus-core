@@ -42,6 +42,7 @@ def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     pending_task: NetworkTask = next(client.pending_tasks)
     assert created_task == pending_task, 'Pending task differs from created one'
     client.push_task_to_network(pending_task)
+    assert not next(client.pending_tasks), 'Unexpected network task received'
     pending_task.refresh_from_db()
     assert pending_task.started, 'Network task is send to DCN but not marked as started'
     for _ in range(20):  # x100 milliseconds
