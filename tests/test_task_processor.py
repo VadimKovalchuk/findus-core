@@ -184,5 +184,7 @@ def test_processed_transition():
     assert task.is_processed(), 'Task processed state is not reached on done children'
 
 
-def test_task_lifecycle():
-    pass
+def test_task_lifecycle(network_client_service: NetworkClient):
+    task_processor = TaskProcessor()
+    cmd: Command = COMMANDS[SYS_CMD_NAME]
+    task: SystemTask = cmd.create_task()

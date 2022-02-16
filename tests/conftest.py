@@ -121,13 +121,34 @@ def network_client():
 
 
 @pytest.fixture()
-def network_client_on_dispatcher(dispatcher, network_client: Client):
+def network_client_on_dispatcher(dispatcher, network_client: NetworkClient):
     while not network_client.get_client_queues():
         sleep(10)
     network_client.broker.connect()
     network_client.broker.declare()
-    network_client.broker._inactivity_timeout = 10 * SECOND
+    network_client.broker._inactivity_timeout = 0.1 * SECOND
     yield network_client
+
+
+@pytest.fixture()
+def network_client_service(network_client_on_dispatcher: NetworkClient):
+    def processing_loop():
+        logger.debug('Network Task processing loop is started')
+        while active:
+            pending_task = next(client.pending_tasks)
+            if pending_task:
+                client.push_task_to_network(pending_task)
+            processed_task = next(client.task_results)
+            if processed_task:
+                client.append_task_result_to_db(processed_task)
+            logger.debug('Processing cycle finished')
+    client = network_client_on_dispatcher
+    active = True
+    listener = Thread(target=processing_loop)
+    listener.start()
+    yield client
+    active = False
+    listener.join()
 
 
 # PYTEST HOOKS
