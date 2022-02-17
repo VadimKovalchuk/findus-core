@@ -1,11 +1,12 @@
 import logging
 
 from datetime import datetime, timedelta
-from typing import Generator, Union
+from typing import Callable, Generator, Union
 
 from django.utils.timezone import now
 
 from task.lib.commands import COMMANDS, Command
+from task.lib.constants import TaskType, TASK_PROCESSING_QUOTAS
 from task.lib.db import DatabaseMixin, compose_queryset_gen
 from task.lib.processing import get_function
 from task.models import SystemTask, NetworkTask, TaskState
@@ -18,13 +19,18 @@ class TaskProcessor(DatabaseMixin):
         self.idle = False
         self._active = True
         self.queues = {
-            SystemTask.__name__: {state: compose_queryset_gen(state, SystemTask) for state in TaskState.STATES},
-            NetworkTask.__name__: {state: compose_queryset_gen(state, NetworkTask) for state in TaskState.STATES}
+            TaskType.System: {state: compose_queryset_gen(state, SystemTask) for state in TaskState.STATES},
+            TaskType.Network: {state: compose_queryset_gen(state, NetworkTask) for state in TaskState.STATES}
         }
-        self.processed_candidates = set()
-
-    def finalization_stage(self):
-        pass
+        self._proc_candidates = set()
+        self.quotas = TASK_PROCESSING_QUOTAS
+        self.stages = (
+            (self.start_task, TaskState.CREATED),
+            (self.finalize_task, TaskState.PROCESSED),
+            (self.set_processed, ''),
+            (self.cancel_postpone, TaskState.POSTPONED),
+            # (lambda x: x, TaskState.DONE),
+        )
 
     def start_task(self, task: Union[SystemTask, NetworkTask]):
         logger.debug(f'Starting task: {task}')
@@ -32,10 +38,12 @@ class TaskProcessor(DatabaseMixin):
         for child_task_name in command.child_tasks:
             child_cmd: Command = COMMANDS[child_task_name]
             child_cmd.create_task(task)
+            self.idle = False
         if command.on_start(task):
             logger.info(f'{task} is started')
             task.started = now()
             task.save()
+            self.idle = False
         else:
             task.postponed = now() + timedelta(days=1)
             task.save()
@@ -43,15 +51,48 @@ class TaskProcessor(DatabaseMixin):
             logger.error(f'{task} start failure')
             raise SystemError('Task start failure')
 
+    def set_processed(self):
+        for task in self._proc_candidates:
+            self.idle = False
+            if task.is_processed():
+                task.processed = now()
+                task.save()
+                self._proc_candidates.remove(task)
+
     def finalize_task(self, task: Union[SystemTask, NetworkTask]):
         logger.info(f'Finalizing task "{task.name}"({task.id})')
         command: Command = COMMANDS[task.name]
-        if not command.finalize(task):
+        if command.finalize(task):
+            task.done = now()
+            task.save()
+            self.idle = False
+            logger.info(f'{task} is completed')
+            if task.parent_task:
+                self._proc_candidates.add(task.parent_task)
+        else:
             task.postponed = now() + timedelta(days=1)
             task.save()
             raise SystemError(f'Command {task.name} on_done flow failed')
-        task.done = now()
+
+    def cancel_postpone(self, task: Union[SystemTask, NetworkTask]):
+        task.postponed = None
         task.save()
-        logger.info(f'{task} is completed')
-        if task.parent_task:
-            self.processed_candidates.add(task.parent_task)
+
+    def generic_stage_handler(self, func: Callable, task_type: str = '', task_state: str = ''):
+        task_count = 0
+        if task_type and task_state:
+            task_limit = self.quotas[task_type][task_state]
+            queue = self.queues[task_type][task_state]
+            for task in queue:
+                if task_count < task_limit and task and self._active:
+                    func(task)
+                else:
+                    return
+                task_count += 1
+        else:
+            func()
+
+    def processing_cycle(self):
+        for stage_handler, task_state in self.stages:
+            for task_type in TaskType.ALL:
+                self.generic_stage_handler(stage_handler, task_type, task_state)

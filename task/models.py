@@ -3,7 +3,6 @@ import json
 from typing import List
 
 from django.db import models
-from django.utils.timezone import now
 
 
 class TaskState:

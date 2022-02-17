@@ -1,18 +1,17 @@
 import logging
 
 from datetime import timedelta
-from time import sleep
-from typing import Generator, Union
+from typing import Generator
 
 import pytest
 
 from django.utils.timezone import now
 
-from common.broker import Task
 from task.lib.commands import COMMANDS, Command
+from task.lib.constants import TaskType
 from task.lib.network_client import NetworkClient
 from task.lib.task_processor import TaskProcessor
-from task.models import TaskState, Task, SystemTask, NetworkTask
+from task.models import Task, SystemTask, NetworkTask, TaskState
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +22,8 @@ NET_CMD_NAME = 'network_relay_task'
 
 
 def validate_task_queue(task: Task, expected_queue: Generator, task_proc: TaskProcessor):
-    queues = {'net_' + queue_name: queue for queue_name, queue in task_proc.queues[NetworkTask.__name__].items()}
-    queues.update({'sys_' + queue_name: queue for queue_name, queue in task_proc.queues[SystemTask.__name__].items()})
+    queues = {'net_' + queue_name: queue for queue_name, queue in task_proc.queues[TaskType.Network].items()}
+    queues.update({'sys_' + queue_name: queue for queue_name, queue in task_proc.queues[TaskType.System].items()})
     for queue_name, queue in queues.items():
         received_task = next(queue)
         if queue == expected_queue:
@@ -43,7 +42,7 @@ def test_task_queues_range():
         assert state in TaskState.STATES, f'State "{state}" is missing in actual state list'
     # Task queue presence in Task Processor
     task_processor = TaskProcessor()
-    for task_type in (NetworkTask.__name__, SystemTask.__name__):
+    for task_type in TaskType.ALL:
         assert task_type in task_processor.queues, f'Task type section {task_type} is missing in queue dict'
         for state in expected_sates:
             assert state in task_processor.queues[task_type], \
@@ -52,8 +51,8 @@ def test_task_queues_range():
 
 @pytest.mark.parametrize('task_name, task_type',
         [
-            pytest.param(SYS_CMD_NAME, SystemTask.__name__, id=SystemTask.__name__),
-            pytest.param(NET_CMD_NAME, NetworkTask.__name__, id=NetworkTask.__name__)
+            pytest.param(SYS_CMD_NAME, TaskType.System, id=TaskType.System),
+            pytest.param(NET_CMD_NAME, TaskType.Network, id=TaskType.Network)
         ]
 )
 def test_task_queues(task_name: str, task_type: str):
@@ -83,8 +82,8 @@ def test_task_queues(task_name: str, task_type: str):
 
 @pytest.mark.parametrize('task_name, task_type',
         [
-            pytest.param(SYS_CMD_NAME, SystemTask.__name__, id=SystemTask.__name__),
-            pytest.param(NET_CMD_NAME, NetworkTask.__name__, id=NetworkTask.__name__)
+            pytest.param(SYS_CMD_NAME, TaskType.System, id=TaskType.System),
+            pytest.param(NET_CMD_NAME, TaskType.Network, id=TaskType.Network)
         ]
 )
 def test_postponed_task(task_name: str, task_type: str):
@@ -117,8 +116,8 @@ def test_postponed_task(task_name: str, task_type: str):
 
 @pytest.mark.parametrize('task_name, task_type',
         [
-            pytest.param(SYS_CMD_NAME, SystemTask.__name__, id=SystemTask.__name__),
-            pytest.param(NET_CMD_NAME, NetworkTask.__name__, id=NetworkTask.__name__)
+            pytest.param(SYS_CMD_NAME, TaskType.System, id=TaskType.System),
+            pytest.param(NET_CMD_NAME, TaskType.Network, id=TaskType.Network)
         ]
 )
 def test_task_start(task_name: str, task_type: str):
@@ -145,14 +144,14 @@ def test_child_task_creation():
     for child_task in children:
         assert isinstance(child_task, NetworkTask), 'Child task type mismatch'
         assert child_task.name == cmd.child_tasks[0], 'Child task name mismatch'
-        assert next(task_processor.queues[NetworkTask.__name__][TaskState.CREATED]), \
+        assert next(task_processor.queues[TaskType.Network][TaskState.CREATED]), \
             'Child task did not appear in "created" task queue'
 
 
 @pytest.mark.parametrize('task_name, task_type',
         [
-            pytest.param(SYS_CMD_NAME, SystemTask.__name__, id=SystemTask.__name__),
-            pytest.param(NET_CMD_NAME, NetworkTask.__name__, id=NetworkTask.__name__)
+            pytest.param(SYS_CMD_NAME, TaskType.System, id=TaskType.System),
+            pytest.param(NET_CMD_NAME, TaskType.Network, id=TaskType.Network)
         ]
 )
 def test_task_finalization(task_name: str, task_type: str):
