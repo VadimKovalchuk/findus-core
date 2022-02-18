@@ -123,12 +123,11 @@ def test_postponed_task(task_name: str, task_type: str):
 def test_task_start(task_name: str, task_type: str):
     task_processor = TaskProcessor()
     cmd: Command = COMMANDS[task_name]
-    init_task = cmd.create_task()
-    created_task = next(task_processor.queues[task_type][TaskState.CREATED])
-    assert init_task == created_task, 'Task from created tasks queue differs from initiated one'
-    task_processor.start_task(init_task)
-    assert init_task.arguments == 'relay, relay', 'On start command flow is not applied'
-    assert init_task == next(task_processor.queues[task_type][TaskState.STARTED]), \
+    task = cmd.create_task()
+    task_processor.generic_stage_handler(task_processor.start_task, task_type, TaskState.CREATED)
+    task.refresh_from_db()
+    assert task.arguments == 'relay, relay', 'On start command flow is not applied'
+    assert task == next(task_processor.queues[task_type][TaskState.STARTED]), \
         'Started task is missing in started tasks queue'
     assert not next(task_processor.queues[task_type][TaskState.CREATED]), \
         'Unexpected task is received from created tasks queue'
@@ -137,9 +136,10 @@ def test_task_start(task_name: str, task_type: str):
 def test_child_task_creation():
     task_processor = TaskProcessor()
     cmd: Command = COMMANDS[SYS_CMD_NAME]
-    init_task = cmd.create_task()
-    task_processor.start_task(init_task)
-    children = init_task.get_children()
+    task = cmd.create_task()
+    task_processor.generic_stage_handler(task_processor.start_task, TaskType.System, TaskState.CREATED)
+    task.refresh_from_db()
+    children = task.get_children()
     assert len(children) == 2, 'Child tasks count mismatch'
     for child_task in children:
         assert isinstance(child_task, NetworkTask), 'Child task type mismatch'
@@ -161,9 +161,8 @@ def test_task_finalization(task_name: str, task_type: str):
     task.started = now()
     task.processed = now()
     task.save()
-    processed_task = next(task_processor.queues[task_type][TaskState.PROCESSED])
-    assert task == processed_task, 'Task from processed tasks queue differs from initiated one'
-    task_processor.finalize_task(task)
+    task_processor.generic_stage_handler(task_processor.finalize_task, task_type, TaskState.PROCESSED)
+    task.refresh_from_db()
     assert task.arguments == 'relay, relay', 'On done command flow is not applied'
     assert task == next(task_processor.queues[task_type][TaskState.DONE]), \
         'Started task is missing in started tasks queue'
@@ -177,9 +176,11 @@ def test_processed_transition():
     task: SystemTask = cmd.create_task()
     task_processor.start_task(task)
     for child in task.get_children():
-        task_processor.start_task(child)
+        child.started = now()
         child.processed = now()
-        task_processor.finalize_task(child)
+        child.done = now()
+        child.save()
+    task.refresh_from_db()
     assert task.is_processed(), 'Task processed state is not reached on done children'
 
 
