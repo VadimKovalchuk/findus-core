@@ -6,7 +6,7 @@ import sys
 import inspect
 
 from datetime import timedelta
-from typing import List, Union
+from typing import Callable, List, Union
 
 from django.utils.timezone import now
 
@@ -19,6 +19,27 @@ logger = logging.getLogger('task_processor')
 logger.debug(log_path)
 
 FUNCTIONS = []
+
+
+class CommonServiceMixin:
+
+    def __init__(self):
+        self.idle = False
+        self._active = True
+
+    def generic_stage_handler(self, func: Callable, task_type: str = '', task_state: str = ''):
+        task_count = 0
+        if task_type and task_state:
+            task_limit = self.quotas[task_type][task_state]
+            queue = self.queues[task_type][task_state]
+            for task in queue:
+                if task_count < task_limit and task and self._active:
+                    func(task)
+                else:
+                    return
+                task_count += 1
+        else:
+            func()
 
 
 def get_function(name: str):
@@ -43,69 +64,6 @@ def relay(task: Union[SystemTask, NetworkTask]):
     task.result = extend(task.result)
     task.save()
     return True
-
-
-def create_task(name: str, parent_task: SystemTask = None, own_args: str = '', postpone: int = 0):
-    logger.debug(f'Creating task: {name}')
-    command = commands[name]
-    if command['dcn_task']:
-        task: NetworkTask = NetworkTask.objects.create(name=name)
-        task.module = command['module']
-        task.function = command['function']
-    else:
-        task = SystemTask.objects.create(name=name)
-    if own_args:
-        task.arguments = own_args
-    if parent_task:
-        logger.debug(f'Task is created by parent: {parent_task.name} ({parent_task.id})')
-        task.parent_task = parent_task
-        task.priority = parent_task.priority
-        if not own_args and parent_task.arguments:
-            task.arguments = parent_task.arguments
-        # logger.debug([parent_task.systemtask_set.all(), parent_task.networktask_set.all()])
-    if command['run_on_start']:
-        on_start_function = get_function(command['run_on_start'])
-        try:
-            on_start_result = on_start_function(task)
-        except Exception as err:
-            logger.error(f'{err.args}\n{traceback.format_exc()}')
-            on_start_result = False
-        if not on_start_result:
-            task.delete()
-            raise SystemError(f'Command {name} "on_start" flow failed')
-    if postpone:
-        task.postponed = now() + timedelta(seconds=postpone)
-    task.save()
-    logger.info(f'Created: {task}')
-
-
-def finalize_task(task: Union[SystemTask, NetworkTask]):
-    logger.info(f'Finalizing task "{task.name}"({task.id})')
-    command = commands[task.name]
-    on_done = get_function(command['run_on_done'])(task) if command['run_on_done'] else True
-    if not on_done:
-        task.done = now()
-        task.save()
-        raise SystemError(f'Command {task.name} on_done flow failed')
-    if isinstance(task, SystemTask) and not task.is_done():
-        return
-    if not task.done:
-        task.done = now()
-    task.processed = now()
-    task.save()
-    logger.info(f'{task} processing completed')
-    if task.parent_task and task.parent_task.is_done():
-        finalize_task(task.parent_task)
-
-
-def start_task(task: SystemTask):
-    child_tasks = commands[task.name]['child_tasks']
-    logger.debug(f'Task "{task.name}" has {len(child_tasks)} child tasks')
-    if child_tasks:
-        for task_name in child_tasks:
-            create_task(task_name, task)
-    task.started = now()
-    task.save()
 
 
 def append_daily_data(task: Task):

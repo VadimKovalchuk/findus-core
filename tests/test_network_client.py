@@ -9,8 +9,9 @@ from django.utils.timezone import now
 
 from common.broker import Task
 from task.lib.commands import COMMANDS, Command
+from task.lib.constants import TaskType
 from task.lib.network_client import NetworkClient
-from task.models import NetworkTask
+from task.models import NetworkTask, TaskState
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +37,18 @@ def test_online(network_client_on_dispatcher: NetworkClient):
     assert network_client_on_dispatcher.online, f'Network client has not reached online state'
 
 
-def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
+def test_task_queues(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
     created_task = create_network_task(arguments='test')
-    pending_task: NetworkTask = next(client.pending_tasks)
+    pending_task: NetworkTask = next(client.queues[TaskType.Network][TaskState.STARTED])
     assert created_task == pending_task, 'Pending task differs from created one'
     client.push_task_to_network(pending_task)
-    assert not next(client.pending_tasks), 'Unexpected network task received'
+    assert not next(client.queues[TaskType.Network][TaskState.STARTED]), 'Unexpected network task received'
     pending_task.refresh_from_db()
-    assert pending_task.started, 'Network task is send to DCN but not marked as started'
+    assert pending_task.sent, 'Network task is send to DCN but not marked as sent'
     for _ in range(20):  # x100 milliseconds
-        task_result: Task = next(client.task_results)
+        sleep(0.1)
+        task_result: Task = next(client.queues[TaskType.Network][TaskState.PROCESSED])
         if task_result:
             break
     else:
@@ -54,26 +56,14 @@ def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     client.append_task_result_to_db(task_result)
     pending_task.refresh_from_db()
     assert pending_task.processed, f'Task result is processed but not marked as processed'
+    assert not next(client.queues[TaskType.Network][TaskState.PROCESSED]), 'Unexpected task is received from DCN'
 
 
-def test_commands_interaction(network_client_on_dispatcher: NetworkClient):
+def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
-    command = COMMANDS['network_relay_task']
-    created_task: NetworkTask = command.create_task()
-    command.on_start(created_task)
-    created_task.arguments = 'test'
-    created_task.started = now()
-    created_task.save()
-    pending_task: NetworkTask = next(client.pending_tasks)
-    client.push_task_to_network(pending_task)
-    for _ in range(20):  # x100 milliseconds
-        task_result: Task = next(client.task_results)
-        if task_result:
-            logger.debug(f'DCN reply is received after {_}00ms')
-            break
-    else:
-        raise AssertionError('Task result is not received from network')
-    client.append_task_result_to_db(task_result)
-    created_task.refresh_from_db()
-    command.finalize(created_task)
-    assert created_task.result == 'test, relay, relay', 'Task result differs from expected value'
+    task = create_network_task(arguments='test')
+    client.stage_handler(client.push_task_to_network, TaskState.STARTED)
+    sleep(0.1)
+    client.stage_handler(client.append_task_result_to_db, TaskState.PROCESSED)
+    task.refresh_from_db()
+    assert task.processed, f'Task result is processed but not marked as processed'

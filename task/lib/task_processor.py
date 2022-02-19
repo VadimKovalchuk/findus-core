@@ -8,16 +8,15 @@ from django.utils.timezone import now
 from task.lib.commands import COMMANDS, Command
 from task.lib.constants import TaskType, TASK_PROCESSING_QUOTAS
 from task.lib.db import DatabaseMixin, compose_queryset_gen
-from task.lib.processing import get_function
+from task.lib.processing import CommonServiceMixin
 from task.models import SystemTask, NetworkTask, TaskState
 
 logger = logging.getLogger(__name__)
 
 
-class TaskProcessor(DatabaseMixin):
+class TaskProcessor(CommonServiceMixin, DatabaseMixin):
     def __init__(self):
-        self.idle = False
-        self._active = True
+        CommonServiceMixin.__init__(self)
         self.queues = {
             TaskType.System: {state: compose_queryset_gen(state, SystemTask) for state in TaskState.STATES},
             TaskType.Network: {state: compose_queryset_gen(state, NetworkTask) for state in TaskState.STATES}
@@ -77,20 +76,6 @@ class TaskProcessor(DatabaseMixin):
     def cancel_postpone(self, task: Union[SystemTask, NetworkTask]):
         task.postponed = None
         task.save()
-
-    def generic_stage_handler(self, func: Callable, task_type: str = '', task_state: str = ''):
-        task_count = 0
-        if task_type and task_state:
-            task_limit = self.quotas[task_type][task_state]
-            queue = self.queues[task_type][task_state]
-            for task in queue:
-                if task_count < task_limit and task and self._active:
-                    func(task)
-                else:
-                    return
-                task_count += 1
-        else:
-            func()
 
     def processing_cycle(self):
         for stage_handler, task_state in self.stages:
