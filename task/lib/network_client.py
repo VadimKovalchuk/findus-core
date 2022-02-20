@@ -31,7 +31,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         }
         self.quotas = TASK_PROCESSING_QUOTAS
         self.stages = (
-            (self.push_task_to_network, TaskState.CREATED),
+            (self.push_task_to_network, TaskState.STARTED),
             # (self.finalize_task, OVERDUE),
             (self.append_task_result_to_db, TaskState.PROCESSED),
         )
@@ -63,14 +63,13 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         logger.info(f'Sending task: {network_task.name}')
         dcn_task = network_task.compose_for_dcn(self.name)
         dcn_task['client'] = self.broker.input_queue
-        # logger.debug(str(dcn_task))
         self.broker.push(dcn_task)
         network_task.sent = now()
         network_task.save()
         return True
 
     def stage_handler(self, func: Callable, task_state: str = ''):
-        return partial(self.generic_stage_handler, func, TaskType.Network, task_state)
+        return self.generic_stage_handler(func, TaskType.Network, task_state)
 
     def processing_cycle(self):
         for stage_handler, task_state in self.stages:

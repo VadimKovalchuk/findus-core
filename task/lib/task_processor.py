@@ -56,7 +56,7 @@ class TaskProcessor(CommonServiceMixin, DatabaseMixin):
             if task.is_processed():
                 task.processed = now()
                 task.save()
-                self._proc_candidates.remove(task)
+        self._proc_candidates = set()
 
     def finalize_task(self, task: Union[SystemTask, NetworkTask]):
         logger.info(f'Finalizing task "{task.name}"({task.id})')

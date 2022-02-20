@@ -46,8 +46,8 @@ def test_task_queues(network_client_on_dispatcher: NetworkClient):
     assert not next(client.queues[TaskType.Network][TaskState.STARTED]), 'Unexpected network task received'
     pending_task.refresh_from_db()
     assert pending_task.sent, 'Network task is send to DCN but not marked as sent'
-    for _ in range(20):  # x100 milliseconds
-        sleep(0.1)
+    for _ in range(20):  # x20 milliseconds
+        sleep(0.02)
         task_result: Task = next(client.queues[TaskType.Network][TaskState.PROCESSED])
         if task_result:
             break
@@ -63,7 +63,6 @@ def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
     task = create_network_task(arguments='test')
     client.stage_handler(client.push_task_to_network, TaskState.STARTED)
-    sleep(0.1)
     client.stage_handler(client.append_task_result_to_db, TaskState.PROCESSED)
     task.refresh_from_db()
     assert task.processed, f'Task result is processed but not marked as processed'

@@ -14,6 +14,7 @@ from common.constants import SECOND
 from common.data_structures import compose_queue
 from common.defaults import RoutingKeys
 from task.lib.network_client import NetworkClient
+from task.lib.task_processor import TaskProcessor
 from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
@@ -128,27 +129,6 @@ def network_client_on_dispatcher(dispatcher, network_client: NetworkClient):
     network_client.broker.declare()
     network_client.broker._inactivity_timeout = 0.1 * SECOND
     yield network_client
-
-
-@pytest.fixture()
-def network_client_service(network_client_on_dispatcher: NetworkClient):
-    def processing_loop():
-        logger.debug('Network Task processing loop is started')
-        while active:
-            pending_task = next(client.pending_tasks)
-            if pending_task:
-                client.push_task_to_network(pending_task)
-            processed_task = next(client.task_results)
-            if processed_task:
-                client.append_task_result_to_db(processed_task)
-            logger.debug('Processing cycle finished')
-    client = network_client_on_dispatcher
-    active = True
-    listener = Thread(target=processing_loop)
-    listener.start()
-    yield client
-    active = False
-    listener.join()
 
 
 # PYTEST HOOKS

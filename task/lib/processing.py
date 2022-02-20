@@ -28,16 +28,18 @@ class CommonServiceMixin:
         self._active = True
 
     def generic_stage_handler(self, func: Callable, task_type: str = '', task_state: str = ''):
-        task_count = 0
+        # logger.debug(f'{self}, {func.__name__}, {task_type}, {task_state}')
         if task_type and task_state:
             task_limit = self.quotas[task_type][task_state]
             queue = self.queues[task_type][task_state]
-            for task in queue:
-                if task_count < task_limit and task and self._active:
+            for _ in range(task_limit):
+                task = next(queue)
+                # if task:
+                #     logger.debug(task.__dict__)
+                if task and self._active:
                     func(task)
                 else:
                     return
-                task_count += 1
         else:
             func()
 

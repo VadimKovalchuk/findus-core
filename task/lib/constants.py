@@ -16,6 +16,7 @@ TASK_PROCESSING_QUOTAS = {
     },
     TaskType.Network: {
         TaskState.CREATED: 2,
+        TaskState.STARTED: 2,
         TaskState.PROCESSED: 4,
         TaskState.DONE: 1,
         TaskState.POSTPONED: 100

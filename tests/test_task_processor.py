@@ -1,6 +1,6 @@
 import logging
 
-from datetime import timedelta
+from time import sleep, monotonic
 from typing import Generator
 
 import pytest
@@ -184,7 +184,18 @@ def test_processed_transition():
     assert task.is_processed(), 'Task processed state is not reached on done children'
 
 
-def test_task_lifecycle(network_client_service: NetworkClient):
-    task_processor = TaskProcessor()
+def test_task_lifecycle(network_client_on_dispatcher: NetworkClient):
+    task_proc = TaskProcessor()
     cmd: Command = COMMANDS[SYS_CMD_NAME]
     task: SystemTask = cmd.create_task()
+    start = monotonic()
+    while not task.done and monotonic() < start + 5:
+        task_proc.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        task.refresh_from_db()
+    logger.info(monotonic() - start)
+    children = task.get_children()
+    assert children, 'Children tasks are not created'
+    for child in children:
+        assert child.state == TaskState.DONE, 'Child Network task is not in done state'
+    assert task.state == TaskState.DONE, 'System task is not in done state'
