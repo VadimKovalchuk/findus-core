@@ -12,6 +12,9 @@ from task.lib.constants import TaskType
 from task.lib.network_client import NetworkClient
 from task.lib.task_processor import TaskProcessor
 from task.models import Task, SystemTask, NetworkTask, TaskState
+from ticker.models import Ticker
+
+from tests.test_edge import calculate_boundaries
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +185,10 @@ def test_processed_transition():
         child.save()
     task.refresh_from_db()
     assert task.is_processed(), 'Task processed state is not reached on done children'
+    task_processor._proc_candidates.add(task)
+    task_processor.set_processed()
+    assert task.processed, 'Processed task is not marked with "processed" timestamp'
+    assert not task_processor._proc_candidates, 'Processing candidates set in not cleared after processing'
 
 
 def test_task_lifecycle(network_client_on_dispatcher: NetworkClient):
@@ -199,3 +206,26 @@ def test_task_lifecycle(network_client_on_dispatcher: NetworkClient):
     for child in children:
         assert child.state == TaskState.DONE, 'Child Network task is not in done state'
     assert task.state == TaskState.DONE, 'System task is not in done state'
+
+
+def test_ticker_list(network_client_on_dispatcher: NetworkClient):
+    task_proc = TaskProcessor()
+    cmd: Command = COMMANDS['update_ticker_list']
+    task: SystemTask = cmd.create_task()
+    start = monotonic()
+    while not task.done and monotonic() < start + 20:
+        task_proc.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        task.refresh_from_db()
+    logger.info(monotonic() - start)
+    children = task.get_children()
+    assert children, 'Children tasks are not created'
+    for child in children:
+        assert child.state == TaskState.DONE, 'Child Network task is not in done state'
+    assert task.state == TaskState.DONE, 'System task is not in done state'
+    args_ticker_count = len(task.result.split(','))
+    db_ticker_count = Ticker.objects.count()
+    assert args_ticker_count == db_ticker_count, 'Ticker count in args differs from one from DB'
+    _min, _max = calculate_boundaries(1500, 0.5)
+    assert _min <= db_ticker_count <= _max, \
+        f'Tickers count "{db_ticker_count}" does not fit expected boundaries({_min},{_max})'

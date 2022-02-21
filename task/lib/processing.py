@@ -22,20 +22,16 @@ FUNCTIONS = []
 
 
 class CommonServiceMixin:
-
     def __init__(self):
         self.idle = False
         self._active = True
 
     def generic_stage_handler(self, func: Callable, task_type: str = '', task_state: str = ''):
-        # logger.debug(f'{self}, {func.__name__}, {task_type}, {task_state}')
         if task_type and task_state:
             task_limit = self.quotas[task_type][task_state]
             queue = self.queues[task_type][task_state]
             for _ in range(task_limit):
                 task = next(queue)
-                # if task:
-                #     logger.debug(task.__dict__)
                 if task and self._active:
                     func(task)
                 else:
@@ -44,23 +40,9 @@ class CommonServiceMixin:
             func()
 
 
-def get_function(name: str):
-    functions = {
-        append_daily_data.__name__: append_daily_data,
-        # convert_args_for_dcn.__name__: convert_args_for_dcn,
-        daily_collection_start_date.__name__: daily_collection_start_date,
-        daily_tickers_schedule.__name__: daily_tickers_schedule,
-        new_tickers_processing.__name__: new_tickers_processing,
-        process_ticker_list.__name__: process_ticker_list,
-        relay.__name__: relay
-    }
-    return functions.get(name)
-
-
 def relay(task: Union[SystemTask, NetworkTask]):
     def extend(line: str):
         line = f'{line}, relay' if line else 'relay'
-        # logger.debug('Relay test function call')
         return line
     task.arguments = extend(task.arguments)
     task.result = extend(task.result)
@@ -105,9 +87,9 @@ def process_ticker_list(task: Task):
         for ticker_name in missing:
             ticker = Ticker(symbol=ticker_name)
             ticker.save()
-        parent_args = task.parent_task.arguments
+        parent_args = task.parent_task.result
         new_tickers = ','.join(missing)
-        task.parent_task.arguments = f'{parent_args},{new_tickers}' if parent_args else new_tickers
+        task.parent_task.result = f'{parent_args},{new_tickers}' if parent_args else new_tickers
         task.parent_task.save()
     return True
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from django.utils.timezone import now
 from task.models import Task, SystemTask, NetworkTask
-from task.lib.processing import get_function
+from task.lib.processing import FUNCTIONS
 
 logger = logging.getLogger('task_processor')
 
@@ -48,12 +48,12 @@ class Command:
         cmd_dict = compose_command_dict(name)
         self.name: str = name
         self.dcn_task: bool = cmd_dict['dcn_task']
-        self.run_on_start: List[Callable] = [get_function(func_name) for func_name in cmd_dict['run_on_start']]
+        self.run_on_start: List[Callable] = [FUNCTIONS[func_name] for func_name in cmd_dict['run_on_start']]
         self.child_tasks: List[str] = cmd_dict['child_tasks']
         self.module: str = cmd_dict['module']
         self.function: str = cmd_dict['function']
         self.arguments: str = cmd_dict['arguments']
-        self.run_on_done: List[Callable] = [get_function(func_name) for func_name in cmd_dict['run_on_done']]
+        self.run_on_done: List[Callable] = [FUNCTIONS[func_name] for func_name in cmd_dict['run_on_done']]
 
     def create_task(self, parent: Union[Task, None] = None):
         logger.debug(f'Creating task: {self.name}')
