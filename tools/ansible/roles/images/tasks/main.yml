@@ -27,7 +27,7 @@
 
 - name: Pull RabbitMQ image
   community.docker.docker_image:
-    name: rabbitmq:3.8.4-management
+    name: rabbitmq:3.9.11-management
     source: pull
     pull:
       platform: amd64

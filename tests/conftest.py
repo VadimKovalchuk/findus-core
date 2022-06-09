@@ -13,6 +13,8 @@ from common.broker import Broker
 from common.constants import SECOND
 from common.data_structures import compose_queue
 from common.defaults import RoutingKeys
+from task.lib.network_client import NetworkClient
+from task.lib.task_processor import TaskProcessor
 from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
@@ -79,7 +81,7 @@ def agent(docker_client, dispatcher):
     yield container
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def client():
     with Client(name='pytest_client',
                 token=CLIENT_TEST_TOKEN,
@@ -93,12 +95,40 @@ def client():
     flush_queue(host, input_queue)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def client_on_dispatcher(dispatcher, client: Client):
     while not client.get_client_queues():
         sleep(10)
+    client.broker.connect()
+    client.broker.declare()
     client.broker._inactivity_timeout = 10 * SECOND
     yield client
+
+
+@pytest.fixture()
+def network_client():
+    with NetworkClient(
+            name='pytest_client',
+            token=CLIENT_TEST_TOKEN,
+            dsp_host='localhost',
+            dsp_port=DISPATCHER_PORT) as network_client:
+        yield network_client
+        if network_client.broker:
+            host = network_client.broker.host
+            input_queue = network_client.broker.input_queue
+        else:
+            return
+    flush_queue(host, input_queue)
+
+
+@pytest.fixture()
+def network_client_on_dispatcher(dispatcher, network_client: NetworkClient):
+    while not network_client.get_client_queues():
+        sleep(10)
+    network_client.broker.connect()
+    network_client.broker.declare()
+    network_client.broker._inactivity_timeout = 0.1 * SECOND
+    yield network_client
 
 
 # PYTEST HOOKS
