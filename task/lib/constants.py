@@ -7,6 +7,7 @@ class TaskType:
     ALL = (Network, System)
 
 
+IDLE_SLEEP_TIMEOUT = 10  # seconds
 TASK_PROCESSING_QUOTAS = {
     TaskType.System: {
         TaskState.CREATED: 1,

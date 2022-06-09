@@ -18,8 +18,13 @@ OVERDUE = 'overdue'
 
 
 class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
-    def __init__(self, name: str = 'findus-core', dsp_host: str = 'dispatcher', dsp_port: int = 9999,
-                 token: str = 'docker'):
+    def __init__(
+            self,
+            name: str = 'findus-core',
+            dsp_host: str = 'dispatcher',
+            dsp_port: int = 9999,
+            token: str = 'docker'
+    ):
         super().__init__(name, token, dsp_host, dsp_port)
         CommonServiceMixin.__init__(self)
         self.queues = {
@@ -38,7 +43,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
 
     @property
     def online(self):
-        return self.db_connected and self.broker.connected
+        return self.db_connected and self.broker and self.broker.connected
 
     def _pull_task_result(self):
         while self._active:

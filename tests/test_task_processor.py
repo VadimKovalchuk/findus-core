@@ -225,6 +225,7 @@ def test_ticker_list(network_client_on_dispatcher: NetworkClient):
     assert task.state == TaskState.DONE, 'System task is not in done state'
     args_ticker_count = len(task.result.split(','))
     db_ticker_count = Ticker.objects.count()
+    # logger.debug((args_ticker_count, db_ticker_count))
     assert args_ticker_count == db_ticker_count, 'Ticker count in args differs from one from DB'
     _min, _max = calculate_boundaries(1500, 0.5)
     assert _min <= db_ticker_count <= _max, \

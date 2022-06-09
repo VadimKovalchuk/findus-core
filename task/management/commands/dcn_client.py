@@ -8,8 +8,8 @@ from django.core.management.base import BaseCommand
 from client.client import Client
 from common.constants import CLIENT, BROKER
 from common.logging_tools import setup_module_logger
+from task.lib.network_client import NetworkClient
 from task.models import NetworkTask
-from task.lib.db import wait_for_db_active, get_ready_to_send_tasks
 
 modules = [(__name__, logging.DEBUG),
            (CLIENT, logging.DEBUG),
@@ -27,38 +27,22 @@ class Command(BaseCommand):
         # parser.add_argument('poll_ids', nargs='+', type=int)
 
     def handle(self, *args, **options):
-        wait_for_db_active()
-        with Client(name='django', dsp_ip='dispatcher', token='docker') as client:
-            # client.connect()
-            while not client.broker:
-                client.get_client_queues()
-                sleep(10)
-            client.broker._inactivity_timeout = 0.01
-            while True:
-                idle = True
-                # Validate input queue and process completed tasks
-                for result in client.broker.pulling_generator():
-                    task_id = result.body['id']
-                    task: NetworkTask = NetworkTask.objects.get(pk=task_id)
-                    logger.info(f'Task {task.name} execution results received')
-                    task.result = result.body['result']
-                    task.done = now()
-                    task.save()
-                    client.broker.set_task_done(result)
-                    idle = False
-                # Shoot ready to send tasks
-                tasks = get_ready_to_send_tasks()
-                for task in tasks:
-                    self.stdout.write(f'Sending task: {task.name}')
-                    dcn_task = task.compose_for_dcn()
-                    dcn_task['client'] = client.broker.input_queue
-                    self.stdout.write(str(dcn_task))
-                    client.broker.push(dcn_task)
-                    task.started = now()
-                    task.save()
-                    idle = False
-                logger.debug('Cycle done.')
-                # If no events occurred - idle for 10 seconds
-                if idle:
-                    sleep(10)  # seconds
+        client = NetworkClient(name='django', dsp_host='dispatcher', token='docker')
+        while True:
+            if not client.online:
+                if not client.wait_db_connection():
+                    continue
+                if not (client.broker and client.broker.connected):
+                    client.socket.establish()
+                    for _ in range(5):
+                        if client.get_client_queues():
+                            break
+                        sleep(10)
+                    else:
+                        continue
+                    client.broker.connect()
+                    client.broker.declare()
+            client.init_cycle()
+            client.processing_cycle()
+            client.finalize_cycle()
         # self.stdout.write(self.style.SUCCESS('done'))

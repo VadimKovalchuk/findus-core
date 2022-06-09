@@ -6,12 +6,13 @@ import sys
 import inspect
 
 from datetime import timedelta
+from time import sleep, monotonic
 from typing import Callable, List, Union
 
 from django.utils.timezone import now
 
 from settings import log_path
-from task.commands import commands
+from task.lib.constants import IDLE_SLEEP_TIMEOUT
 from task.models import Task, SystemTask, NetworkTask
 from ticker.models import Ticker, Price, Dividend
 
@@ -25,6 +26,14 @@ class CommonServiceMixin:
     def __init__(self):
         self.idle = False
         self._active = True
+
+    def init_cycle(self):
+        self.idle = True
+
+    def finalize_cycle(self):
+        if self.idle:
+            logger.debug('Processing cycle is idle.')
+            sleep(IDLE_SLEEP_TIMEOUT)
 
     def generic_stage_handler(self, func: Callable, task_type: str = '', task_state: str = ''):
         if task_type and task_state:

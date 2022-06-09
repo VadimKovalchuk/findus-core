@@ -12,19 +12,6 @@ from task.models import NetworkTask, SystemTask, TaskState
 logger = logging.getLogger('task_db_tools')
 
 
-def wait_for_db_active():
-    logger.info('Waiting for database')
-    db_conn = None
-    while not db_conn:
-        try:
-            connection.ensure_connection()
-            db_conn = True
-        except OperationalError:
-            logger.info('Database unavailable, waiting 1 second...')
-            sleep(1)
-    logger.info('Database connection reached')
-
-
 class DatabaseMixin:
 
     @property
@@ -36,18 +23,15 @@ class DatabaseMixin:
             logger.error(f'Database unavailable')
             return False
 
-    def ensure_db_connection(self, delay: int = 10, retry_count: int = 30):
+    def wait_db_connection(self, delay: int = 10, retry_count: int = 30):
         _try = 0
         while not self.db_connected:
             if _try == retry_count:
+                logger.error('Permanent database connection failure')
                 return False
             sleep(delay)
+            _try += 1
         logger.info('Database connection reached')
-        for _ in range(5):
-            if not self.db_connected:
-                return False
-            sleep(1)
-        logger.info('Database connection is stable')
         return True
 
 
