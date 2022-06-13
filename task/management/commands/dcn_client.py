@@ -5,17 +5,15 @@ from time import sleep
 
 from django.core.management.base import BaseCommand
 
-from client.client import Client
 from common.constants import CLIENT, BROKER
 from common.logging_tools import setup_module_logger
 from task.lib.network_client import NetworkClient
-from task.models import NetworkTask
 
 modules = [(__name__, logging.DEBUG),
            (CLIENT, logging.DEBUG),
            (BROKER, logging.INFO)]
-for module_name, level in modules:
-    setup_module_logger(module_name, level)
+# for module_name, level in modules:
+#     setup_module_logger(module_name, level)
 logger = logging.getLogger(__name__)
 
 
@@ -30,7 +28,7 @@ class Command(BaseCommand):
         client = NetworkClient(name='django', dsp_host='dispatcher', token='docker')
         while True:
             if not client.online:
-                if not client.wait_db_connection():
+                if not client.db_connected and not client.wait_db_connection():
                     continue
                 if not (client.broker and client.broker.connected):
                     client.socket.establish()

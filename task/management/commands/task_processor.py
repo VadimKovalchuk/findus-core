@@ -16,7 +16,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         task_processor = TaskProcessor()
         while True:
-            if not task_processor.wait_db_connection():
+            if not task_processor.db_connected and not task_processor.wait_db_connection():
                 continue
             task_processor.init_cycle()
             task_processor.processing_cycle()

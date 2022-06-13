@@ -157,17 +157,18 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['file'],
+            # 'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
         },
         'task_processor': {
-            'handlers': ['console', 'file'],
+            'handlers': ['file'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'task_db_tools': {
-            'handlers': ['console', 'file'],
+            'handlers': ['file'],
             'level': 'DEBUG',
             'propagate': True,
         },
