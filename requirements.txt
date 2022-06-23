@@ -1,8 +1,7 @@
-Django==4.0.0
+Django==4.0.5
 docker==5.0.3
 docker-compose==1.29.2
-pika==1.2.0
 psycopg2-binary==2.9.3
-pytest==6.2.5
+pytest==7.1.2
 pyzmq==22.3.0
 pytest-django==4.5.2
