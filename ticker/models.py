@@ -15,6 +15,32 @@ class AbstractTicker(models.Model):
 class Ticker(AbstractTicker):
     company = models.CharField(max_length=100)
 
+    def get_price_by_date(self, date: str):
+        return self.price_set.filter(date=date)
+
+    def add_price(self, price_data_list: list) -> bool:
+        date, _open, high, low, close, volume = price_data_list
+        if self.get_price_by_date(date=date):
+            # TODO: Generate corresponding event
+            # logger.debug(f'{ticker_name} price for {date} already exists')
+            return False
+        else:
+            Price.objects.create(ticker=self, date=date, open=_open, high=high, low=low, close=close, volume=volume)
+            return True
+
+    def get_dividend_by_date(self, date: str):
+        return self.dividend_set.filter(date=date)
+
+    def add_dividend(self, dividend_data_list: list) -> bool:
+        date, size = dividend_data_list
+        if self.get_dividend_by_date(date=date):
+            # TODO: Generate corresponding event
+            # logger.debug(f'{ticker_name} dividend for {date} already exists')
+            return False
+        else:
+            Dividend.objects.create(ticker=self, date=date, size=size)
+            return True
+
 
 class Price(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')

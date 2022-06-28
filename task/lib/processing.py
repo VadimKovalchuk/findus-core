@@ -59,33 +59,61 @@ def relay(task: Union[SystemTask, NetworkTask]):
     return True
 
 
-def append_daily_data(task: Task):
+def validate_result_json(task: Task):
+    logger.info(f'Validating result JSON')
     try:
-        ticker_name = json.loads(task.arguments)['ticker']
+        return bool(json.loads(task.result))
     except TypeError:
         logger.error(f'Failed to load JSON:\n{task.arguments}')
         return False
     except KeyError:
         logger.error(f'"Ticker key is missing in task arguments when expected"')
         return False
-    logger.info(f'Processing prices and dividends for {ticker_name}')
+
+
+def append_prices(task: Task):
+    ticker_name = json.loads(task.arguments)['ticker']
+    logger.info(f'Processing prices for {ticker_name}')
     ticker = Ticker.objects.get(symbol=ticker_name)
     history = json.loads(task.result)
     prices = history.get('prices', [])
     for price_list in prices:
-        date, _open, high, low, close, volume = price_list
-        if len(ticker.price_set.filter(date=date)):
-            logger.debug(f'{ticker_name} price for {date} already exists')
-        else:
-            Price.objects.create(ticker=ticker, date=date, open=_open, high=high, low=low, close=close, volume=volume)
+        if not ticker.add_price(price_list):
+            return False
+    return True
+
+
+def append_dividends(task: Task):
+    ticker_name = json.loads(task.arguments)['ticker']
+    logger.info(f'Processing dividends for {ticker_name}')
+    ticker = Ticker.objects.get(symbol=ticker_name)
+    history = json.loads(task.result)
     dividends = history.get('dividends', [])
     for dividend in dividends:
-        date, size = dividend
-        if len(ticker.dividend_set.filter(date=date)):
-            logger.debug(f'{ticker_name} dividend for {date} already exists')
-        else:
-            Dividend.objects.create(ticker=ticker, date=date, size=size)
+        if not ticker.add_dividend(dividend):
+            return False
     return True
+
+
+# def append_daily_data(task: Task):
+#     try:
+#         ticker_name = json.loads(task.arguments)['ticker']
+#     except TypeError:
+#         logger.error(f'Failed to load JSON:\n{task.arguments}')
+#         return False
+#     except KeyError:
+#         logger.error(f'"Ticker key is missing in task arguments when expected"')
+#         return False
+#     logger.info(f'Processing prices and dividends for {ticker_name}')
+#     ticker = Ticker.objects.get(symbol=ticker_name)
+#     history = json.loads(task.result)
+#     prices = history.get('prices', [])
+#     for price_list in prices:
+#         ticker.add_price(price_list)
+#     dividends = history.get('dividends', [])
+#     for dividend in dividends:
+#         ticker.add_dividend(dividend)
+#     return True
 
 
 def process_ticker_list(task: Task):

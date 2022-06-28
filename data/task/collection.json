@@ -21,5 +21,12 @@
   "update_sp600_ticker_list": {
     "base": "update_sp500_ticker_list",
     "function": "get_sp600_ticker_list"
+  },
+  "get_full_daily_history": {
+    "base": "base",
+    "dcn_task": true,
+    "module": "findus-edge.yahoo",
+    "function": "ticker_history",
+    "run_on_done": ["append_daily_data"]
   }
 }
