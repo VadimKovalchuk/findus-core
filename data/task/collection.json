@@ -22,11 +22,12 @@
     "base": "update_sp500_ticker_list",
     "function": "get_sp600_ticker_list"
   },
-  "get_full_daily_history": {
+  "append_daily_ticker_data": {
     "base": "base",
     "dcn_task": true,
+    "run_on_start": ["define_ticker_daily_start_date"],
     "module": "findus-edge.yahoo",
     "function": "ticker_history",
-    "run_on_done": ["append_daily_data"]
+    "run_on_done": ["validate_result_json", "append_prices", "append_dividends"]
   }
 }

@@ -6,7 +6,7 @@
     "child_tasks": [],
     "module":"",
     "function": "",
-    "arguments": "",
+    "arguments": {},
     "run_on_done": []
   }
 }

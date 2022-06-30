@@ -2,23 +2,12 @@ import logging
 
 import pytest
 
-from django.utils.timezone import now
-
-from task.lib.commands import COMMANDS, Command
-from task.lib.constants import TaskType
-from task.lib.network_client import NetworkClient
-from task.lib.task_processor import TaskProcessor
-from task.models import Task, SystemTask, NetworkTask, TaskState
 from ticker.models import Ticker
-
-from tests.test_edge import calculate_boundaries
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.django_db
 
-
-REFERENCE_TICKER = 'MSFT'
 DAILY_TEST_DATA = [
     ["2022-06-24", 261.81, 267.98, 261.72, 267.7, 33900700.0],
     ["2022-06-27", 268.21, 268.3, 263.28, 264.89, 24600800.0],
@@ -31,13 +20,6 @@ DIVIDEND_TEST_DATA = [
         ["2022-02-16", 0.62],
         ["2022-05-18", 0.62]
     ]
-
-
-@pytest.fixture()
-def ticker_sample():
-    ticker = Ticker(symbol=REFERENCE_TICKER)
-    ticker.save()
-    yield ticker
 
 
 def test_ticker_price_append(ticker_sample: Ticker):

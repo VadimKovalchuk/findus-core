@@ -1,6 +1,8 @@
 from django.db import models
 
 
+HISTORY_LIMIT_DATE = '2017-01-01'
+
 class AbstractTicker(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     symbol = models.CharField(max_length=6)

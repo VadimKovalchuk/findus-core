@@ -23,30 +23,6 @@ update_all['child_tasks'] = [
 ]
 
 
-update_ticker_list = deepcopy(template)
-update_ticker_list['child_tasks'] = [
-    'update_sp500_ticker_list',
-    'update_sp400_ticker_list',
-    'update_sp600_ticker_list',
-]  # NOTE: In case if new ticker found call get_full_ticker_data shell be added
-update_ticker_list['run_on_done'] = 'new_tickers_processing'
-
-
-update_sp500_ticker_list = deepcopy(template)
-update_sp500_ticker_list['dcn_task'] = True
-update_sp500_ticker_list['module'] = 'findus-edge.tickers'
-update_sp500_ticker_list['function'] = 'get_sp500_ticker_list'
-update_sp500_ticker_list['run_on_done'] = 'process_ticker_list'
-
-
-update_sp400_ticker_list = deepcopy(update_sp500_ticker_list)
-update_sp400_ticker_list['function'] = 'get_sp400_ticker_list'
-
-
-update_sp600_ticker_list = deepcopy(update_sp500_ticker_list)
-update_sp600_ticker_list['function'] = 'get_sp600_ticker_list'
-
-
 append_all_daily_parameters = deepcopy(template)
 append_all_daily_parameters['run_on_start'] = 'daily_tickers_schedule'
 # Creates "append_daily_ticker_data" for each ticker

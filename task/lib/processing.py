@@ -146,7 +146,7 @@ def new_tickers_processing(task: SystemTask):
     return True
 
 
-def daily_collection_start_date(task: SystemTask):
+def define_ticker_daily_start_date(task: SystemTask):
     arguments = json.loads(task.arguments)
     symbol = arguments['ticker']
     ticker = Ticker.objects.get(symbol=symbol)
@@ -158,6 +158,19 @@ def daily_collection_start_date(task: SystemTask):
         task.arguments = json.dumps(arguments)
         task.save()
     return True
+
+# def daily_collection_start_date(task: SystemTask):
+#     arguments = json.loads(task.arguments)
+#     symbol = arguments['ticker']
+#     ticker = Ticker.objects.get(symbol=symbol)
+#     if ticker.price_set.count():
+#         latest_price = ticker.price_set.latest('date')
+#         latest_date: datetime.datetime = latest_price.date
+#         logger.debug(f'Latest price date for {symbol}: {latest_date}')
+#         arguments['start'] = f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
+#         task.arguments = json.dumps(arguments)
+#         task.save()
+#     return True
 
 
 def daily_tickers_schedule(task: SystemTask):
