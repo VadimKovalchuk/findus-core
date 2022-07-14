@@ -75,3 +75,27 @@ def test_ticker_daily_data(
     _min, _max = boundaries
     assert _min <= db_price_count <= _max, \
         f'Tickers count "{db_price_count}" does not fit expected boundaries({_min},{_max})'
+
+
+def test_finviz_fundamental(
+        network_client_on_dispatcher: NetworkClient,
+        ticker_sample: Ticker
+):
+    task_proc = TaskProcessor()
+    cmd: Command = COMMANDS['append_finviz_fundamental']
+    task: SystemTask = cmd.create_task()
+    task.arguments = ticker_sample.symbol
+    task.save()
+    logger.debug(task.arguments)
+    start = monotonic()
+    while not task.done and monotonic() < start + 20:
+        task_proc.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        task.refresh_from_db()
+    logger.info(monotonic() - start)
+    result = json.loads(task.result)
+    data_slice_count = ticker_sample.finvizfundamental_set.count()
+    assert data_slice_count == 1, 'Ticker fundamental data was not correctly appended'
+    data_slice = ticker_sample.finvizfundamental_set.all()[0]
+    for param, value in result['values'].items():
+        assert getattr(data_slice, param) == value, f'Param "{param}" value mismatch "{getattr(data_slice, param)}" vs "{value}"'

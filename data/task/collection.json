@@ -29,5 +29,12 @@
     "module": "findus-edge.yahoo",
     "function": "ticker_history",
     "run_on_done": ["validate_result_json", "append_prices", "append_dividends"]
+  },
+  "append_finviz_fundamental": {
+    "base": "base",
+    "dcn_task": true,
+    "module": "findus-edge.finviz",
+    "function": "fundamental_converted",
+    "run_on_done": ["validate_result_json", "append_finviz_fundamental"]
   }
 }

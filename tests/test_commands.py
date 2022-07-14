@@ -9,7 +9,7 @@ from task.models import Task, NetworkTask, SystemTask
 
 logger = logging.getLogger(__name__)
 
-COMMANDS_COUNT = 8
+COMMANDS_COUNT = 9
 
 
 def test_cmd_catalog():

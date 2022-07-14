@@ -79,6 +79,7 @@ class Command:
     def finalize(self, task: Task) -> bool:
         for func in self.run_on_done:
             if not self._apply_callable(task, func):
+                logger.error(f"Failure on finalisation function: {func.__name__}")
                 return False
         else:
             return True

@@ -14,7 +14,7 @@ from django.utils.timezone import now
 from settings import log_path
 from task.lib.constants import IDLE_SLEEP_TIMEOUT
 from task.models import Task, SystemTask, NetworkTask
-from ticker.models import Ticker, Price, Dividend
+from ticker.models import Ticker, FinvizFundamental
 
 logger = logging.getLogger('task_processor')
 logger.debug(log_path)
@@ -62,7 +62,11 @@ def relay(task: Union[SystemTask, NetworkTask]):
 def validate_result_json(task: Task):
     logger.info(f'Validating result JSON')
     try:
-        return bool(json.loads(task.result))
+        # logger.debug(type(task.result))
+        # logger.debug(task.result)
+        result = bool(json.loads(task.result))
+        # logger.debug(f'JSON bool context: {result}')
+        return True
     except TypeError:
         logger.error(f'Failed to load JSON:\n{task.arguments}')
         return False
@@ -95,25 +99,15 @@ def append_dividends(task: Task):
     return True
 
 
-# def append_daily_data(task: Task):
-#     try:
-#         ticker_name = json.loads(task.arguments)['ticker']
-#     except TypeError:
-#         logger.error(f'Failed to load JSON:\n{task.arguments}')
-#         return False
-#     except KeyError:
-#         logger.error(f'"Ticker key is missing in task arguments when expected"')
-#         return False
-#     logger.info(f'Processing prices and dividends for {ticker_name}')
-#     ticker = Ticker.objects.get(symbol=ticker_name)
-#     history = json.loads(task.result)
-#     prices = history.get('prices', [])
-#     for price_list in prices:
-#         ticker.add_price(price_list)
-#     dividends = history.get('dividends', [])
-#     for dividend in dividends:
-#         ticker.add_dividend(dividend)
-#     return True
+def append_finviz_fundamental(task: Task):
+    ticker_name = task.arguments
+    logger.info(f'Processing fundamental data from finviz for {ticker_name}')
+    ticker = Ticker.objects.get(symbol=ticker_name)
+    result = json.loads(task.result)
+    result['values']['ticker'] = ticker
+    fundamental = FinvizFundamental(**result['values'])
+    fundamental.save()
+    return True
 
 
 def process_ticker_list(task: Task):
@@ -158,19 +152,6 @@ def define_ticker_daily_start_date(task: SystemTask):
         task.arguments = json.dumps(arguments)
         task.save()
     return True
-
-# def daily_collection_start_date(task: SystemTask):
-#     arguments = json.loads(task.arguments)
-#     symbol = arguments['ticker']
-#     ticker = Ticker.objects.get(symbol=symbol)
-#     if ticker.price_set.count():
-#         latest_price = ticker.price_set.latest('date')
-#         latest_date: datetime.datetime = latest_price.date
-#         logger.debug(f'Latest price date for {symbol}: {latest_date}')
-#         arguments['start'] = f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
-#         task.arguments = json.dumps(arguments)
-#         task.save()
-#     return True
 
 
 def daily_tickers_schedule(task: SystemTask):
