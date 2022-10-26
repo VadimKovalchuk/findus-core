@@ -30,8 +30,7 @@ class Task(models.Model):
     processed = models.DateTimeField(null=True)
     done = models.DateTimeField(null=True)
     postponed = models.DateTimeField(null=True)
-    priority = models.IntegerField(choices=Priorities.choices,
-                                   default=Priorities.MEDIUM)
+    priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
     parent_task = models.ForeignKey('SystemTask', null=True, on_delete=models.CASCADE)
     arguments = models.TextField(null=True)
     result = models.TextField(null=True)
@@ -69,6 +68,8 @@ class Task(models.Model):
 
 
 class SystemTask(Task):
+
+    event = models.ForeignKey('event.Event', null=True, on_delete=models.CASCADE)
 
     def get_children(self) -> List[Task]:
         children = list()

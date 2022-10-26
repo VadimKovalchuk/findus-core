@@ -12,6 +12,7 @@ from typing import Callable, List, Union
 from django.utils.timezone import now
 
 from settings import log_path
+from event.models import Event
 from task.lib.constants import IDLE_SLEEP_TIMEOUT
 from task.models import Task, SystemTask, NetworkTask
 from ticker.models import Ticker, FinvizFundamental
@@ -115,9 +116,6 @@ def process_ticker_list(task: Task):
     missing = [ticker for ticker in json.loads(task.result) if ticker not in all_tickers]
     if len(missing):
         logger.info(f'{len(missing)} new ticker(s) found')
-        for ticker_name in missing:
-            ticker = Ticker(symbol=ticker_name)
-            ticker.save()
         parent_args = task.parent_task.result
         new_tickers = ','.join(missing)
         task.parent_task.result = f'{parent_args},{new_tickers}' if parent_args else new_tickers
@@ -126,18 +124,26 @@ def process_ticker_list(task: Task):
 
 
 def new_tickers_processing(task: SystemTask):
-    if not task.arguments:
+    if not task.result:
         return True
-    tickers = task.arguments.split(',')
-    task.result = task.arguments
-    task.arguments = None
-    task.save()
-    postpone = 0
+    tickers = task.result.split(',')
+    logger.info(f'{len(tickers)} new tickers found creating corresponding "new_ticker" events')
     for tkr in tickers:
+        ticker = Ticker(symbol=tkr)
+        ticker.save()
         task_args = json.dumps({'ticker': tkr})
-        create_task(name='get_full_ticker_data', parent_task=task, own_args=task_args)  # , postpone=postpone)
-        postpone += 1  # seconds
+        event: Event = Event(
+            name='new_ticker',
+            description='New ticker is created',
+            artifacts=tkr,
+            auto_commands='get_full_ticker_data'
+        )
+        event.save()
     return True
+
+
+def pop_new_ticker_from_parent(task: SystemTask):
+    pass
 
 
 def define_ticker_daily_start_date(task: SystemTask):

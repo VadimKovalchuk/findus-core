@@ -5,7 +5,8 @@
       "update_sp500_ticker_list",
       "update_sp400_ticker_list",
       "update_sp600_ticker_list"
-    ]
+    ],
+    "run_on_done": ["new_tickers_processing"]
   },
   "update_sp500_ticker_list": {
     "base": "base",
