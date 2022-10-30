@@ -1,0 +1,27 @@
+- name: Create packages folder
+  ansible.builtin.file:
+    path: '{{ project_path }}/dcn/packages'
+    state: directory
+    mode: '0764'
+
+- name: Create Findus-edge package folder
+  ansible.builtin.file:
+    path: '{{ project_path }}/dcn/packages/edge'
+    state: directory
+    mode: '0764'
+
+- name: Clone findus-edge repository to packages folder
+  ansible.builtin.git:
+    repo: git@github.com:VadimKovalchuk/findus-edge.git
+    dest: '{{ project_path }}/dcn/packages/edge/findus-edge'
+    version: '{{ edge_branch }}'
+
+- name: Creating setup.py for Findus-edge
+  template:
+    src: setup.py
+    dest: '{{ project_path }}/dcn/packages/edge/setup.py'
+
+- name: Building wheels for Findus-edge
+  ansible.builtin.shell: 'source {{ general_venv }}/dcn/bin/activate; python setup.py bdist_wheel'
+  args:
+    chdir: '{{ project_path }}/dcn/packages/edge'
