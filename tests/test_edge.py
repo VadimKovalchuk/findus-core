@@ -8,10 +8,10 @@ from typing import Union, Tuple
 
 import pytest
 
-from client.client import Client
-from common.constants import SECOND
-from common.data_structures import compose_queue, task_body
-from common.defaults import RoutingKeys
+from dcn.client.client import Client
+from dcn.common.constants import SECOND
+from dcn.common.data_structures import compose_queue, task_body
+from dcn.common.defaults import RoutingKeys
 
 logger = logging.getLogger(__name__)
 

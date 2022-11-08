@@ -8,11 +8,11 @@ from time import sleep
 import docker
 import pytest
 
-from client.client import Client
-from common.broker import Broker
-from common.constants import SECOND
-from common.data_structures import compose_queue
-from common.defaults import RoutingKeys
+from dcn.client.client import Client
+from dcn.common.broker import Broker
+from dcn.common.constants import SECOND
+from dcn.common.data_structures import compose_queue
+from dcn.common.defaults import RoutingKeys
 from task.lib.network_client import NetworkClient
 from task.lib.task_processor import TaskProcessor
 from tests.constants import REFERENCE_TICKER

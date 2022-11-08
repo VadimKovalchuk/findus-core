@@ -7,7 +7,7 @@ import pytest
 
 from django.utils.timezone import now
 
-from common.broker import Task
+from dcn.common.broker import Task
 from task.lib.commands import COMMANDS, Command
 from task.lib.constants import TaskType
 from task.lib.network_client import NetworkClient

@@ -5,4 +5,5 @@
       - group_vars/all/vault
       - group_vars/all/vars
   roles:
-    - dcn_packages
+    - edge_package
+    - dcn_package

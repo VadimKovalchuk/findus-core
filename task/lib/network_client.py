@@ -5,8 +5,8 @@ from typing import Callable, Generator
 
 from django.utils.timezone import now
 
-from client.client import Client
-from common.broker import Task
+from dcn.client.client import Client
+from dcn.common.broker import Task
 from task.lib.constants import TaskType, TaskState, TASK_PROCESSING_QUOTAS
 from task.lib.db import DatabaseMixin, overdue_network_tasks, pending_network_tasks
 from task.lib.processing import CommonServiceMixin

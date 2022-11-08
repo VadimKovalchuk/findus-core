@@ -139,3 +139,5 @@ dmypy.json
 /settings.yaml
 /debug/
 /tools/ansible/vault_pass
+/packages/
+
