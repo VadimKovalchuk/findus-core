@@ -5,8 +5,8 @@ COPY ./requirements.txt /src/
 RUN pip install -r /src/requirements.txt
 
 # Installing DCN module
-RUN git clone https://github.com/VadimKovalchuk/DCN.git /tmp/edge
-RUN python /tmp/edge/setup.py build --build-base /tmp egg_info --egg-base /tmp bdist_wheel --dist-dir /tmp
+RUN git clone -b develop https://github.com/VadimKovalchuk/DCN.git /tmp/dcn
+RUN python /tmp/dcn/setup.py build --build-base /tmp egg_info --egg-base /tmp bdist_wheel --dist-dir /tmp
 RUN pip install /tmp/dcn-0.0.1-py3-none-any.whl
 RUN rm -rf /tmp/*
 

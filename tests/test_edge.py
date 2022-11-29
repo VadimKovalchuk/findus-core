@@ -29,7 +29,7 @@ def test_availability(client_on_dispatcher: Client):
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
     test_task['client'] = client.broker.input_queue
-    test_task['module'] = 'findus-edge.stub'
+    test_task['module'] = 'findus_edge.stub'
     test_task['arguments'] = {"test_arg_1": "test_val_1",
                               "test_arg_2": "test_val_2"}
     client.broker.push(test_task)
@@ -53,7 +53,7 @@ def test_ticker_list(
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
     test_task['client'] = client.broker.input_queue
-    test_task['module'] = 'findus-edge.tickers'
+    test_task['module'] = 'findus_edge.tickers'
     test_task['function'] = module_func
     client.broker.push(test_task)
     # Validating result on client
@@ -70,7 +70,7 @@ def test_price_history(client_on_dispatcher: Client):
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
     test_task['client'] = client.broker.input_queue
-    test_task['module'] = 'findus-edge.yahoo'
+    test_task['module'] = 'findus_edge.yahoo'
     test_task['function'] = 'ticker_history'
     today = datetime.today()
     start_date = today - timedelta(weeks=13)  # 3 month ago
@@ -97,7 +97,7 @@ def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
     test_task['client'] = client.broker.input_queue
-    test_task['module'] = 'findus-edge.finviz'
+    test_task['module'] = 'findus_edge.finviz'
     test_task['function'] = module_func
     test_task['arguments'] = ticker
     client.broker.push(test_task)
