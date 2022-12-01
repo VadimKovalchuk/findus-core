@@ -165,7 +165,17 @@ LOGGING = {
         },
         'task_processor': {
             'handlers': ['file'],
-            'level': 'DEBUG',
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'network_client': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'broker': {
+            'handlers': ['file'],
+            'level': 'INFO',
             'propagate': True,
         },
         'task_db_tools': {
