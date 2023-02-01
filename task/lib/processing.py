@@ -131,12 +131,11 @@ def new_tickers_processing(task: SystemTask):
     for tkr in tickers:
         ticker = Ticker(symbol=tkr)
         ticker.save()
-        task_args = json.dumps({'ticker': tkr})
         event: Event = Event(
             name='new_ticker',
             description='New ticker is created',
             artifacts=tkr,
-            auto_commands='get_full_ticker_data'
+            commands='get_full_ticker_data'
         )
         event.save()
     return True
