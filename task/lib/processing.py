@@ -12,7 +12,7 @@ from typing import Callable, List, Union
 from django.utils.timezone import now
 
 from settings import log_path
-from event.models import Event
+from schedule.models import Event
 from task.lib.constants import IDLE_SLEEP_TIMEOUT
 from task.models import Task, SystemTask, NetworkTask
 from ticker.models import Ticker, FinvizFundamental

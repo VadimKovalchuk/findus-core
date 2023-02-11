@@ -69,7 +69,7 @@ class Task(models.Model):
 
 class SystemTask(Task):
 
-    event = models.ForeignKey('event.Event', null=True, on_delete=models.CASCADE)
+    event = models.ForeignKey('schedule.Event', null=True, on_delete=models.CASCADE)
 
     def get_children(self) -> List[Task]:
         children = list()

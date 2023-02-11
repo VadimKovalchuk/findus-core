@@ -23,7 +23,7 @@ class Ticker(AbstractTicker):
     def add_price(self, price_data_list: list) -> bool:
         date, _open, high, low, close, volume = price_data_list
         if self.get_price_by_date(date=date):
-            # TODO: Generate corresponding event
+            # TODO: Generate corresponding schedule
             # logger.debug(f'{ticker_name} price for {date} already exists')
             return False
         else:
@@ -36,7 +36,7 @@ class Ticker(AbstractTicker):
     def add_dividend(self, dividend_data_list: list) -> bool:
         date, size = dividend_data_list
         if self.get_dividend_by_date(date=date):
-            # TODO: Generate corresponding event
+            # TODO: Generate corresponding schedule
             # logger.debug(f'{ticker_name} dividend for {date} already exists')
             return False
         else:
