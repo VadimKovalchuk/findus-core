@@ -131,9 +131,9 @@ def new_tickers_processing(task: SystemTask):
     for tkr in tickers:
         ticker = Ticker(symbol=tkr)
         ticker.save()
+        # TODO: Migrate to scheduler
         event: Event = Event(
             name='new_ticker',
-            description='New ticker is created',
             artifacts=tkr,
             commands='get_full_ticker_data'
         )
