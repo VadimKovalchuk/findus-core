@@ -7,22 +7,6 @@ from croniter import croniter
 from django.db import models
 
 
-class Schedule(models.Model):
-    next_trigger = models.DateTimeField(auto_now_add=True)
-    cron = models.CharField(max_length=20)
-
-    def get_cron_iterator(self):
-        base = datetime.now()
-        return croniter(self.cron, base)
-
-    def calculate_next_trigger(self):
-        self.next_trigger = self.get_cron_iterator().get_next(datetime)
-        return self.next_trigger
-
-    def get_related_events(self):
-        return self.event_set.all()
-
-
 class Event(models.Model):
 
     class UserType(models.IntegerChoices):
@@ -31,18 +15,10 @@ class Event(models.Model):
         ELITE = 2
         REGULAR = 3
 
-    # class State(models.TextChoices):
-    #     PENDING = 'pending'
-    #     RUNNING = 'running'
-    #     COMPLETED = 'completed'
-
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     name = models.CharField(max_length=100)
-    processed = models.BooleanField(default=False)
-    schedule = models.ForeignKey(Schedule, null=True, on_delete=models.SET_NULL)
-    # state = models.CharField(choices=State.choices, default=State.PENDING, max_length=10)
     type = models.IntegerField(choices=UserType.choices, default=UserType.REGULAR)
-    created = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(null=True)
     artifacts = models.TextField(null=True)
     commands = models.TextField(null=True)
 
@@ -61,3 +37,23 @@ class Event(models.Model):
 
     def __str__(self):
         return f'({self.id}) "{self.name}": {self.artifacts}'
+
+
+class Schedule(models.Model):
+    id = models.AutoField(primary_key=True, help_text='Internal ID')
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    next_trigger = models.DateTimeField(auto_now_add=True)
+    cron = models.CharField(max_length=20, null=True)
+
+    def get_cron_iterator(self):
+        if self.cron:
+            base = datetime.now()
+            return croniter(self.cron, base)
+
+    def calculate_next_trigger(self):
+        if self.cron:
+            self.next_trigger = self.get_cron_iterator().get_next(datetime)
+            return self.next_trigger
+
+    def get_related_events(self):
+        return self.event_set.all()
