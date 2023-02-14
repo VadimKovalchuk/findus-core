@@ -1,12 +1,10 @@
-import json
 import logging
 
 from copy import deepcopy
-from datetime import timedelta
 from typing import Callable, List, Union
 from pathlib import Path
 
-from django.utils.timezone import now
+from lib.file_processing import collect_json
 from task.models import Task, SystemTask, NetworkTask
 from task.lib.processing import FUNCTIONS
 
@@ -15,13 +13,6 @@ logger = logging.getLogger('task_processor')
 JSON_FOLDER = Path('data/task')
 COMMANDS_JSON = {}
 COMMANDS = {}
-
-
-def collect_json(json_folder: Path) -> dict:
-    result = {}
-    for file in json_folder.rglob('*.json'):
-        result.update(json.load(open(file)))
-    return result
 
 
 def get_cmd_dict(name: str) -> dict:

@@ -35,6 +35,9 @@ class Event(models.Model):
             task.arguments = self.artifacts
             task.save()
 
+    def get_schedule(self):
+        return self.schedule_set.all()
+
     def __str__(self):
         return f'({self.id}) "{self.name}": {self.artifacts}'
 
@@ -54,6 +57,3 @@ class Schedule(models.Model):
         if self.cron:
             self.next_trigger = self.get_cron_iterator().get_next(datetime)
             return self.next_trigger
-
-    def get_related_events(self):
-        return self.event_set.all()
