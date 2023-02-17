@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List
 
+from schedule.lib.event_templates import get_event_template
 from task.models import SystemTask
 
 from croniter import croniter
@@ -22,8 +23,8 @@ class Event(models.Model):
     artifacts = models.TextField(null=True)
     commands = models.TextField(null=True)
 
-    def get_description(self):
-        pass
+    def get_template(self):
+        return get_event_template(self.name)
 
     def get_tasks(self) -> List[SystemTask]:
         return self.systemtask_set.all()

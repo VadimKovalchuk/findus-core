@@ -5,11 +5,6 @@
     "type": 3,
     "artifacts": "",
     "commands": ["first", "second"],
-    "schedule" : [
-      {
-        "cron": "* * * * * *",
-        "periodic": false
-      }
-    ]
+    "schedule" : ["* * * * * *"]
   }
 }
