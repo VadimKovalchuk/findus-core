@@ -10,9 +10,11 @@ import pytest
 pytestmark = pytest.mark.django_db
 logger = logging.getLogger(__name__)
 
+SAMPLE_TICKER = 'MSFT'
+
 
 def test_instant_event_creation():
-    event_scheduler = Scheduler('name', 'MSFT')
+    event_scheduler = Scheduler('name', SAMPLE_TICKER)
     create_time = datetime.now()
     event_scheduler.push()
     event_time = event_scheduler.trigger_datetime
@@ -23,7 +25,7 @@ def test_instant_event_creation():
 
 
 def test_schedule_correspondence():
-    event_scheduler = Scheduler('name', 'MSFT')
+    event_scheduler = Scheduler('name', SAMPLE_TICKER)
     event_scheduler.push()
     created_schedule = event_scheduler._schedule
     ref_schedule = event_scheduler._event.get_schedule()[0]
@@ -31,6 +33,10 @@ def test_schedule_correspondence():
 
 
 def test_event_template():
-    event_scheduler = Scheduler('name', 'MSFT')
+    event_scheduler = Scheduler('name', SAMPLE_TICKER)
     template = event_scheduler._event.get_template()
     logger.debug(template)
+    assert template.get('human_name') == "base event", f'Human readable name mismatch'
+    assert template.get('description') == "base event example", \
+        f'Description mismatch'
+

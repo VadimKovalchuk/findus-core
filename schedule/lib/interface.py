@@ -50,7 +50,3 @@ class Scheduler:
     def push(self):
         self._event.save()
         self._schedule.save()
-
-
-class SchedulerEngine:
-    pass

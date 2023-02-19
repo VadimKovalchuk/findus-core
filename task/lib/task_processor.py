@@ -1,14 +1,14 @@
 import logging
 
-from datetime import datetime, timedelta
-from typing import Callable, Generator, Union
+from datetime import timedelta
+from typing import Union
 
 from django.utils.timezone import now
 
 from task.lib.commands import COMMANDS, Command
 from task.lib.constants import TaskType, TASK_PROCESSING_QUOTAS
-from task.lib.db import DatabaseMixin, compose_queryset_gen
-from task.lib.processing import CommonServiceMixin
+from lib.db import DatabaseMixin, compose_queryset_gen
+from lib.common_service import CommonServiceMixin
 from task.models import SystemTask, NetworkTask, TaskState
 
 logger = logging.getLogger(__name__)

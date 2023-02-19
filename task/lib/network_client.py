@@ -1,15 +1,14 @@
 import logging
 
-from functools import partial
-from typing import Callable, Generator
+from typing import Callable
 
 from django.utils.timezone import now
 
 from dcn.client.client import Client
 from dcn.common.broker import Task
-from task.lib.constants import TaskType, TaskState, TASK_PROCESSING_QUOTAS
-from task.lib.db import DatabaseMixin, overdue_network_tasks, pending_network_tasks
-from task.lib.processing import CommonServiceMixin
+from task.lib.constants import TaskType, TASK_PROCESSING_QUOTAS
+from lib.db import DatabaseMixin, overdue_network_tasks, pending_network_tasks
+from lib.common_service import CommonServiceMixin
 from task.models import NetworkTask, TaskState
 
 logger = logging.getLogger('dcn_client')
