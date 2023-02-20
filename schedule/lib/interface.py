@@ -3,8 +3,8 @@ from schedule.models import Schedule, Event
 
 class Scheduler:
     def __init__(self, event_name: str, artifacts: str):
-        self._event = Event(name=event_name, artifacts=artifacts)
-        self._schedule = Schedule(event=self._event)
+        self._event = Event.objects.create(name=event_name, artifacts=artifacts)
+        self._schedule = Schedule.objects.create(event=self._event)
 
     @property
     def type(self):
@@ -23,11 +23,11 @@ class Scheduler:
         self._event.artifacts = value
 
     @property
-    def commands(self):
-        return self._event.commands
+    def tasks(self):
+        return self._event.tasks
 
-    @commands.setter
-    def commands(self, value):
+    @tasks.setter
+    def tasks(self, value):
         self._event.commands = value
 
     @property

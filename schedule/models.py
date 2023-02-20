@@ -6,6 +6,7 @@ from task.models import SystemTask
 
 from croniter import croniter
 from django.db import models
+from django.utils.timezone import now
 
 
 class Event(models.Model):
@@ -19,25 +20,32 @@ class Event(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     name = models.CharField(max_length=100)
     type = models.IntegerField(choices=UserType.choices, default=UserType.REGULAR)
-    created = models.DateTimeField(null=True)
+    triggered = models.DateTimeField(null=True)
     artifacts = models.TextField(null=True)
-    commands = models.TextField(null=True)
+    tasks = models.TextField(null=True)
 
     def get_template(self):
         return get_event_template(self.name)
 
+    def get_schedule(self):
+        return list(self.schedule_set.all())
+
     def get_tasks(self) -> List[SystemTask]:
         return self.systemtask_set.all()
 
-    def trigger_commands(self):
-        for command in self.commands.split(','):
-            task: SystemTask = SystemTask.objects.create(name=command)
+    def trigger(self):
+        def _trigger(name: str):
+            task: SystemTask = SystemTask.objects.create(name=name)
             task.event = self
             task.arguments = self.artifacts
             task.save()
 
-    def get_schedule(self):
-        return self.schedule_set.all()
+        if self.tasks:
+            if ',' in self.tasks:
+                for task_name in self.tasks.split(','):
+                    _trigger(task_name)
+            else:
+                _trigger(self.tasks)
 
     def __str__(self):
         return f'({self.id}) "{self.name}": {self.artifacts}'

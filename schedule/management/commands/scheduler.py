@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 
 from django.core.management.base import BaseCommand
 
@@ -17,6 +18,7 @@ class Command(BaseCommand):
         scheduler = SchedulerEngine()
         while True:
             if not scheduler.db_connected and not scheduler.wait_db_connection():
+                sleep(1)
                 continue
             scheduler.init_cycle()
             scheduler.processing_cycle()
