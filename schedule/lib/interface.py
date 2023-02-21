@@ -3,50 +3,50 @@ from schedule.models import Schedule, Event
 
 class Scheduler:
     def __init__(self, event_name: str, artifacts: str):
-        self._event = Event.objects.create(name=event_name, artifacts=artifacts)
-        self._schedule = Schedule.objects.create(event=self._event)
+        self.event: Event = Event.objects.create(name=event_name, artifacts=artifacts)
+        self.schedule: Schedule = Schedule.objects.create(event=self.event)
 
     @property
     def type(self):
-        return self._event.type
+        return self.event.type
 
     @type.setter
     def type(self, value):
-        self._event.type = value
+        self.event.type = value
 
     @property
     def artifacts(self):
-        return self._event.artifacts
+        return self.event.artifacts
 
     @artifacts.setter
     def artifacts(self, value):
-        self._event.artifacts = value
+        self.event.artifacts = value
 
     @property
     def tasks(self):
-        return self._event.tasks
+        return self.event.tasks
 
     @tasks.setter
     def tasks(self, value):
-        self._event.commands = value
+        self.event.commands = value
 
     @property
     def trigger_datetime(self):
-        return self._schedule.next_trigger
+        return self.schedule.next_trigger
 
     @trigger_datetime.setter
     def trigger_datetime(self, value):
-        self._schedule.next_trigger = value
+        self.schedule.next_trigger = value
 
     @property
     def cron(self):
-        return self._schedule.cron
+        return self.schedule.cron
 
     @cron.setter
     def cron(self, value):
-        self._schedule.cron = value
-        self._schedule.next_trigger = self._schedule.calculate_next_trigger()
+        self.schedule.cron = value
+        self.schedule.next_trigger = self.schedule.calculate_next_trigger()
 
     def push(self):
-        self._event.save()
-        self._schedule.save()
+        self.event.save()
+        self.schedule.save()

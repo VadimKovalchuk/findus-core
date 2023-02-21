@@ -7,7 +7,7 @@ import inspect
 from typing import List, Union
 
 from settings import log_path
-from schedule.models import Event
+from schedule.lib.interface import Scheduler
 from task.models import Task, SystemTask, NetworkTask
 from ticker.models import Ticker, FinvizFundamental
 
@@ -99,12 +99,11 @@ def new_tickers_processing(task: SystemTask):
         ticker = Ticker(symbol=tkr)
         ticker.save()
         # TODO: Migrate to scheduler
-        event: Event = Event(
-            name='new_ticker',
+        scheduler: Scheduler = Scheduler(
+            event_name='new_ticker',
             artifacts=tkr,
-            commands='get_full_ticker_data'
         )
-        event.save()
+        scheduler.push()
     return True
 
 
