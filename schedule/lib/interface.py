@@ -28,7 +28,7 @@ class Scheduler:
 
     @tasks.setter
     def tasks(self, value):
-        self.event.commands = value
+        self.event.tasks = value
 
     @property
     def trigger_datetime(self):

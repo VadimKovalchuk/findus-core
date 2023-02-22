@@ -2,11 +2,15 @@ import logging
 
 from datetime import datetime, timedelta
 
+import croniter
+import pytest
+
+from django.utils.timezone import now
+
 from schedule.lib.interface import Scheduler
 from schedule.lib.scheduler import ScheduleProcessor
 from schedule.models import Event, Schedule
 
-import pytest
 
 
 pytestmark = pytest.mark.django_db
@@ -52,3 +56,37 @@ def test_trigger_single_event():
     event.refresh_from_db()
     assert event.triggered, "Triggered event has corresponding parameter content empty"
     assert not event.get_schedule(), "Triggered event has schedule object preserved"
+
+
+def test_trigger_periodic_event():
+    base = datetime.now()
+    cron = '1 * * * *'
+    processor = ScheduleProcessor()
+    event_scheduler = Scheduler('name', SAMPLE_TICKER)
+    event_scheduler.cron = cron
+    event_scheduler.trigger_datetime = now()
+    event_scheduler.push()
+    event: Event = event_scheduler.event
+    schedule: Schedule = event_scheduler.schedule
+    processor.processing_cycle()
+    event.refresh_from_db()
+    schedule.refresh_from_db()
+    assert event.triggered, "Triggered event has corresponding parameter content empty"
+    assert not event.get_schedule(), "Triggered event has schedule object preserved"
+    assert event != schedule.event, "Cron schedule is linked to previous event after trigger"
+    assert schedule.next_trigger == croniter.croniter(cron, base).get_next(datetime), \
+        "Next trigger datetime is not calculated for cron schedule"
+
+
+def test_trigger_event_with_task():
+    processor = ScheduleProcessor()
+    event_scheduler = Scheduler('name', SAMPLE_TICKER)
+    event_scheduler.tasks = 'system_relay_task'
+    event_scheduler.push()
+    event: Event = event_scheduler.event
+    processor.processing_cycle()
+    event.refresh_from_db()
+    logger.debug(event.tasks)
+    tasks = event.systemtask_set.all()
+    assert tasks, "Triggered event with command has child task missing"
+    assert tasks[0].name == 'system_relay_task', "Triggered event child task name mismatch"
