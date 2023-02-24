@@ -37,7 +37,7 @@ class DatabaseMixin:
 
 def generic_query_set_generator(
         query_getter: Callable,
-        task_model: Union[SystemTask, NetworkTask]) -> Generator:
+        task_model) -> Generator:
     while True:
         query_set = query_getter(task_model)
         if query_set:

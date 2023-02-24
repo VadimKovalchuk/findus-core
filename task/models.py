@@ -27,10 +27,6 @@ class Task(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     name = models.CharField(max_length=100)
     processing_state = models.CharField(max_length=10, choices=TaskState.choices, default=TaskState.CREATED)
-    # created = models.DateTimeField(auto_now_add=True)
-    # started = models.DateTimeField(null=True)
-    # processed = models.DateTimeField(null=True)
-    # done = models.DateTimeField(null=True)
     postponed = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
     parent_task = models.ForeignKey('SystemTask', null=True, on_delete=models.CASCADE)
@@ -50,21 +46,6 @@ class Task(models.Model):
     @state.setter
     def state(self, state: str):
         self.processing_state = state
-    # @property
-    # def state(self):
-    #     if self.postponed:
-    #         return TaskState.POSTPONED
-    #     elif self.created and not any((self.started, self.processed, self.done)):
-    #         return TaskState.CREATED
-    #     elif all((self.created, self.started)) and not any((self.processed, self.done)):
-    #         return TaskState.STARTED
-    #     elif all((self.created, self.started, self.processed)) and not self.done:
-    #         return TaskState.PROCESSED
-    #     elif all((self.created, self.started, self.processed, self.done)):
-    #         return TaskState.DONE
-    #     else:
-    #         # TODO: Report Event to DB
-    #         return TaskState.UNDEFINED
 
     def _stats(self):
         return {

@@ -12,7 +12,6 @@ from schedule.lib.scheduler import ScheduleProcessor
 from schedule.models import Event, Schedule
 
 
-
 pytestmark = pytest.mark.django_db
 logger = logging.getLogger(__name__)
 
