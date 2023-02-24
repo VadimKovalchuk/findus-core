@@ -57,7 +57,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         task: NetworkTask = NetworkTask.objects.get(pk=task_id)
         logger.info(f'Task {task.name} execution results received')
         task.result = dcn_task.body['result']
-        task.processed = now()
+        task.state = TaskState.PROCESSED
         task.save()
         self.broker.set_task_done(dcn_task)
         return True

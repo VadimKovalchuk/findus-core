@@ -37,9 +37,9 @@ def validate_task_queue(task: Task, expected_queue: Generator, task_proc: TaskPr
 def test_task_queues_range():
     # Task states validation range
     expected_sates = ('created', 'started', 'processed', 'done', 'postponed')
-    assert len(TaskState.STATES) == len(expected_sates), 'Task states range less than expected one'
+    assert len(TaskState.states) == len(expected_sates), 'Task states range less than expected one'
     for state in expected_sates:
-        assert state in TaskState.STATES, f'State "{state}" is missing in actual state list'
+        assert state in TaskState.states, f'State "{state}" is missing in actual state list'
     # Task queue presence in Task Processor
     task_processor = TaskProcessor()
     for task_type in TaskType.ALL:
@@ -67,15 +67,15 @@ def test_task_queues(task_name: str, task_type: str):
     task = cmd.create_task()
     validate_task_in_queue(TaskState.CREATED)
     # Started task
-    task.started = now()
+    task.state = TaskState.STARTED
     task.save()
     validate_task_in_queue(TaskState.STARTED)
     # Processed task
-    task.processed = now()
+    task.state = TaskState.PROCESSED
     task.save()
     validate_task_in_queue(TaskState.PROCESSED)
     # Done task
-    task.done = now()
+    task.state = TaskState.DONE
     task.save()
     validate_task_in_queue(TaskState.DONE)
 
@@ -101,15 +101,15 @@ def test_postponed_task(task_name: str, task_type: str):
     task.save()
     validate_task_in_queue(TaskState.POSTPONED)
     # Started task
-    task.started = now()
+    task.state = TaskState.STARTED
     task.save()
     validate_task_in_queue(TaskState.POSTPONED)
     # Processed task
-    task.processed = now()
+    task.state = TaskState.PROCESSED
     task.save()
     validate_task_in_queue(TaskState.POSTPONED)
     # Done task
-    task.done = now()
+    task.state = TaskState.DONE
     task.save()
     validate_task_in_queue(TaskState.POSTPONED)
 
@@ -158,8 +158,7 @@ def test_task_finalization(task_name: str, task_type: str):
     task_processor = TaskProcessor()
     cmd: Command = COMMANDS[task_name]
     task = cmd.create_task()
-    task.started = now()
-    task.processed = now()
+    task.state = TaskState.PROCESSED
     task.save()
     task_processor.generic_stage_handler(task_processor.finalize_task, task_type, TaskState.PROCESSED)
     task.refresh_from_db()
@@ -176,15 +175,13 @@ def test_processed_transition():
     task: SystemTask = cmd.create_task()
     task_processor.start_task(task)
     for child in task.get_children():
-        child.started = now()
-        child.processed = now()
-        child.done = now()
+        child.state = TaskState.DONE
         child.save()
     task.refresh_from_db()
     assert task.is_processed(), 'Task processed state is not reached on done children'
     task_processor._proc_candidates.add(task)
     task_processor.set_processed()
-    assert task.processed, 'Processed task is not marked with "processed" timestamp'
+    assert task.state == TaskState.PROCESSED, 'Processed task has not reached "processed" state'
     assert not task_processor._proc_candidates, 'Processing candidates set in not cleared after processing'
 
 
@@ -193,7 +190,7 @@ def test_task_lifecycle(network_client_on_dispatcher: NetworkClient):
     cmd: Command = COMMANDS[SYS_CMD_NAME]
     task: SystemTask = cmd.create_task()
     start = monotonic()
-    while not task.done and monotonic() < start + 5:
+    while not task.state == TaskState.DONE and monotonic() < start + 5:
         task_proc.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         task.refresh_from_db()

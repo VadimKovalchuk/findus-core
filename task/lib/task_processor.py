@@ -18,8 +18,8 @@ class TaskProcessor(CommonServiceMixin, DatabaseMixin):
     def __init__(self):
         CommonServiceMixin.__init__(self)
         self.queues = {
-            TaskType.System: {state: compose_queryset_gen(state, SystemTask) for state in TaskState.STATES},
-            TaskType.Network: {state: compose_queryset_gen(state, NetworkTask) for state in TaskState.STATES}
+            TaskType.System: {state: compose_queryset_gen(state, SystemTask) for state in TaskState.states},
+            TaskType.Network: {state: compose_queryset_gen(state, NetworkTask) for state in TaskState.states}
         }
         self._proc_candidates = set()
         self.quotas = TASK_PROCESSING_QUOTAS
@@ -40,7 +40,7 @@ class TaskProcessor(CommonServiceMixin, DatabaseMixin):
             self.idle = False
         if command.on_start(task):
             logger.info(f'{task} is started')
-            task.started = now()
+            task.state = TaskState.STARTED
             task.save()
             self.idle = False
         else:
@@ -54,7 +54,7 @@ class TaskProcessor(CommonServiceMixin, DatabaseMixin):
         for task in self._proc_candidates:
             self.idle = False
             if task.is_processed():
-                task.processed = now()
+                task.state = TaskState.PROCESSED
                 task.save()
         self._proc_candidates = set()
 
@@ -62,7 +62,7 @@ class TaskProcessor(CommonServiceMixin, DatabaseMixin):
         logger.info(f'Finalizing task "{task.name}"({task.id})')
         command: Command = COMMANDS[task.name]
         if command.finalize(task):
-            task.done = now()
+            task.state = TaskState.DONE
             task.save()
             self.idle = False
             logger.info(f'{task} is completed')

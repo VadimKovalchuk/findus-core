@@ -23,7 +23,7 @@ def create_network_task(module: str = 'findus-edge.stub', function: str = 'relay
     task.module = module
     task.function = function
     task.arguments = arguments
-    task.started = now()
+    task.state = TaskState.STARTED
     task.save()
     logger.debug(f'Network task is created: {task}')
     return task
@@ -55,7 +55,7 @@ def test_task_queues(network_client_on_dispatcher: NetworkClient):
         raise AssertionError('Task result is not received from network')
     client.append_task_result_to_db(task_result)
     pending_task.refresh_from_db()
-    assert pending_task.processed, f'Task result is processed but not marked as processed'
+    assert pending_task.state == TaskState.PROCESSED, f'Task result is processed but not marked as processed'
     assert not next(client.queues[TaskType.Network][TaskState.PROCESSED]), 'Unexpected task is received from DCN'
 
 
@@ -65,4 +65,4 @@ def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     client.stage_handler(client.push_task_to_network, TaskState.STARTED)
     client.stage_handler(client.append_task_result_to_db, TaskState.PROCESSED)
     task.refresh_from_db()
-    assert task.processed, f'Task result is processed but not marked as processed'
+    assert task.state == TaskState.PROCESSED, f'Task result is processed but not marked as processed'

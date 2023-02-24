@@ -38,6 +38,7 @@ class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
             event.save()
             if schedule.cron:  # if event is periodic
                 schedule.calculate_next_trigger()
+                schedule.save()
                 # Scheduling nex identical event with issued crone
                 next_event = self.clone(event)
                 next_event.save()

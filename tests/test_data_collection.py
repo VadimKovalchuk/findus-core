@@ -2,7 +2,7 @@ import json
 import logging
 
 from datetime import datetime, timedelta
-from time import monotonic
+from time import monotonic, sleep
 
 import pytest
 
@@ -25,10 +25,12 @@ def test_ticker_list(network_client_on_dispatcher: NetworkClient):
     cmd: Command = COMMANDS['update_ticker_list']
     task: SystemTask = cmd.create_task()
     start = monotonic()
-    while not task.done and monotonic() < start + 20:
+    while not task.state == TaskState.DONE and monotonic() < start + 20:
         task_proc.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         task.refresh_from_db()
+        logger.debug(task.child_stats())
+        sleep(0.5)
     logger.info(monotonic() - start)
     children = task.get_children()
     assert children, 'Children tasks are not created'
@@ -61,7 +63,7 @@ def test_ticker_daily_data(
     task.arguments = json.dumps({'ticker': ticker_sample.symbol, 'start': start_date})
     task.save()
     start = monotonic()
-    while not task.done and monotonic() < start + 20:
+    while not task.state == TaskState.DONE and monotonic() < start + 20:
         task_proc.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         task.refresh_from_db()
@@ -88,7 +90,7 @@ def test_finviz_fundamental(
     task.save()
     logger.debug(task.arguments)
     start = monotonic()
-    while not task.done and monotonic() < start + 20:
+    while not task.state == TaskState.DONE and monotonic() < start + 20:
         task_proc.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         task.refresh_from_db()

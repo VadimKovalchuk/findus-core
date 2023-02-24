@@ -5,7 +5,7 @@ import pytest
 
 from task.lib.commands import COMMANDS, JSON_FOLDER, Command
 from task.lib.processing import relay
-from task.models import Task, NetworkTask, SystemTask
+from task.models import Task, NetworkTask, SystemTask, TaskState
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +67,7 @@ def test_create_task(
         logger.info(f'Parameter "{param}": command- {cmd_value}, task- {task_value}')
         assert cmd_value == task_value, \
             f'Parameter "{param}" differs. Command: {cmd_value}, Task: {task_value}'
-    assert task.created, 'Task creation time is not defined'
-    assert not task.started, 'Task is started when not expected'
+    assert task.state == TaskState.CREATED, f'Task state is "{task.state}" when "{TaskState.CREATED}" is expected'
 
 
 @pytest.mark.django_db
