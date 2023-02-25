@@ -183,5 +183,10 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'scheduler': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        }
     },
 }

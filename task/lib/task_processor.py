@@ -32,14 +32,14 @@ class TaskProcessor(CommonServiceMixin, DatabaseMixin):
         )
 
     def start_task(self, task: Union[SystemTask, NetworkTask]):
-        logger.debug(f'Starting task: {task}')
+        logger.info(f'Starting task: {task}')
         command = COMMANDS[task.name]
         for child_task_name in command.child_tasks:
             child_cmd: Command = COMMANDS[child_task_name]
             child_cmd.create_task(task)
             self.idle = False
         if command.on_start(task):
-            logger.info(f'{task} is started')
+            logger.debug(f'{task} is started')
             task.state = TaskState.STARTED
             task.save()
             self.idle = False

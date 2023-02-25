@@ -1,10 +1,16 @@
+import logging
+
 from schedule.models import Schedule, Event
+
+
+logger = logging.getLogger(__name__)
 
 
 class Scheduler:
     def __init__(self, event_name: str, artifacts: str):
         self.event: Event = Event.objects.create(name=event_name, artifacts=artifacts)
         self.schedule: Schedule = Schedule.objects.create(event=self.event)
+        logger.info(f'Event created: {self.event}. Next trigger: {self.schedule.next_trigger}')
 
     @property
     def type(self):

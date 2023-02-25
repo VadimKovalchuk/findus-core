@@ -48,7 +48,7 @@ class Command:
         self.run_on_done: List[Callable] = [FUNCTIONS[func_name] for func_name in cmd_dict['run_on_done']]
 
     def create_task(self, parent: Union[Task, None] = None):
-        logger.debug(f'Creating task: {self.name}')
+        logger.info(f'Creating task: {self.name}')
         if self.dcn_task:
             task: NetworkTask = NetworkTask.objects.create(name=self.name)
             task.module = self.module
@@ -63,6 +63,7 @@ class Command:
     def on_start(self, task: Task) -> bool:
         for func in self.run_on_start:
             if not self._apply_callable(task, func):
+                logger.error(f"Failure on start function: {func.__name__}")
                 return False
         else:
             return True
