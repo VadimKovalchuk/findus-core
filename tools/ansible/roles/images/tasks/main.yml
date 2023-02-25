@@ -1,6 +1,6 @@
-- name: Pull Python 3.8 image
+- name: Pull Python 3.10 slim image
   community.docker.docker_image:
-    name: python:3.8
+    name: python:3.10-slim
     source: pull
     pull:
       platform: amd64
@@ -9,7 +9,7 @@
 
 - name: Pull Postgress DB image
   community.docker.docker_image:
-    name: postgres:13
+    name: postgres:15
     source: pull
     pull:
       platform: amd64
@@ -27,7 +27,7 @@
 
 - name: Pull RabbitMQ image
   community.docker.docker_image:
-    name: rabbitmq:3.9.11-management
+    name: rabbitmq:3.11-management
     source: pull
     pull:
       platform: amd64
