@@ -1,0 +1,10 @@
+{
+  "name": {
+    "human_name": "base event",
+    "description": "base event example",
+    "type": 3,
+    "artifacts": "",
+    "commands": ["first", "second"],
+    "schedule" : ["* * * * * *"]
+  }
+}

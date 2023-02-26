@@ -1,7 +1,7 @@
-version: "3.8"
+version: "3.10"
 services:
   database:
-    image: "postgres:13"
+    image: "postgres:15"
     restart: unless-stopped
     env_file:
       - ../database.env
@@ -15,7 +15,7 @@ services:
     ports:
       - 8080:8080
   rabbitmq:
-    image: "rabbitmq:3.9.11-management"
+    image: "rabbitmq:3.11-management"
     restart: unless-stopped
     deploy:
       mode: global
@@ -28,12 +28,12 @@ services:
       mode: global
     ports:
       - "9999:9999"
-    command: ["python", "dispatcher/service.py", "rabbitmq"]
+    command: ["python", "service/dispatcher.py", "rabbitmq"]
     volumes:
       - ./log/dispatcher/:/src/log/dispatcher/
   agent:
     image: "dcn:latest"
-    command: ["python", "agent/service.py", "dispatcher", "docker"]
+    command: ["python", "service/agent.py", "dispatcher", "docker"]
     volumes:
       - ./log/agent/:/src/log/agent/
     deploy:

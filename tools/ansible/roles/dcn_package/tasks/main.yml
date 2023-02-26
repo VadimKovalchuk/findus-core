@@ -1,0 +1,16 @@
+- name: Create packages folder
+  ansible.builtin.file:
+    path: '{{ core_path }}/packages'
+    state: directory
+    mode: '0764'
+
+- name: Clone DCN repository to packages folder
+  ansible.builtin.git:
+    repo: git@github.com:VadimKovalchuk/DCN.git
+    dest: '{{ core_path }}/packages/dcn'
+    version: '{{ dcn_branch }}'
+
+- name: Building wheels for DCN
+  ansible.builtin.shell: 'source {{ general_venv }}/core/bin/activate; python setup.py bdist_wheel'
+  args:
+    chdir: '{{ core_path }}/packages/dcn'

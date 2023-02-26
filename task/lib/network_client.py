@@ -1,15 +1,14 @@
 import logging
 
-from functools import partial
-from typing import Callable, Generator
+from typing import Callable
 
 from django.utils.timezone import now
 
-from client.client import Client
-from common.broker import Task
-from task.lib.constants import TaskType, TaskState, TASK_PROCESSING_QUOTAS
-from task.lib.db import DatabaseMixin, overdue_network_tasks, pending_network_tasks
-from task.lib.processing import CommonServiceMixin
+from dcn.client.client import Client
+from dcn.common.broker import Task
+from task.lib.constants import TaskType, TASK_PROCESSING_QUOTAS
+from lib.db import DatabaseMixin, overdue_network_tasks, pending_network_tasks
+from lib.common_service import CommonServiceMixin
 from task.models import NetworkTask, TaskState
 
 logger = logging.getLogger('dcn_client')
@@ -58,7 +57,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         task: NetworkTask = NetworkTask.objects.get(pk=task_id)
         logger.info(f'Task {task.name} execution results received')
         task.result = dcn_task.body['result']
-        task.processed = now()
+        task.state = TaskState.PROCESSED
         task.save()
         self.broker.set_task_done(dcn_task)
         return True

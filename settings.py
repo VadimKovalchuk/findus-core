@@ -2,7 +2,7 @@ import os
 
 import yaml
 
-from common.logging_tools import get_datetime_stamp
+from dcn.common.logging_tools import get_datetime_stamp
 
 with open("settings.yaml", 'r') as fh:
     try:

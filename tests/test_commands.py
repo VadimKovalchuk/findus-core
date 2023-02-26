@@ -3,17 +3,20 @@ import logging
 
 import pytest
 
-from task.lib.commands import COMMANDS, COMMANDS_JSON, Command
+from task.lib.commands import COMMANDS, JSON_FOLDER, Command
 from task.lib.processing import relay
-from task.models import Task, NetworkTask, SystemTask
+from task.models import Task, NetworkTask, SystemTask, TaskState
 
 logger = logging.getLogger(__name__)
 
-COMMANDS_COUNT = 7
+COMMANDS_COUNT = 9
 
 
 def test_cmd_catalog():
-    assert len(COMMANDS) == COMMANDS_COUNT, f"Unexpected commands count: {len(COMMANDS)}. Expected: {COMMANDS_COUNT}"
+    commands_count = 0
+    for file in JSON_FOLDER.rglob('*.json'):
+        commands_count += len(json.load(open(file)).keys())
+    assert len(COMMANDS) == commands_count, f"Unexpected commands count: {len(COMMANDS)}. Expected: {commands_count}"
     logger.info("\n".join([cmd for cmd in COMMANDS]))
 
 
@@ -64,8 +67,7 @@ def test_create_task(
         logger.info(f'Parameter "{param}": command- {cmd_value}, task- {task_value}')
         assert cmd_value == task_value, \
             f'Parameter "{param}" differs. Command: {cmd_value}, Task: {task_value}'
-    assert task.created, 'Task creation time is not defined'
-    assert not task.started, 'Task is started when not expected'
+    assert task.state == TaskState.CREATED, f'Task state is "{task.state}" when "{TaskState.CREATED}" is expected'
 
 
 @pytest.mark.django_db

@@ -8,14 +8,16 @@ from time import sleep
 import docker
 import pytest
 
-from client.client import Client
-from common.broker import Broker
-from common.constants import SECOND
-from common.data_structures import compose_queue
-from common.defaults import RoutingKeys
+from dcn.client.client import Client
+from dcn.common.broker import Broker
+from dcn.common.constants import SECOND
+from dcn.common.data_structures import compose_queue
+from dcn.common.defaults import RoutingKeys
 from task.lib.network_client import NetworkClient
 from task.lib.task_processor import TaskProcessor
+from tests.constants import REFERENCE_TICKER
 from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
+from ticker.models import Ticker
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +131,13 @@ def network_client_on_dispatcher(dispatcher, network_client: NetworkClient):
     network_client.broker.declare()
     network_client.broker._inactivity_timeout = 0.1 * SECOND
     yield network_client
+
+
+@pytest.fixture()
+def ticker_sample():
+    ticker = Ticker(symbol=REFERENCE_TICKER)
+    ticker.save()
+    yield ticker
 
 
 # PYTEST HOOKS

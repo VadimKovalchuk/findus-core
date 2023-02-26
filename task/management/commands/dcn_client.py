@@ -4,16 +4,8 @@ from django.utils.timezone import now
 from time import sleep
 
 from django.core.management.base import BaseCommand
-
-from common.constants import CLIENT, BROKER
-from common.logging_tools import setup_module_logger
 from task.lib.network_client import NetworkClient
 
-modules = [(__name__, logging.DEBUG),
-           (CLIENT, logging.DEBUG),
-           (BROKER, logging.INFO)]
-# for module_name, level in modules:
-#     setup_module_logger(module_name, level)
 logger = logging.getLogger(__name__)
 
 

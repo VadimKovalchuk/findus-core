@@ -37,7 +37,7 @@ class DatabaseMixin:
 
 def generic_query_set_generator(
         query_getter: Callable,
-        task_model: Union[SystemTask, NetworkTask]) -> Generator:
+        task_model) -> Generator:
     while True:
         query_set = query_getter(task_model)
         if query_set:
@@ -49,28 +49,22 @@ def generic_query_set_generator(
 
 def get_created_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
     query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(done__isnull=True)
-    query_set = query_set.filter(processed__isnull=True)
-    query_set = query_set.filter(started__isnull=True)
-    query_set = query_set.order_by('created')
+    query_set = query_set.filter(processing_state=TaskState.CREATED)
+    query_set = query_set.order_by('id')
     return query_set
 
 
 def get_started_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
     query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(done__isnull=True)
-    query_set = query_set.filter(processed__isnull=True)
-    query_set = query_set.filter(started__isnull=False)
-    query_set = query_set.order_by('started')
+    query_set = query_set.filter(processing_state=TaskState.STARTED)
+    query_set = query_set.order_by('id')
     return query_set
 
 
 def get_processed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
     query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(done__isnull=True)
-    query_set = query_set.filter(processed__isnull=False)
-    query_set = query_set.filter(started__isnull=False)
-    query_set = query_set.order_by('processed')
+    query_set = query_set.filter(processing_state=TaskState.PROCESSED)
+    query_set = query_set.order_by('id')
     return query_set
 
 
@@ -82,10 +76,8 @@ def get_postponed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
 
 def get_completed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
     query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(done__isnull=False)
-    query_set = query_set.filter(processed__isnull=False)
-    query_set = query_set.filter(started__isnull=False)
-    query_set = query_set.order_by('done')
+    query_set = query_set.filter(processing_state=TaskState.DONE)
+    query_set = query_set.order_by('id')
     return query_set
 
 
@@ -105,21 +97,17 @@ def compose_queryset_gen(task_state: str, task_model: Union[NetworkTask, SystemT
 
 def get_pending_network_tasks(task_model: NetworkTask) -> QuerySet:
     query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(done__isnull=True)
-    query_set = query_set.filter(processed__isnull=True)
+    query_set = query_set.filter(processing_state=TaskState.STARTED)
     query_set = query_set.filter(sent__isnull=True)
-    query_set = query_set.filter(started__isnull=False)
-    query_set = query_set.order_by('started')
+    query_set = query_set.order_by('id')
     return query_set
 
 
 def get_overdue_network_tasks(task_model: NetworkTask) -> QuerySet:
     query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(done__isnull=True)
-    query_set = query_set.filter(processed__isnull=True)
+    query_set = query_set.filter(processing_state=TaskState.STARTED)
     query_set = query_set.filter(sent__lt=now() - timedelta(days=1))
-    query_set = query_set.filter(started__isnull=False)
-    query_set = query_set.order_by('started')
+    query_set = query_set.order_by('id')
     return query_set
 
 

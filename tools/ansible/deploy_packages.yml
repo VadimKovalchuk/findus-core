@@ -1,0 +1,9 @@
+---
+- name: Deploy packages
+  hosts: all
+  vars_files:
+      - group_vars/all/vault
+      - group_vars/all/vars
+  roles:
+    - edge_package
+    - dcn_package

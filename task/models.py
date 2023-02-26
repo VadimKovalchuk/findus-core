@@ -12,7 +12,8 @@ class TaskState:
     DONE = 'done'
     POSTPONED = 'postponed'
     UNDEFINED = 'undefined'
-    STATES = [CREATED, STARTED, PROCESSED, DONE, POSTPONED]
+    states = [CREATED, STARTED, PROCESSED, DONE, POSTPONED]
+    choices = ((state, state) for state in states)
 
 
 class Task(models.Model):
@@ -25,13 +26,9 @@ class Task(models.Model):
 
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     name = models.CharField(max_length=100)
-    created = models.DateTimeField(auto_now_add=True)
-    started = models.DateTimeField(null=True)
-    processed = models.DateTimeField(null=True)
-    done = models.DateTimeField(null=True)
+    processing_state = models.CharField(max_length=10, choices=TaskState.choices, default=TaskState.CREATED)
     postponed = models.DateTimeField(null=True)
-    priority = models.IntegerField(choices=Priorities.choices,
-                                   default=Priorities.MEDIUM)
+    priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
     parent_task = models.ForeignKey('SystemTask', null=True, on_delete=models.CASCADE)
     arguments = models.TextField(null=True)
     result = models.TextField(null=True)
@@ -43,25 +40,20 @@ class Task(models.Model):
     def state(self):
         if self.postponed:
             return TaskState.POSTPONED
-        elif self.created and not any((self.started, self.processed, self.done)):
-            return TaskState.CREATED
-        elif all((self.created, self.started)) and not any((self.processed, self.done)):
-            return TaskState.STARTED
-        elif all((self.created, self.started, self.processed)) and not self.done:
-            return TaskState.PROCESSED
-        elif all((self.created, self.started, self.processed, self.done)):
-            return TaskState.DONE
         else:
-            # TODO: Report Event to DB
-            return TaskState.UNDEFINED
+            return self.processing_state
+
+    @state.setter
+    def state(self, state: str):
+        self.processing_state = state
 
     def _stats(self):
         return {
-            'created': 1 if self.state == TaskState.CREATED else 0,
-            'started': 1 if self.state == TaskState.STARTED else 0,
-            'processed': 1 if self.state == TaskState.PROCESSED else 0,
-            'done': 1 if self.state == TaskState.DONE else 0,
-            'postponed': 1 if self.state == TaskState.POSTPONED else 0,
+            TaskState.CREATED: 1 if self.state == TaskState.CREATED else 0,
+            TaskState.STARTED: 1 if self.state == TaskState.STARTED else 0,
+            TaskState.PROCESSED: 1 if self.state == TaskState.PROCESSED else 0,
+            TaskState.DONE: 1 if self.state == TaskState.DONE else 0,
+            TaskState.POSTPONED: 1 if self.state == TaskState.POSTPONED else 0,
         }
 
     def __str__(self):
@@ -69,6 +61,8 @@ class Task(models.Model):
 
 
 class SystemTask(Task):
+
+    event = models.ForeignKey('schedule.Event', null=True, on_delete=models.CASCADE)
 
     def get_children(self) -> List[Task]:
         children = list()

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'task',
     'ticker',
+    'schedule'
 ]
 
 MIDDLEWARE = [
@@ -118,7 +119,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -164,7 +165,17 @@ LOGGING = {
         },
         'task_processor': {
             'handlers': ['file'],
-            'level': 'DEBUG',
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'network_client': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'broker': {
+            'handlers': ['file'],
+            'level': 'INFO',
             'propagate': True,
         },
         'task_db_tools': {
@@ -172,5 +183,10 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'scheduler': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        }
     },
 }

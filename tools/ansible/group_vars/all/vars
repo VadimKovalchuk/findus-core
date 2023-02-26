@@ -15,3 +15,4 @@ core_python: "{{ core_venv }}/bin/python3"
 django_apps:
   - task
   - ticker
+  - schedule

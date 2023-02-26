@@ -1,12 +1,10 @@
-import json
 import logging
 
 from copy import deepcopy
-from datetime import timedelta
 from typing import Callable, List, Union
 from pathlib import Path
 
-from django.utils.timezone import now
+from lib.file_processing import collect_json
 from task.models import Task, SystemTask, NetworkTask
 from task.lib.processing import FUNCTIONS
 
@@ -15,13 +13,6 @@ logger = logging.getLogger('task_processor')
 JSON_FOLDER = Path('data/task')
 COMMANDS_JSON = {}
 COMMANDS = {}
-
-
-def collect_json(json_folder: Path) -> dict:
-    result = {}
-    for file in json_folder.rglob('*.json'):
-        result.update(json.load(open(file)))
-    return result
 
 
 def get_cmd_dict(name: str) -> dict:
@@ -46,17 +37,18 @@ def compose_command_dict(name: str) -> dict:
 class Command:
     def __init__(self, name: str):
         cmd_dict = compose_command_dict(name)
+        logger.info(f'Creating Command: {name}')
         self.name: str = name
         self.dcn_task: bool = cmd_dict['dcn_task']
         self.run_on_start: List[Callable] = [FUNCTIONS[func_name] for func_name in cmd_dict['run_on_start']]
         self.child_tasks: List[str] = cmd_dict['child_tasks']
         self.module: str = cmd_dict['module']
         self.function: str = cmd_dict['function']
-        self.arguments: str = cmd_dict['arguments']
+        self.arguments: dict = cmd_dict['arguments']
         self.run_on_done: List[Callable] = [FUNCTIONS[func_name] for func_name in cmd_dict['run_on_done']]
 
     def create_task(self, parent: Union[Task, None] = None):
-        logger.debug(f'Creating task: {self.name}')
+        logger.info(f'Creating task: {self.name}')
         if self.dcn_task:
             task: NetworkTask = NetworkTask.objects.create(name=self.name)
             task.module = self.module
@@ -71,6 +63,7 @@ class Command:
     def on_start(self, task: Task) -> bool:
         for func in self.run_on_start:
             if not self._apply_callable(task, func):
+                logger.error(f"Failure on start function: {func.__name__}")
                 return False
         else:
             return True
@@ -78,6 +71,7 @@ class Command:
     def finalize(self, task: Task) -> bool:
         for func in self.run_on_done:
             if not self._apply_callable(task, func):
+                logger.error(f"Failure on finalisation function: {func.__name__}")
                 return False
         else:
             return True
@@ -87,6 +81,7 @@ class Command:
             return func(task)
         except Exception as exc:
             # TODO: Create corresponding Event enry in DB
+            logger.error(exc.args)
             return False
 
     def __str__(self):
