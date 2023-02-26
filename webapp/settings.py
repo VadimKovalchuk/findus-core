@@ -38,9 +38,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'task',
-    'ticker',
-    'schedule'
+    'schedule.apps.ScheduleConfig',
+    'task.apps.TaskConfig',
+    'ticker.apps.TickerConfig'
 ]
 
 MIDDLEWARE = [

@@ -1,5 +1,8 @@
 from django.contrib import admin
 
-from .models import Ticker
+from ticker.models import Ticker, Price, Dividend, FinvizFundamental
 
 admin.site.register(Ticker)
+admin.site.register(Price)
+admin.site.register(Dividend)
+admin.site.register(FinvizFundamental)
