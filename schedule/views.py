@@ -1,10 +1,16 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.views.generic.list import ListView
+
+from schedule.models import Event
 
 
-# Create your views here.
 def index(request):
     return HttpResponse("Schedule!")
+
+
+class EventListView(ListView):
+    model = Event
 
 
 def schedule_details(request, schedule_id):

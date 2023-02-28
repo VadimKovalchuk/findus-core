@@ -23,6 +23,14 @@
     "base": "update_sp500_ticker_list",
     "function": "get_sp600_ticker_list"
   },
+  "get_new_ticker_data": {
+    "base": "base",
+    "run_on_start": ["clone_artifact_to_children"],
+    "child_tasks": [
+      "append_daily_ticker_data",
+      "append_finviz_fundamental"
+    ]
+  },
   "append_daily_ticker_data": {
     "base": "base",
     "dcn_task": true,

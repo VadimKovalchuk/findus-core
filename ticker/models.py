@@ -15,7 +15,7 @@ class AbstractTicker(models.Model):
 
 
 class Ticker(AbstractTicker):
-    company = models.CharField(max_length=100)
+    company = models.CharField(max_length=100, null=True)
 
     def get_price_by_date(self, date: str):
         return self.price_set.filter(date=date)

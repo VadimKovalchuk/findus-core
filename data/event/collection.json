@@ -6,5 +6,13 @@
     "artifacts": "",
     "commands": ["first", "second"],
     "schedule" : ["* * * * * *"]
+  },
+  "new_ticker": {
+    "human_name": "New ticker",
+    "description": "New ticker created",
+    "type": 3,
+    "artifacts": "",
+    "commands": ["get_new_ticker_data"],
+    "schedule" : []
   }
 }

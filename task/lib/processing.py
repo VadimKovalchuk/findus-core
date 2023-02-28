@@ -30,8 +30,6 @@ def relay(task: Union[SystemTask, NetworkTask]):
 def validate_result_json(task: Task):
     logger.info(f'Validating result JSON')
     try:
-        # logger.debug(type(task.result))
-        # logger.debug(task.result)
         result = bool(json.loads(task.result))
         # logger.debug(f'JSON bool context: {result}')
         return True
@@ -98,7 +96,6 @@ def new_tickers_processing(task: SystemTask):
     for tkr in tickers:
         ticker = Ticker(symbol=tkr)
         ticker.save()
-        # TODO: Migrate to scheduler
         scheduler: Scheduler = Scheduler(
             event_name='new_ticker',
             artifacts=tkr,
@@ -122,14 +119,6 @@ def define_ticker_daily_start_date(task: SystemTask):
         arguments['start'] = f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
         task.arguments = json.dumps(arguments)
         task.save()
-    return True
-
-
-def daily_tickers_schedule(task: SystemTask):
-    tickers: List[Ticker] = Ticker.objects.all()
-    for ticker in tickers:
-        task_args = json.dumps({'ticker': ticker.symbol})
-        create_task(name='append_daily_ticker_data', parent_task=task, own_args=task_args)  # , postpone=postpone)
     return True
 
 
