@@ -86,7 +86,7 @@ def test_finviz_fundamental(
     task_proc = TaskProcessor()
     cmd: Command = COMMANDS['append_finviz_fundamental']
     task: SystemTask = cmd.create_task()
-    task.arguments = ticker_sample.symbol
+    task.arguments = json.dumps({"ticker": ticker_sample.symbol})
     task.save()
     logger.debug(task.arguments)
     start = monotonic()

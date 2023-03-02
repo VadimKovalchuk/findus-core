@@ -99,7 +99,7 @@ def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func
     test_task['client'] = client.broker.input_queue
     test_task['module'] = 'findus_edge.finviz'
     test_task['function'] = module_func
-    test_task['arguments'] = ticker
+    test_task['arguments'] = {"ticker": ticker}
     client.broker.push(test_task)
     # Validating result on client
     result = next(client.broker.pulling_generator())

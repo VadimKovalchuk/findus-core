@@ -6,7 +6,7 @@ from schedule.models import Event, Schedule
 from django.db.models.query import QuerySet
 from django.utils.timezone import now
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('scheduler')
 
 
 def get_pending_schedules(schedule: Schedule) -> QuerySet:

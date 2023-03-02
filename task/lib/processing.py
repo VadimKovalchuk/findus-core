@@ -66,7 +66,7 @@ def append_dividends(task: Task):
 
 
 def append_finviz_fundamental(task: Task):
-    ticker_name = task.arguments
+    ticker_name = json.loads(task.arguments)['ticker']
     logger.info(f'Processing fundamental data from finviz for {ticker_name}')
     ticker = Ticker.objects.get(symbol=ticker_name)
     result = json.loads(task.result)
@@ -98,11 +98,20 @@ def new_tickers_processing(task: SystemTask):
         ticker.save()
         scheduler: Scheduler = Scheduler(
             event_name='new_ticker',
-            artifacts=tkr,
+            artifacts=json.dumps({"ticker": tkr}),
         )
         scheduler.push()
     return True
 
+
+def clone_arguments_to_children(task: SystemTask):
+    if task.arguments:
+        for child_task in task.get_children():
+            child_task.arguments = task.arguments
+            child_task.save()
+    else:
+        logger.warning(f'No arguments to clone from task: {task}')
+    return True
 
 def pop_new_ticker_from_parent(task: SystemTask):
     pass

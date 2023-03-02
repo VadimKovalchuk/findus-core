@@ -3,7 +3,7 @@ import logging
 from schedule.models import Schedule, Event
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('scheduler')
 
 
 class Scheduler:

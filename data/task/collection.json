@@ -25,7 +25,7 @@
   },
   "get_new_ticker_data": {
     "base": "base",
-    "run_on_start": ["clone_artifact_to_children"],
+    "run_on_start": ["clone_arguments_to_children"],
     "child_tasks": [
       "append_daily_ticker_data",
       "append_finviz_fundamental"
