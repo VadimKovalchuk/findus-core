@@ -46,9 +46,8 @@ class TaskProcessor(CommonServiceMixin, DatabaseMixin):
         else:
             task.postponed = now() + timedelta(days=1)
             task.save()
-            # TODO: Generate Event entry in DB
             logger.error(f'{task} start failure')
-            raise SystemError('Task start failure')
+            # raise SystemError('Task start failure')
 
     def set_processed(self):
         for task in self._proc_candidates:
@@ -71,7 +70,8 @@ class TaskProcessor(CommonServiceMixin, DatabaseMixin):
         else:
             task.postponed = now() + timedelta(days=1)
             task.save()
-            raise SystemError(f'Command {task.name} on_done flow failed')
+            logger.error(f'Command {task.name} on_done flow failed')
+            #raise SystemError(f'Command {task.name} on_done flow failed')
 
     def cancel_postpone(self, task: Union[SystemTask, NetworkTask]):
         task.postponed = None

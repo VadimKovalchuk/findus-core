@@ -163,6 +163,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        'dcn_client': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
         'task_processor': {
             'handlers': ['file'],
             'level': 'INFO',

@@ -7,6 +7,14 @@
     "commands": ["first", "second"],
     "schedule" : ["* * * * * *"]
   },
+  "update_ticker_list": {
+    "human_name": "Update ticker list",
+    "description": "Update ticker list",
+    "type": 3,
+    "artifacts": "",
+    "commands": ["update_ticker_list"],
+    "schedule" : []
+  },
   "new_ticker": {
     "human_name": "New ticker",
     "description": "New ticker created",

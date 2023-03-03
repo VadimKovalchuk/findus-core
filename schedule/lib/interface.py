@@ -9,6 +9,7 @@ logger = logging.getLogger('scheduler')
 class Scheduler:
     def __init__(self, event_name: str, artifacts: str):
         self.event: Event = Event.objects.create(name=event_name, artifacts=artifacts)
+        self.event.tasks_from_template()
         self.schedule: Schedule = Schedule.objects.create(event=self.event)
         logger.info(f'Event created: {self.event}. Next trigger: {self.schedule.next_trigger}')
 

@@ -35,7 +35,7 @@ class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
             logger.debug(schedule.__dict__)
             # Trigger schedule related event
             event: Event = schedule.event
-            logger.debug(f'Triggering event: {event}')
+            logger.info(f'Triggering event: {event}')
             event.trigger()
             event.triggered = now()  # Marking event as triggered
             event.save()

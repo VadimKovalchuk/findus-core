@@ -5,6 +5,7 @@ from typing import Callable, List, Union
 from pathlib import Path
 
 from lib.file_processing import collect_json
+from schedule.lib.interface import Scheduler
 from task.models import Task, SystemTask, NetworkTask
 from task.lib.processing import FUNCTIONS
 
@@ -82,6 +83,8 @@ class Command:
         except Exception as exc:
             # TODO: Create corresponding Event enry in DB
             logger.error(exc.args)
+            sched = Scheduler(f"Task {task} processing failure: {func.__name__}", str(exc.args))
+            sched.push()
             return False
 
     def __str__(self):

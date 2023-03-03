@@ -27,6 +27,11 @@ class Event(models.Model):
     def get_template(self):
         return get_event_template(self.name)
 
+    def tasks_from_template(self):
+        template = self.get_template()
+        task_list = template.get('commands', [])
+        self.tasks = ', '.join(task_list)
+
     def get_schedule(self):
         return list(self.schedule_set.all())
 
