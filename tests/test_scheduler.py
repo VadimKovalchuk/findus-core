@@ -1,5 +1,6 @@
 import logging
 
+from copy import deepcopy
 from datetime import datetime, timedelta
 
 import croniter
@@ -10,6 +11,7 @@ from django.utils.timezone import now
 from schedule.lib.interface import Scheduler
 from schedule.lib.scheduler import ScheduleProcessor
 from schedule.models import Event, Schedule
+from task.lib.commands import COMMANDS, Command
 
 
 pytestmark = pytest.mark.django_db
@@ -43,7 +45,9 @@ def test_event_template():
     logger.debug(template)
     assert template.get('human_name') == "base event", f'Human readable name mismatch'
     assert template.get('description') == "base event example", \
-        f'Description mismatch'
+        'Description mismatch'
+    assert ', '.join(template.get('commands')) == event_scheduler.event.tasks, \
+        'Commands are not reapplied from template'
 
 
 def test_trigger_single_event():
@@ -89,3 +93,23 @@ def test_trigger_event_with_task():
     tasks = event.systemtask_set.all()
     assert tasks, "Triggered event with command has child task missing"
     assert tasks[0].name == 'system_relay_task', "Triggered event child task name mismatch"
+
+
+def test_event_without_template():
+    event_scheduler = Scheduler('random', 'artifactless')
+    event_scheduler.push()
+    assert Event.objects.all(), 'Event without template is not created'
+
+
+def test_task_wrapping_function_failure():
+    def failing(task):
+        raise Exception('Wrapping function failure')
+
+    command: Command = deepcopy(COMMANDS['system_relay_task'])
+    command.run_on_start = [failing]
+    system_task = command.create_task()
+    command.on_start(system_task)
+    events = Event.objects.all()
+    assert events, 'Wrapping function failure is not followed by Event creation'
+    event = events[0]
+    assert failing.__name__ in event.name, 'Wrapping func failure Event is not descriptive'

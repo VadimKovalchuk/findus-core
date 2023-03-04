@@ -81,10 +81,8 @@ class Command:
         try:
             return func(task)
         except Exception as exc:
-            # TODO: Create corresponding Event enry in DB
-            logger.error(exc.args)
-            sched = Scheduler(f"Task {task} processing failure: {func.__name__}", str(exc.args))
-            sched.push()
+            event_scheduler = Scheduler(f"Task {task} processing failure: {func.__name__}", str(exc.args))
+            event_scheduler.push()
             return False
 
     def __str__(self):
