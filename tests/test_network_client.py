@@ -7,7 +7,6 @@ import pytest
 
 from django.utils.timezone import now
 
-from dcn.common.broker import Task
 from task.lib.commands import COMMANDS, Command
 from task.lib.constants import TaskType
 from task.lib.network_client import NetworkClient
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.django_db
 
 
-def create_network_task(module: str = 'findus-edge.stub', function: str = 'relay', arguments: Union[str, None] = None):
+def create_network_task(module: str = 'findus_edge.stub', function: str = 'relay', arguments: Union[str, None] = None):
     task: NetworkTask = NetworkTask.objects.create(name='pytest')
     task.module = module
     task.function = function
@@ -48,7 +47,7 @@ def test_task_queues(network_client_on_dispatcher: NetworkClient):
     assert pending_task.sent, 'Network task is send to DCN but not marked as sent'
     for _ in range(20):  # x20 milliseconds
         sleep(0.02)
-        task_result: Task = next(client.queues[TaskType.Network][TaskState.PROCESSED])
+        task_result = next(client.queues[TaskType.Network][TaskState.PROCESSED])
         if task_result:
             break
     else:

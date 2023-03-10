@@ -1,11 +1,10 @@
 import logging
 
-from typing import Callable
+from typing import Callable, Dict
 
 from django.utils.timezone import now
 
 from dcn.client.client import Client
-from dcn.common.broker import Task
 from task.lib.constants import TaskType, TASK_PROCESSING_QUOTAS
 from lib.db import DatabaseMixin, overdue_network_tasks, pending_network_tasks
 from lib.common_service import CommonServiceMixin
@@ -42,32 +41,30 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
 
     @property
     def online(self):
-        return self.db_connected and self.broker and self.broker.connected
+        return self.db_connected and self.broker and self.broker.is_connected
 
     def _pull_task_result(self):
         while self._active:
-            for result in self.broker.pulling_generator():
-                yield result
-            else:
-                yield None
+            status, task = self.broker.consume()
+            # TODO: Handle broker status
+            yield task
 
-    def append_task_result_to_db(self, dcn_task: Task):
+    def append_task_result_to_db(self, dcn_task: Dict):
         self.idle = False
-        task_id = dcn_task.body['id']
+        task_id = dcn_task['id']
         task: NetworkTask = NetworkTask.objects.get(pk=task_id)
         logger.info(f'Task {task.name} execution results received')
-        task.result = dcn_task.body['result']
+        task.result = dcn_task['result']
         task.state = TaskState.PROCESSED
         task.save()
-        self.broker.set_task_done(dcn_task)
         return True
 
     def push_task_to_network(self, network_task: NetworkTask):
         self.idle = False
         logger.info(f'Sending task: {network_task.name}')
         dcn_task = network_task.compose_for_dcn(self.name)
-        dcn_task['client'] = self.broker.input_queue
-        self.broker.push(dcn_task)
+        dcn_task['client'] = self.broker.queue
+        self.broker.publish(dcn_task)
         network_task.sent = now()
         network_task.save()
         return True

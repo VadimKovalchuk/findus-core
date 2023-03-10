@@ -15,7 +15,7 @@ class CommonServiceMixin:
 
     def finalize_cycle(self):
         if self.idle:
-            logger.info('Processing cycle is idle.')
+            logger.debug('Processing cycle is idle.')
             sleep(IDLE_SLEEP_TIMEOUT)
 
     def generic_stage_handler(self, func: Callable, task_type: str = '', task_state: str = ''):
