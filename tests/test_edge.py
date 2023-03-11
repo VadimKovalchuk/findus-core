@@ -28,15 +28,14 @@ def calculate_boundaries(expected: Union[int, float], accuracy: float) -> Tuple[
 def test_availability(client_on_dispatcher: Client):
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
-    test_task['client'] = client.broker.input_queue
+    test_task['client'] = client.broker.queue
     test_task['module'] = 'findus_edge.stub'
     test_task['arguments'] = {"test_arg_1": "test_val_1",
                               "test_arg_2": "test_val_2"}
-    client.broker.push(test_task)
+    client.broker.publish(test_task)
     # Validating result on client
-    result = next(client.broker.pulling_generator())
-    client.broker.set_task_done(result)
-    assert test_task['arguments'] == result.body['result'], \
+    _, result = next(client.broker.pull())
+    assert test_task['arguments'] == result['result'], \
         'Wrong task is received from task queue for Agent'
 
 
@@ -52,14 +51,13 @@ def test_ticker_list(
 ):
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
-    test_task['client'] = client.broker.input_queue
+    test_task['client'] = client.broker.queue
     test_task['module'] = 'findus_edge.tickers'
     test_task['function'] = module_func
-    client.broker.push(test_task)
+    client.broker.publish(test_task)
     # Validating result on client
-    result = next(client.broker.pulling_generator())
-    client.broker.set_task_done(result)
-    ticker_count = len(json.loads(result.body['result']))
+    _, result = next(client.broker.pull())
+    ticker_count = len(json.loads(result['result']))
     logger.info(f'Tickers count: {ticker_count}')
     _min, _max = calculate_boundaries(expected, 1.2)
     assert _min <= ticker_count <= _max, \
@@ -69,17 +67,16 @@ def test_ticker_list(
 def test_price_history(client_on_dispatcher: Client):
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
-    test_task['client'] = client.broker.input_queue
+    test_task['client'] = client.broker.queue
     test_task['module'] = 'findus_edge.yahoo'
     test_task['function'] = 'ticker_history'
     today = datetime.today()
     start_date = today - timedelta(weeks=13)  # 3 month ago
     test_task['arguments'] = {'ticker': 'MSFT', 'start': start_date.strftime('%Y-%m-%d')}
-    client.broker.push(test_task)
+    client.broker.publish(test_task)
     # Validating result on client
-    result = next(client.broker.pulling_generator())
-    client.broker.set_task_done(result)
-    data = json.loads(result.body['result'])
+    _, result = next(client.broker.pull())
+    data = json.loads(result['result'])
     price_count = len(data['prices'])
     dividend_count = len(data['dividends'])
     logger.info(f'Price rows: {price_count}, Dividend rows: {dividend_count}')
@@ -96,17 +93,15 @@ def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func
     ticker = "MSFT"
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
-    test_task['client'] = client.broker.input_queue
+    test_task['client'] = client.broker.queue
     test_task['module'] = 'findus_edge.finviz'
     test_task['function'] = module_func
     test_task['arguments'] = {"ticker": ticker}
-    client.broker.push(test_task)
+    client.broker.publish(test_task)
     # Validating result on client
-    result = next(client.broker.pulling_generator())
-    client.broker.set_task_done(result)
-    data = json.loads(result.body['result'])
+    _, result = next(client.broker.pull())
+    data = json.loads(result['result'])
     assert 'values' in data, f'Ticker fundamental values are missing in command result contents'
     assert len(data['values']) == expected_prop_count, \
         f'Fields count differs in fundamental data for ticker {ticker}: ' \
         f'actual - {len(data["values"])}, expected - {expected_prop_count}'
-

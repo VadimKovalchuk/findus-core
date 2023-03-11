@@ -45,9 +45,9 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
 
     def _pull_task_result(self):
         while self._active:
-            status, task = self.broker.consume()
-            # TODO: Handle broker status
-            yield task
+            for status, task in self.broker.pull():
+                # TODO: Handle broker status
+                yield task
 
     def append_task_result_to_db(self, dcn_task: Dict):
         self.idle = False

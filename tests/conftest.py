@@ -84,10 +84,10 @@ def client():
         yield client
         if client.broker:
             host = client.broker.host
-            input_queue = client.broker.input_queue
+            queue = client.broker.queue
         else:
             return
-    flush_queue(host, input_queue)
+    flush_queue(host, queue)
 
 
 @pytest.fixture()
@@ -122,6 +122,7 @@ def network_client_on_dispatcher(dispatcher, network_client: NetworkClient):
         sleep(3)
     # network_client.get_client_queues()
     network_client.broker.connect()
+    network_client.broker.inactivity_timeout = 0.1 * SECOND
     yield network_client
 
 
