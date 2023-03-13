@@ -53,6 +53,7 @@ class TaskProcessor(CommonServiceMixin, DatabaseMixin):
         for task in self._proc_candidates:
             self.idle = False
             if task.is_processed():
+                task.refresh_from_db()
                 task.state = TaskState.PROCESSED
                 task.save()
         self._proc_candidates = set()
