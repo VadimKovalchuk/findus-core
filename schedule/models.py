@@ -6,7 +6,6 @@ from task.models import SystemTask
 
 from croniter import croniter
 from django.db import models
-from django.utils.timezone import now
 
 
 class Event(models.Model):

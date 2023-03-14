@@ -2,11 +2,11 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.generic.list import ListView
 
-from schedule.models import Event
+from algo.models import Algo
 
 
 class EventListView(ListView):
-    model = Event
+    model = Algo
 
 
 def schedule_details(request, schedule_id):
