@@ -1,16 +1,16 @@
 from django.db import models
 
-from ticker.models import Ticker
+from ticker.models import Ticker, Scope
 
 
 class Algo(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     name = models.TextField()
-    # scope = models.ForeignKey(Scope, on_delete=models.SET_NULL)
+    reference_scope = models.ForeignKey(Scope, null=True, on_delete=models.SET_NULL)
 
     @property
     def metrics(self):
-        return self.algometrics_set.all()
+        return self.algometric_set.all()
 
     def __str__(self):
         return f'({self.id}) "{self.name}"'  # : {self.scope}'
@@ -36,6 +36,10 @@ class AlgoSlice(models.Model):
     ticker = models.ForeignKey(Ticker, on_delete=models.CASCADE)
     date = models.DateTimeField()
     result = models.FloatField(null=True, help_text='final rating')
+
+    @property
+    def metrics(self):
+        return self.algometricslice_set.all()
 
     def __str__(self):
         return f' ({self.id})"{self.algo.name}" for {self.ticker.symbol}:{self.result} at {self.date}'
