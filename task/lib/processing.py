@@ -9,7 +9,7 @@ from typing import List, Union
 from settings import log_path
 from schedule.lib.interface import Scheduler
 from task.models import Task, SystemTask, NetworkTask
-from ticker.models import Ticker, FinvizFundamental
+from ticker.models import Ticker, FinvizFundamental, Scope
 
 logger = logging.getLogger('task_processor')
 logger.debug(log_path)
@@ -76,6 +76,46 @@ def append_finviz_fundamental(task: Task):
     return True
 
 
+def append_new_tickers(task: Task):
+    all_tickers = [ticker.symbol for ticker in Ticker.objects.all()]
+    missing = [ticker for ticker in json.loads(task.result) if ticker not in all_tickers]
+    if len(missing):
+        logger.info(f'{len(missing)} new ticker(s) found')
+        for tkr in missing:
+            ticker = Ticker(symbol=tkr)
+            ticker.save()
+            scheduler: Scheduler = Scheduler(event_name='new_ticker', artifacts=json.dumps({"ticker": tkr}))
+            scheduler.push()
+    return True
+
+
+def update_scope(task: Task):
+    reference_tkr_list = json.loads(task.result)
+    arguments = json.loads(task.arguments)
+    scope_name = arguments.get("scope")
+    scope = Scope.objects.get(name=scope_name)
+    scope_tickers = [ticker.symbol for ticker in Scope.tickers]
+    missing = [ticker for ticker in reference_tkr_list if ticker not in scope_tickers]
+    if missing:
+        logger.info(f'{len(missing)} new tickers will be added to scope "{scope_name}"')
+        for tkr in missing:
+            ticker = Ticker.objects.get(name=tkr)
+            scope.tickers.add(ticker)
+            scope.save()
+            scheduler: Scheduler = Scheduler(event_name='scope_add', artifacts=json.dumps({"ticker": tkr}))
+            scheduler.push()
+    redundant = [ticker for ticker in scope_tickers if ticker not in reference_tkr_list]
+    if redundant:
+        logger.info(f'{len(missing)} tickers will be removed from scope "{scope_name}"')
+        for tkr in redundant:
+            ticker = Ticker.objects.get(name=tkr)
+            Scope.tickers.exclude(ticker)
+            scope.save()
+            scheduler: Scheduler = Scheduler(event_name='scope_exclude', artifacts=json.dumps({"ticker": tkr}))
+            scheduler.push()
+    return True
+
+
 def process_ticker_list(task: Task):
     all_tickers = [ticker.symbol for ticker in Ticker.objects.all()]
     missing = [ticker for ticker in json.loads(task.result) if ticker not in all_tickers]
@@ -112,9 +152,6 @@ def clone_arguments_to_children(task: SystemTask):
     else:
         logger.warning(f'No arguments to clone from task: {task}')
     return True
-
-def pop_new_ticker_from_parent(task: SystemTask):
-    pass
 
 
 def define_ticker_daily_start_date(task: SystemTask):
