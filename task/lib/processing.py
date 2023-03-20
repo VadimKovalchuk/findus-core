@@ -3,8 +3,9 @@ import json
 import logging
 import sys
 import inspect
-
 from typing import List, Union
+
+from django.db import transaction
 
 from settings import log_path
 from schedule.lib.interface import Scheduler
@@ -82,24 +83,31 @@ def append_new_tickers(task: Task):
     if len(missing):
         logger.info(f'{len(missing)} new ticker(s) found')
         for tkr in missing:
-            ticker = Ticker(symbol=tkr)
-            ticker.save()
-            scheduler: Scheduler = Scheduler(event_name='new_ticker', artifacts=json.dumps({"ticker": tkr}))
-            scheduler.push()
+            if len(tkr) > 6:
+                logger.error(f"Suspicious ticker name: {tkr}")
+                # TODO: Handle via event
+                continue
+            with transaction.atomic():
+                # logger.debug(tkr)
+                ticker = Ticker(symbol=tkr)
+                ticker.save()
+                scheduler: Scheduler = Scheduler(event_name='new_ticker', artifacts=json.dumps({"ticker": tkr}))
+                scheduler.push()
     return True
 
 
 def update_scope(task: Task):
     reference_tkr_list = json.loads(task.result)
+    logger.debug(task.arguments)
     arguments = json.loads(task.arguments)
     scope_name = arguments.get("scope")
     scope = Scope.objects.get(name=scope_name)
-    scope_tickers = [ticker.symbol for ticker in Scope.tickers]
+    scope_tickers = [ticker.symbol for ticker in scope.tickers.all()]
     missing = [ticker for ticker in reference_tkr_list if ticker not in scope_tickers]
     if missing:
         logger.info(f'{len(missing)} new tickers will be added to scope "{scope_name}"')
         for tkr in missing:
-            ticker = Ticker.objects.get(name=tkr)
+            ticker = Ticker.objects.get(symbol=tkr)
             scope.tickers.add(ticker)
             scope.save()
             scheduler: Scheduler = Scheduler(event_name='scope_add', artifacts=json.dumps({"ticker": tkr}))
@@ -108,8 +116,8 @@ def update_scope(task: Task):
     if redundant:
         logger.info(f'{len(missing)} tickers will be removed from scope "{scope_name}"')
         for tkr in redundant:
-            ticker = Ticker.objects.get(name=tkr)
-            Scope.tickers.exclude(ticker)
+            ticker = Ticker.objects.get(symbol=tkr)
+            scope.tickers.exclude(ticker)
             scope.save()
             scheduler: Scheduler = Scheduler(event_name='scope_exclude', artifacts=json.dumps({"ticker": tkr}))
             scheduler.push()
@@ -134,13 +142,19 @@ def new_tickers_processing(task: SystemTask):
     tickers = task.result.split(',')
     logger.info(f'{len(tickers)} new tickers found creating corresponding "new_ticker" events')
     for tkr in tickers:
-        ticker = Ticker(symbol=tkr)
-        ticker.save()
-        scheduler: Scheduler = Scheduler(
-            event_name='new_ticker',
-            artifacts=json.dumps({"ticker": tkr}),
-        )
-        scheduler.push()
+        if len(tkr) > 6:
+            logger.error(f"Suspicious ticker name: {tkr}")
+            # TODO: Handle via event
+            continue
+        with transaction.atomic():
+            # logger.debug(tkr)
+            ticker = Ticker.objects.create(symbol=tkr)
+            ticker.save()
+            scheduler: Scheduler = Scheduler(
+                event_name='new_ticker',
+                artifacts=json.dumps({"ticker": tkr}),
+            )
+            scheduler.push()
     return True
 
 

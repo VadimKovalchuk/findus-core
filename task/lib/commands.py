@@ -58,6 +58,8 @@ class Command:
             task = SystemTask.objects.create(name=self.name)
         if parent:
             task.parent_task = parent
+        if self.arguments:
+            task.arguments = self.arguments
         task.save()
         return task
 

@@ -16,5 +16,19 @@
       "network_relay_task"
     ],
     "run_on_done": ["relay", "relay"]
+  },
+  "update_test_scopes": {
+    "base": "base",
+    "child_tasks": [
+      "update_test_scope"
+    ]
+  },
+  "update_test_scope": {
+    "base": "base",
+    "dcn_task": true,
+    "module": "findus_edge.tickers",
+    "function": "update_test_scope",
+    "arguments": "{\"scope\": \"TestScope\"}",
+    "run_on_done": ["append_new_tickers", "update_scope"]
   }
 }

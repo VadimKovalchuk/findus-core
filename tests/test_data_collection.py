@@ -10,7 +10,7 @@ from task.lib.commands import COMMANDS, Command
 from task.lib.network_client import NetworkClient
 from task.lib.task_processor import TaskProcessor
 from task.models import SystemTask, TaskState
-from ticker.models import Ticker, HISTORY_LIMIT_DATE
+from ticker.models import Ticker
 
 from tests.test_edge import calculate_boundaries
 from tests.utils import get_date_by_delta
@@ -40,7 +40,9 @@ def test_ticker_list(network_client_on_dispatcher: NetworkClient):
     args_ticker_count = len(task.result.split(','))
     db_ticker_count = Ticker.objects.count()
     # logger.debug((args_ticker_count, db_ticker_count))
-    assert args_ticker_count == db_ticker_count, 'Ticker count in args differs from one from DB'
+    _min, _max = calculate_boundaries(args_ticker_count, 0.5)
+    assert _min <= db_ticker_count <= _max, f'Ticker count "{args_ticker_count}" ' \
+                                            f'in args differs from one from DB "{db_ticker_count}"'
     _min, _max = calculate_boundaries(1500, 0.5)
     assert _min <= db_ticker_count <= _max, \
         f'Tickers count "{db_ticker_count}" does not fit expected boundaries({_min},{_max})'
@@ -49,7 +51,7 @@ def test_ticker_list(network_client_on_dispatcher: NetworkClient):
 @pytest.mark.parametrize("start_date, boundaries", [
     # pytest.param(HISTORY_LIMIT_DATE, (1380, 1480), id='full_history'),
     pytest.param(get_date_by_delta(timedelta(weeks=13)), (60, 65), id='three_month_gap'),
-    pytest.param(get_date_by_delta(timedelta(days=1)), (1, 2), id='daily'),
+    pytest.param(get_date_by_delta(timedelta(days=3)), (1, 3), id='daily'),
 ])
 def test_ticker_daily_data(
         network_client_on_dispatcher: NetworkClient,
@@ -76,7 +78,7 @@ def test_ticker_daily_data(
         f'Ticker price count in args "{args_price_count}" differs from one from DB "{db_price_count}"'
     _min, _max = boundaries
     assert _min <= db_price_count <= _max, \
-        f'Tickers count "{db_price_count}" does not fit expected boundaries({_min},{_max})'
+        f'Tickers price count "{db_price_count}" does not fit expected boundaries({_min},{_max})'
 
 
 def test_finviz_fundamental(

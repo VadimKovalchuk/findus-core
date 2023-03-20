@@ -1,3 +1,4 @@
+import json
 import logging
 from time import monotonic
 
@@ -56,18 +57,20 @@ def test_scope_remove_direct(scope_with_tickers, scope_tickers):
     assert removed_ticker not in scope_with_tickers.tickers.all(), 'Ticker remains in scope when not expected'
 
 
-def _test_scope_extend_via_task(scope_with_tickers):
+def test_scope_extend_via_task(scope_with_tickers):
+    artifact_tkr = "AMZN"
     task_proc = TaskProcessor()
-    cmd: Command = COMMANDS[SYS_CMD_NAME]
+    cmd: Command = COMMANDS['update_test_scopes']
     task: SystemTask = cmd.create_task()
-    start = monotonic()
-    while not task.state == TaskState.DONE and monotonic() < start + 5:
+    for _ in range(2):
         task_proc.processing_cycle()
-        task.refresh_from_db()
-    logger.info(monotonic() - start)
-    children = task.get_children()
-    assert children, 'Children tasks are not created'
-    for child in children:
-        assert child.state == TaskState.DONE, 'Child Network task is not in done state'
-    assert task.state == TaskState.DONE, 'System task is not in done state'
-
+    children: NetworkTask = task.get_children()[0]
+    assert children, 'Children task is not created'
+    children.result = json.dumps([artifact_tkr] + TEST_TICKERS_STR_LIST)
+    children.state = TaskState.PROCESSED
+    children.save()
+    for _ in range(2):
+        task_proc.processing_cycle()
+    tickers_str = [tkr.symbol for tkr in scope_with_tickers.tickers.all()]
+    assert artifact_tkr in tickers_str, 'Artifact ticker is missing in scope'
+    assert len(tickers_str) == len(TEST_TICKERS_STR_LIST) + 1, 'Scope ticker count does not match'
