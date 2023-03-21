@@ -126,7 +126,7 @@ def test_task_start(task_name: str, task_type: str):
     task = cmd.create_task()
     task_processor.generic_stage_handler(task_processor.start_task, task_type, TaskState.CREATED)
     task.refresh_from_db()
-    assert task.arguments == 'relay, relay', 'On start command flow is not applied'
+    assert task.arguments == "{\"arg\": \"test, relay, relay\"}", 'On start command flow is not applied'
     assert task == next(task_processor.queues[task_type][TaskState.STARTED]), \
         'Started task is missing in started tasks queue'
     assert not next(task_processor.queues[task_type][TaskState.CREATED]), \
@@ -162,7 +162,7 @@ def test_task_finalization(task_name: str, task_type: str):
     task.save()
     task_processor.generic_stage_handler(task_processor.finalize_task, task_type, TaskState.PROCESSED)
     task.refresh_from_db()
-    assert task.arguments == 'relay, relay', 'On done command flow is not applied'
+    assert task.arguments == "{\"arg\": \"test, relay, relay\"}", 'On done command flow is not applied'
     assert task == next(task_processor.queues[task_type][TaskState.DONE]), \
         'Started task is missing in started tasks queue'
     assert not next(task_processor.queues[task_type][TaskState.PROCESSED]), \

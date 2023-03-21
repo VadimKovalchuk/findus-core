@@ -19,9 +19,17 @@ FUNCTIONS = []
 
 
 def relay(task: Union[SystemTask, NetworkTask]):
-    def extend(line: str):
-        line = f'{line}, relay' if line else 'relay'
-        return line
+    def extend(dict_str: str):
+        logger.debug(dict_str)
+        if dict_str:
+            args_dict = json.loads(dict_str)
+            for key, value in args_dict.items():
+                args_dict[key] = f"{value}, relay" if value else "relay"
+            result = json.dumps(args_dict)
+            logger.debug(result)
+            return result
+        else:
+            return '{"artifact": ""}'
     task.arguments = extend(task.arguments)
     task.result = extend(task.result)
     task.save()

@@ -12,19 +12,17 @@
     "base": "base",
     "dcn_task": true,
     "module": "findus_edge.tickers",
-    "function": "get_sp500_ticker_list",
-    "arguments": {"scope": "SP500"},
+    "function": "get_scope",
+    "arguments": "{\"scope\": \"SP500\"}",
     "run_on_done": ["process_ticker_list"]
   },
   "update_sp400_ticker_list": {
     "base": "update_sp500_ticker_list",
-    "function": "get_sp400_ticker_list",
-    "arguments": {"scope": "SP400"}
+    "arguments": "{\"scope\": \"SP400\"}"
   },
   "update_sp600_ticker_list": {
     "base": "update_sp500_ticker_list",
-    "function": "get_sp600_ticker_list",
-    "arguments": {"scope": "SP600"}
+    "arguments": "{\"scope\": \"SP600\"}"
   },
   "get_new_ticker_data": {
     "base": "base",

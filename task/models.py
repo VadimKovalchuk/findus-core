@@ -102,5 +102,5 @@ class NetworkTask(Task):
             'client': client,
             'module': self.module,
             'function': self.function,
-            'arguments': json.loads(self.arguments) if (self.arguments and '{' in self.arguments) else self.arguments
+            'arguments': json.loads(self.arguments)
         }
