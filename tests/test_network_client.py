@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.django_db
 
 
-def create_network_task(module: str = 'findus_edge.stub', function: str = 'relay', arguments: Union[str, None] = None):
+def create_network_task(module: str = 'findus_edge.stub', function: str = 'relay', arguments: dict = {}):
     task: NetworkTask = NetworkTask.objects.create(name='pytest')
     task.module = module
     task.function = function
-    task.arguments = arguments
+    task.arguments_dict = arguments
     task.state = TaskState.STARTED
     task.save()
     logger.debug(f'Network task is created: {task}')
@@ -38,7 +38,7 @@ def test_online(network_client_on_dispatcher: NetworkClient):
 
 def test_task_queues(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
-    created_task = create_network_task(arguments='test')
+    created_task = create_network_task(arguments={"arg": "test"})
     pending_task: NetworkTask = next(client.queues[TaskType.Network][TaskState.STARTED])
     assert created_task == pending_task, 'Pending task differs from created one'
     client.push_task_to_network(pending_task)
@@ -60,7 +60,7 @@ def test_task_queues(network_client_on_dispatcher: NetworkClient):
 
 def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
-    task = create_network_task(arguments='test')
+    task = create_network_task(arguments={"arg": "test"})
     client.stage_handler(client.push_task_to_network, TaskState.STARTED)
     client.stage_handler(client.append_task_result_to_db, TaskState.PROCESSED)
     task.refresh_from_db()

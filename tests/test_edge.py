@@ -39,21 +39,22 @@ def test_availability(client_on_dispatcher: Client):
         'Wrong task is received from task queue for Agent'
 
 
-@pytest.mark.parametrize('module_func, expected', [
-    pytest.param('get_sp500_ticker_list', 500, id='sp500'),
-    pytest.param('get_sp400_ticker_list', 400, id='sp400'),
-    pytest.param('get_sp600_ticker_list', 600, id='sp600')
+@pytest.mark.parametrize('scope, expected', [
+    pytest.param('SP500', 500, id='sp500'),
+    pytest.param('SP400', 400, id='sp400'),
+    pytest.param('SP600', 600, id='sp600')
 ])
 def test_ticker_list(
         client_on_dispatcher: Client,
-        module_func: str,
+        scope: str,
         expected: int
 ):
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
     test_task['client'] = client.broker.queue
     test_task['module'] = 'findus_edge.tickers'
-    test_task['function'] = module_func
+    test_task['function'] = 'get_scope'
+    test_task['arguments'] = {"scope": scope}
     client.broker.publish(test_task)
     # Validating result on client
     _, result = next(client.broker.pull())

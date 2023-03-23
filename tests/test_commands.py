@@ -21,7 +21,7 @@ def test_cmd_catalog():
 
 
 def test_cmd_diff_from_base():
-    network_task_diff_lst = ['name', 'dcn_task', 'run_on_start', 'module', 'function', 'arguments', 'run_on_done']
+    network_task_diff_lst = ['name', 'dcn_task', 'run_on_start', 'module', 'function', 'run_on_done']
     system_task_diff_lst = ['name', 'run_on_start', 'child_tasks', 'run_on_done']
     diff_map = (
         (COMMANDS['network_relay_task'], network_task_diff_lst),
@@ -38,7 +38,7 @@ def test_cmd_diff_from_base():
             else:
                 assert parent_value == child_value, \
                     f'Child value ({child_value}) for param {param} diff from one in parent ({parent_value})' \
-                    f' when difference is expected'
+                    f' when match is expected'
 
 
 @pytest.mark.django_db
@@ -54,7 +54,6 @@ def test_create_task(
 ):
     command: Command = COMMANDS[task_name]
     task = command.create_task()
-    task.arguments = 'test'
     task.save()
     assert task, 'Command instance has failed to create corresponding task'
     task_from_db = task_type.objects.get(name=command.name)
@@ -73,13 +72,13 @@ def test_create_task(
 @pytest.mark.django_db
 @pytest.mark.parametrize('on_start, on_done, expected',
         [
-            pytest.param([], [], None, id='empty'),
-            pytest.param([relay], [], 'relay', id='single-on_start'),
-            pytest.param([], [relay], 'relay', id='single-on_done'),
-            pytest.param([relay], [relay], 'relay, relay', id='single-both'),
-            pytest.param([relay, relay], [], 'relay, relay', id='multiple-on_start'),
-            pytest.param([], [relay, relay], 'relay, relay', id='multiple-on_done'),
-            pytest.param([relay, relay], [relay, relay], 'relay, relay, relay, relay', id='multiple-both'),
+            pytest.param([], [], {"arg": "test"}, id='empty'),
+            pytest.param([relay], [], {"arg": "test, relay"}, id='single-on_start'),
+            pytest.param([], [relay], {"arg": "test, relay"}, id='single-on_done'),
+            pytest.param([relay], [relay], {"arg": "test, relay, relay"}, id='single-both'),
+            pytest.param([relay, relay], [], {"arg": "test, relay, relay"}, id='multiple-on_start'),
+            pytest.param([], [relay, relay], {"arg": "test, relay, relay"}, id='multiple-on_done'),
+            pytest.param([relay, relay], [relay, relay], {"arg": "test, relay, relay, relay, relay"}, id='multiple-both'),
         ]
 )
 def test_wrapping_functions(
@@ -91,6 +90,8 @@ def test_wrapping_functions(
     command.run_on_start = on_start
     command.run_on_done = on_done
     system_task: SystemTask = command.create_task()
+    system_task.arguments_dict = {"arg": "test"}
+    system_task.result_dict = {"arg": "test"}
     command.on_start(system_task)
     command.finalize(system_task)
     logger.info(
@@ -98,5 +99,5 @@ def test_wrapping_functions(
         f'result: {system_task.result}\n'
         f'expected: {expected}'
     )
-    assert system_task.arguments == expected, 'Task arguments does not match expected ones'
-    assert system_task.result == expected, 'Task result does not match expected ones'
+    assert system_task.arguments_dict == expected, 'Task arguments does not match expected ones'
+    assert system_task.result_dict == expected, 'Task result does not match expected ones'

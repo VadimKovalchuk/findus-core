@@ -5,13 +5,11 @@
     "run_on_start": ["relay", "relay"],
     "module": "builtin",
     "function": "relay",
-    "arguments": "{\"arg\": \"test\"}",
     "run_on_done": ["relay", "relay"]
   },
   "system_relay_task": {
     "base": "base",
     "run_on_start": ["relay", "relay"],
-    "arguments": "{\"arg\": \"test\"}",
     "child_tasks": [
       "network_relay_task",
       "network_relay_task"
@@ -29,7 +27,7 @@
     "dcn_task": true,
     "module": "findus_edge.tickers",
     "function": "update_test_scope",
-    "arguments": "{\"scope\": \"TestScope\"}",
+    "arguments": {"scope": "TestScope"},
     "run_on_done": ["append_new_tickers", "update_scope"]
   }
 }

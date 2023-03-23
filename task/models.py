@@ -47,6 +47,25 @@ class Task(models.Model):
     def state(self, state: str):
         self.processing_state = state
 
+    @property
+    def arguments_dict(self):
+        return json.loads(self.arguments)
+
+    @arguments_dict.setter
+    def arguments_dict(self, _dict: dict):
+        self.arguments = json.dumps(_dict)
+
+    @property
+    def result_dict(self):
+        if self.result:
+            return json.loads(self.result)
+        else:
+            return dict()
+
+    @result_dict.setter
+    def result_dict(self, _dict: dict):
+        self.result = json.dumps(_dict)
+
     def _stats(self):
         return {
             TaskState.CREATED: 1 if self.state == TaskState.CREATED else 0,
@@ -102,5 +121,5 @@ class NetworkTask(Task):
             'client': client,
             'module': self.module,
             'function': self.function,
-            'arguments': json.loads(self.arguments)
+            'arguments': self.arguments_dict
         }

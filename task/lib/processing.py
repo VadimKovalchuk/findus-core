@@ -29,7 +29,7 @@ def relay(task: Union[SystemTask, NetworkTask]):
             logger.debug(result)
             return result
         else:
-            return '{"artifact": ""}'
+            return dict_str
     task.arguments = extend(task.arguments)
     task.result = extend(task.result)
     task.save()
@@ -122,10 +122,11 @@ def update_scope(task: Task):
             scheduler.push()
     redundant = [ticker for ticker in scope_tickers if ticker not in reference_tkr_list]
     if redundant:
-        logger.info(f'{len(missing)} tickers will be removed from scope "{scope_name}"')
+        logger.info(f'{len(redundant)} tickers will be removed from scope "{scope_name}"')
         for tkr in redundant:
             ticker = Ticker.objects.get(symbol=tkr)
-            scope.tickers.exclude(ticker)
+            logger.debug(ticker)
+            scope.tickers.remove(ticker)
             scope.save()
             scheduler: Scheduler = Scheduler(event_name='scope_exclude', artifacts=json.dumps({"ticker": tkr}))
             scheduler.push()

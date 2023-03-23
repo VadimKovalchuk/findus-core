@@ -51,7 +51,7 @@ def test_ticker_list(network_client_on_dispatcher: NetworkClient):
 @pytest.mark.parametrize("start_date, boundaries", [
     # pytest.param(HISTORY_LIMIT_DATE, (1380, 1480), id='full_history'),
     pytest.param(get_date_by_delta(timedelta(weeks=13)), (60, 65), id='three_month_gap'),
-    pytest.param(get_date_by_delta(timedelta(days=3)), (1, 3), id='daily'),
+    pytest.param(get_date_by_delta(timedelta(days=2)), (1, 3), id='daily'),
 ])
 def test_ticker_daily_data(
         network_client_on_dispatcher: NetworkClient,
