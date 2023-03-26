@@ -1,8 +1,11 @@
+import logging
 from time import sleep
 from typing import Callable
 
 from task.lib.constants import IDLE_SLEEP_TIMEOUT
-from task.lib.processing import logger
+
+
+logger = logging.getLogger('task_processor')
 
 
 class CommonServiceMixin:
