@@ -9,14 +9,11 @@ from django.db import transaction
 
 from settings import log_path
 from schedule.lib.interface import Scheduler
-# from task.lib.commands import COMMANDS, Command
 from task.models import Task, SystemTask, NetworkTask
 from ticker.models import Ticker, FinvizFundamental, Scope
 
 logger = logging.getLogger('task_processor')
 logger.debug(log_path)
-
-FUNCTIONS = []
 
 
 def relay(task: Union[SystemTask, NetworkTask]):
@@ -178,17 +175,6 @@ def get_all_tickers(task: Task):
     return True
 
 
-def command_factory(task: Task):
-    arguments = task.arguments_dict
-    command = COMMANDS[arguments['command_name']]
-    command_arg = arguments['command_arg']
-    for arg in arguments[command_arg]:
-        new_task: Task = command.create_task(parent=task)
-        new_task.arguments_dict = {command_arg: arg}
-        new_task.save()
-    return True
-
-
 def clone_arguments_to_children(task: SystemTask):
     if task.arguments:
         for child_task in task.get_children():
@@ -213,4 +199,4 @@ def define_ticker_daily_start_date(task: SystemTask):
     return True
 
 
-FUNCTIONS = {name: obj for name, obj in inspect.getmembers(sys.modules[__name__])}
+PROCESSING_FUNCTIONS = {name: obj for name, obj in inspect.getmembers(sys.modules[__name__])}

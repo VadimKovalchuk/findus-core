@@ -34,10 +34,11 @@
   },
   "collect_daily_global": {
     "base": "base",
-    "run_on_start": ["clone_arguments_to_children"],
-    "child_tasks": [
-      "append_daily_ticker_data"
-    ]
+    "run_on_start": ["get_all_tickers", "command_factory"],
+    "arguments": {
+      "command_name": "append_daily_ticker_data",
+      "command_arg": "tickers"
+    }
   },
   "append_daily_ticker_data": {
     "base": "base",

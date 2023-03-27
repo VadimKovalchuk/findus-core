@@ -10,7 +10,7 @@ from task.lib.commands import COMMANDS, Command
 from task.lib.network_client import NetworkClient
 from task.lib.task_processor import TaskProcessor
 from task.models import SystemTask, TaskState
-from ticker.models import Ticker
+from ticker.models import Ticker, Scope, Price
 
 from tests.test_edge import calculate_boundaries
 from tests.utils import get_date_by_delta
@@ -79,6 +79,36 @@ def test_ticker_daily_data(
     _min, _max = boundaries
     assert _min <= db_price_count <= _max, \
         f'Tickers price count "{db_price_count}" does not fit expected boundaries({_min},{_max})'
+
+
+def test_daily_global(
+        network_client_on_dispatcher: NetworkClient,
+        scope_with_tickers: Scope,
+):
+    def set_sample_prices():
+        last_date: datetime = get_date_by_delta(timedelta(weeks=13))
+        for ticker in scope_with_tickers.tickers.all():
+            ticker.add_price([last_date, 1, 1, 1, 1, 1])
+
+    task_proc = TaskProcessor()
+    cmd: Command = COMMANDS['collect_daily_global']
+    task: SystemTask = cmd.create_task()
+    set_sample_prices()
+    start = monotonic()
+    while not task.state == TaskState.DONE and monotonic() < start + 20:
+        task_proc.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        task.refresh_from_db()
+    logger.info(monotonic() - start)
+    # result = json.loads(task.result)
+    # args_price_count = len(result['prices'])
+    # db_price_count = ticker_sample.price_set.count()
+    # logger.debug((db_price_count, args_price_count))
+    # assert db_price_count == args_price_count, \
+    #     f'Ticker price count in args "{args_price_count}" differs from one from DB "{db_price_count}"'
+    # _min, _max = boundaries
+    # assert _min <= db_price_count <= _max, \
+    #     f'Tickers price count "{db_price_count}" does not fit expected boundaries({_min},{_max})'
 
 
 def test_finviz_fundamental(

@@ -22,5 +22,13 @@
     "artifacts": "",
     "commands": ["get_new_ticker_data"],
     "schedule" : []
+  },
+  "update_daily": {
+    "human_name": "Update daily ticker data",
+    "description": "Update prices and dividend payouts",
+    "type": 3,
+    "artifacts": "",
+    "commands": ["collect_daily_global"],
+    "schedule" : []
   }
 }

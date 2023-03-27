@@ -2,7 +2,6 @@ import logging
 import shutil
 
 from pathlib import Path
-from threading import Thread
 from time import sleep
 
 import docker
@@ -14,16 +13,19 @@ from dcn.common.constants import SECOND
 from dcn.common.data_structures import compose_queue
 from dcn.common.defaults import RoutingKeys
 from task.lib.network_client import NetworkClient
-from task.lib.task_processor import TaskProcessor
 from tests.constants import REFERENCE_TICKER
 from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
-from ticker.models import Ticker
+from ticker.models import Ticker, Scope
 
 logger = logging.getLogger(__name__)
 
 
 BROKER_HOST = 'localhost'
 DISPATCHER_LISTEN_TIMEOUT = 0.01
+
+TEST_TICKERS_STR_LIST = ['MSFT', 'C', 'T', 'META']
+TEST_SCOPE_NAME = 'TestScope'
+
 
 log_file_formatter = None
 cur_log_handler = None
@@ -131,6 +133,33 @@ def ticker_sample():
     ticker = Ticker(symbol=REFERENCE_TICKER)
     ticker.save()
     yield ticker
+
+
+@pytest.fixture
+def scope_tickers():
+    tickers = list()
+    for ticker_str in TEST_TICKERS_STR_LIST:
+        tkr = Ticker.objects.create(symbol=ticker_str)
+        tkr.save()
+        tickers.append(tkr)
+    yield tickers
+
+
+@pytest.fixture
+def scope():
+    test_scope = Scope.objects.create(name=TEST_SCOPE_NAME)
+    test_scope.save()
+    yield test_scope
+
+
+@pytest.fixture
+def scope_with_tickers(scope, scope_tickers):
+    for ticker in scope_tickers:
+        scope.tickers.add(ticker)
+    scope.save()
+    yield scope
+
+
 
 
 # PYTEST HOOKS

@@ -1,4 +1,6 @@
 import logging
+import inspect
+import sys
 
 from copy import deepcopy
 from typing import Callable, List, Union
@@ -7,13 +9,20 @@ from pathlib import Path
 from lib.file_processing import collect_json
 from schedule.lib.interface import Scheduler
 from task.models import Task, SystemTask, NetworkTask
-from task.lib.processing import FUNCTIONS
+from task.lib.processing import PROCESSING_FUNCTIONS
 
 logger = logging.getLogger('task_processor')
 
 JSON_FOLDER = Path('data/task')
 COMMANDS_JSON = {}
 COMMANDS = {}
+
+
+CMD_FUNCTIONS = {name: obj for name, obj in inspect.getmembers(sys.modules[__name__])}
+CMD_FUNCTIONS.update(PROCESSING_FUNCTIONS)
+FUNCTIONS = CMD_FUNCTIONS
+# for name, func in FUNCTIONS.items():
+
 
 
 def get_cmd_dict(name: str) -> dict:
@@ -93,3 +102,16 @@ class Command:
 
 COMMANDS_JSON = collect_json(JSON_FOLDER)
 COMMANDS = {cmd_name: Command(cmd_name) for cmd_name in COMMANDS_JSON}
+
+
+# Processing functions
+
+def command_factory(task: Task):
+    arguments = task.arguments_dict
+    command = COMMANDS[arguments['command_name']]
+    command_arg = arguments['command_arg']
+    for arg in arguments[command_arg]:
+        new_task: Task = command.create_task(parent=task)
+        new_task.arguments_dict = {command_arg: arg}
+        new_task.save()
+    return True

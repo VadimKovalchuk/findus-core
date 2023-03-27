@@ -4,6 +4,7 @@ from time import monotonic
 
 import pytest
 
+from conftest import TEST_TICKERS_STR_LIST
 from ticker.models import Ticker, Scope
 from task.models import Task, SystemTask, NetworkTask, TaskState
 from task.lib.commands import COMMANDS, Command
@@ -13,34 +14,6 @@ from task.lib.task_processor import TaskProcessor
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.django_db
-
-TEST_TICKERS_STR_LIST = ['MSFT', 'C', 'T', 'META']
-TEST_SCOPE_NAME = 'TestScope'
-
-@pytest.fixture
-def scope_tickers():
-    tickers = list()
-    for ticker_str in TEST_TICKERS_STR_LIST:
-        tkr = Ticker.objects.create(symbol=ticker_str)
-        tkr.save()
-        tickers.append(tkr)
-    yield tickers
-
-
-@pytest.fixture
-def scope():
-    test_scope = Scope.objects.create(name=TEST_SCOPE_NAME)
-    test_scope.save()
-    yield test_scope
-
-
-@pytest.fixture
-def scope_with_tickers(scope, scope_tickers):
-    for ticker in scope_tickers:
-        scope.tickers.add(ticker)
-    scope.save()
-    yield scope
-
 
 def test_scope_extend_direct(scope_with_tickers, scope_tickers):
     for ticker in scope_tickers:
