@@ -37,7 +37,7 @@
     "run_on_start": ["get_all_tickers", "command_factory"],
     "arguments": {
       "command_name": "append_daily_ticker_data",
-      "command_arg": "tickers"
+      "command_arg": "ticker"
     }
   },
   "append_daily_ticker_data": {

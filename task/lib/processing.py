@@ -16,6 +16,10 @@ logger = logging.getLogger('task_processor')
 logger.debug(log_path)
 
 
+def failing(task):
+    raise Exception('Wrapping function failure')
+
+
 def relay(task: Union[SystemTask, NetworkTask]):
     def extend(dict_str: str):
         logger.debug(dict_str)
@@ -169,7 +173,7 @@ def get_all_tickers(task: Task):
     arguments = task.arguments_dict
     tickers = Ticker.objects.all()
     symbols = [ticker.symbol for ticker in tickers]
-    arguments["tickers"] = symbols
+    arguments["ticker"] = symbols
     task.arguments_dict = arguments
     task.save()
     return True

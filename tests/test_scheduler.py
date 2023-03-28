@@ -102,14 +102,11 @@ def test_event_without_template():
 
 
 def test_task_wrapping_function_failure():
-    def failing(task):
-        raise Exception('Wrapping function failure')
-
     command: Command = deepcopy(COMMANDS['system_relay_task'])
-    command.run_on_start = [failing]
+    command.run_on_start = ['failing']
     system_task = command.create_task()
     command.on_start(system_task)
     events = Event.objects.all()
     assert events, 'Wrapping function failure is not followed by Event creation'
     event = events[0]
-    assert failing.__name__ in event.name, 'Wrapping func failure Event is not descriptive'
+    assert 'failing' in event.name, 'Wrapping func failure Event is not descriptive'

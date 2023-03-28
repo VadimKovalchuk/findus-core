@@ -4,7 +4,7 @@ from time import monotonic
 
 import pytest
 
-from conftest import TEST_TICKERS_STR_LIST
+from tests.conftest import TEST_TICKERS_STR_LIST
 from ticker.models import Ticker, Scope
 from task.models import Task, SystemTask, NetworkTask, TaskState
 from task.lib.commands import COMMANDS, Command
@@ -14,6 +14,7 @@ from task.lib.task_processor import TaskProcessor
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.django_db
+
 
 def test_scope_extend_direct(scope_with_tickers, scope_tickers):
     for ticker in scope_tickers:

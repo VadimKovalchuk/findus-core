@@ -1,3 +1,4 @@
+import json
 import logging
 import inspect
 import sys
@@ -14,15 +15,20 @@ from task.lib.processing import PROCESSING_FUNCTIONS
 logger = logging.getLogger('task_processor')
 
 JSON_FOLDER = Path('data/task')
-COMMANDS_JSON = {}
-COMMANDS = {}
 
+PROCESSING_FILES_LIST = [__name__, 'task.lib.processing']
 
-CMD_FUNCTIONS = {name: obj for name, obj in inspect.getmembers(sys.modules[__name__])}
-CMD_FUNCTIONS.update(PROCESSING_FUNCTIONS)
-FUNCTIONS = CMD_FUNCTIONS
-# for name, func in FUNCTIONS.items():
+logger.debug(__name__)
 
+FUNCTIONS = PROCESSING_FUNCTIONS
+
+def get_processing_functions():
+    funcs = {}
+    for _file in PROCESSING_FILES_LIST:
+        funcs.update(
+            {name: obj for name, obj in inspect.getmembers(sys.modules[__name__])}
+        )
+    return funcs
 
 
 def get_cmd_dict(name: str) -> dict:
@@ -50,12 +56,12 @@ class Command:
         logger.info(f'Creating Command: {name}')
         self.name: str = name
         self.dcn_task: bool = cmd_dict['dcn_task']
-        self.run_on_start: List[Callable] = [FUNCTIONS[func_name] for func_name in cmd_dict['run_on_start']]
+        self.run_on_start: List[Callable] = cmd_dict['run_on_start']
         self.child_tasks: List[str] = cmd_dict['child_tasks']
         self.module: str = cmd_dict['module']
         self.function: str = cmd_dict['function']
         self.arguments: dict = cmd_dict['arguments']
-        self.run_on_done: List[Callable] = [FUNCTIONS[func_name] for func_name in cmd_dict['run_on_done']]
+        self.run_on_done: List[Callable] = cmd_dict['run_on_done']
 
     def create_task(self, parent: Union[Task, None] = None):
         logger.info(f'Creating task: {self.name}')
@@ -74,16 +80,19 @@ class Command:
 
     def on_start(self, task: Task) -> bool:
         for func in self.run_on_start:
-            if not self._apply_callable(task, func):
-                logger.error(f"Failure on start function: {func.__name__}")
+            logger.info(func)
+            _callable = FUNCTIONS.get(func)
+            if not self._apply_callable(task, _callable):
+                logger.error(f"Failure on start function: {_callable.__name__}")
                 return False
         else:
             return True
 
     def finalize(self, task: Task) -> bool:
         for func in self.run_on_done:
-            if not self._apply_callable(task, func):
-                logger.error(f"Failure on finalisation function: {func.__name__}")
+            _callable = FUNCTIONS[func]
+            if not self._apply_callable(task, _callable):
+                logger.error(f"Failure on finalisation function: {_callable.__name__}")
                 return False
         else:
             return True
@@ -108,10 +117,13 @@ COMMANDS = {cmd_name: Command(cmd_name) for cmd_name in COMMANDS_JSON}
 
 def command_factory(task: Task):
     arguments = task.arguments_dict
-    command = COMMANDS[arguments['command_name']]
+    command: Command = COMMANDS[arguments['command_name']]
     command_arg = arguments['command_arg']
     for arg in arguments[command_arg]:
+        command.arguments = {command_arg: arg}
         new_task: Task = command.create_task(parent=task)
-        new_task.arguments_dict = {command_arg: arg}
-        new_task.save()
     return True
+
+
+CMD_FUNCTIONS = {name: obj for name, obj in inspect.getmembers(sys.modules[__name__])}
+FUNCTIONS.update(CMD_FUNCTIONS)

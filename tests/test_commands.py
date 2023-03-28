@@ -73,12 +73,14 @@ def test_create_task(
 @pytest.mark.parametrize('on_start, on_done, expected',
         [
             pytest.param([], [], {"arg": "test"}, id='empty'),
-            pytest.param([relay], [], {"arg": "test, relay"}, id='single-on_start'),
-            pytest.param([], [relay], {"arg": "test, relay"}, id='single-on_done'),
-            pytest.param([relay], [relay], {"arg": "test, relay, relay"}, id='single-both'),
-            pytest.param([relay, relay], [], {"arg": "test, relay, relay"}, id='multiple-on_start'),
-            pytest.param([], [relay, relay], {"arg": "test, relay, relay"}, id='multiple-on_done'),
-            pytest.param([relay, relay], [relay, relay], {"arg": "test, relay, relay, relay, relay"}, id='multiple-both'),
+            pytest.param(['relay'], [], {"arg": "test, relay"}, id='single-on_start'),
+            pytest.param([], ['relay'], {"arg": "test, relay"}, id='single-on_done'),
+            pytest.param(['relay'], ['relay'], {"arg": "test, relay, relay"}, id='single-both'),
+            pytest.param(['relay', 'relay'], [], {"arg": "test, relay, relay"}, id='multiple-on_start'),
+            pytest.param([], ['relay', 'relay'], {"arg": "test, relay, relay"}, id='multiple-on_done'),
+            pytest.param(
+                ['relay', 'relay'], ['relay', 'relay'], {"arg": "test, relay, relay, relay, relay"}, id='multiple-both'
+            ),
         ]
 )
 def test_wrapping_functions(
