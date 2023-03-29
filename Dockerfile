@@ -14,6 +14,7 @@ RUN pip install dist/dcn-0.0.1-py3-none-any.whl
 RUN rm -rf /tmp/*
 
 # COPY . /src
+COPY ./algo /src/algo
 COPY ./lib /src/lib
 COPY ./data /src/data
 COPY ./schedule /src/schedule

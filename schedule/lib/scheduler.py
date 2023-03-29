@@ -1,6 +1,8 @@
 import logging
 from lib.common_service import CommonServiceMixin
 from lib.db import DatabaseMixin, generic_query_set_generator
+from task.lib.commands import COMMANDS, Command
+from task.lib.commands import SystemTask
 from schedule.models import Event, Schedule
 
 from django.db.models.query import QuerySet
@@ -28,6 +30,25 @@ class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
             tasks=event.tasks
         )
 
+    @staticmethod
+    def trigger(event: Event):
+
+        def _trigger(name: str):
+            logger.debug(COMMANDS.keys())
+            command: Command = COMMANDS[name]
+            task: SystemTask = command.create_task()
+            task.event = event
+            if event.artifacts:
+                task.arguments = event.artifacts
+            task.save()
+
+        if event.tasks:
+            if ',' in event.tasks:
+                for task_name in event.tasks.split(','):
+                    _trigger(task_name)
+            else:
+                _trigger(event.tasks)
+
     def processing_cycle(self):
         for schedule in self.queue:
             if not schedule:
@@ -36,7 +57,7 @@ class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
             # Trigger schedule related event
             event: Event = schedule.event
             logger.info(f'Triggering event: {event}')
-            event.trigger()
+            self.trigger(event)
             event.triggered = now()  # Marking event as triggered
             event.save()
             if schedule.cron:  # if event is periodic

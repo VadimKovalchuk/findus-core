@@ -46,7 +46,7 @@ def test_event_template():
     assert template.get('human_name') == "base event", f'Human readable name mismatch'
     assert template.get('description') == "base event example", \
         'Description mismatch'
-    assert ', '.join(template.get('commands')) == event_scheduler.event.tasks, \
+    assert ','.join(template.get('commands')) == event_scheduler.event.tasks, \
         'Commands are not reapplied from template'
 
 

@@ -4,7 +4,7 @@
     "description": "base event example",
     "type": 3,
     "artifacts": "",
-    "commands": ["first", "second"],
+    "commands": ["network_relay_task", "system_relay_task"],
     "schedule" : ["* * * * * *"]
   },
   "update_ticker_list": {

@@ -29,27 +29,13 @@ class Event(models.Model):
     def tasks_from_template(self):
         template = self.get_template()
         task_list = template.get('commands', [])
-        self.tasks = ', '.join(task_list)
+        self.tasks = ','.join(task_list)
 
     def get_schedule(self):
         return list(self.schedule_set.all())
 
     def get_tasks(self) -> List[SystemTask]:
         return self.systemtask_set.all()
-
-    def trigger(self):
-        def _trigger(name: str):
-            task: SystemTask = SystemTask.objects.create(name=name)
-            task.event = self
-            task.arguments = self.artifacts
-            task.save()
-
-        if self.tasks:
-            if ',' in self.tasks:
-                for task_name in self.tasks.split(','):
-                    _trigger(task_name)
-            else:
-                _trigger(self.tasks)
 
     def __str__(self):
         return f'({self.id}) "{self.name}": {self.artifacts}'

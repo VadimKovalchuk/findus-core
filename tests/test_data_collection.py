@@ -90,6 +90,7 @@ def test_daily_global(
         for ticker in scope_with_tickers.tickers.all():
             ticker.add_price([last_date, 1, 1, 1, 1, 1])
 
+    _min, _max = 60, 65
     task_proc = TaskProcessor()
     cmd: Command = COMMANDS['collect_daily_global']
     task: SystemTask = cmd.create_task()
@@ -100,15 +101,11 @@ def test_daily_global(
         network_client_on_dispatcher.processing_cycle()
         task.refresh_from_db()
     logger.info(monotonic() - start)
-    # result = json.loads(task.result)
-    # args_price_count = len(result['prices'])
-    # db_price_count = ticker_sample.price_set.count()
-    # logger.debug((db_price_count, args_price_count))
-    # assert db_price_count == args_price_count, \
-    #     f'Ticker price count in args "{args_price_count}" differs from one from DB "{db_price_count}"'
-    # _min, _max = boundaries
-    # assert _min <= db_price_count <= _max, \
-    #     f'Tickers price count "{db_price_count}" does not fit expected boundaries({_min},{_max})'
+    for ticker in scope_with_tickers.tickers.all():
+        db_price_count = ticker.price_set.count()
+        logger.info(f'{ticker.symbol} price count: {db_price_count}')
+        assert _min <= db_price_count <= _max, \
+            f'Tickers price count "{db_price_count}" does not fit expected boundaries({_min},{_max})'
 
 
 def test_finviz_fundamental(
