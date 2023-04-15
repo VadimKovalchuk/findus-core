@@ -4,6 +4,7 @@ import inspect
 import sys
 
 from copy import deepcopy
+from datetime import timedelta
 from typing import Callable, List, Union
 from pathlib import Path
 
@@ -119,9 +120,14 @@ def command_factory(task: Task):
     arguments = task.arguments_dict
     command: Command = COMMANDS[arguments['command_name']]
     command_arg = arguments['command_arg']
+    postponed = 0
     for arg in arguments[command_arg]:
         command.arguments = {command_arg: arg}
         new_task: Task = command.create_task(parent=task)
+        if postponed:
+            new_task.postponed_relative = timedelta(seconds=postponed)
+            new_task.save()
+        postponed += 1
     return True
 
 

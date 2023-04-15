@@ -1,8 +1,10 @@
 import json
 
+from datetime import datetime, timedelta
 from typing import List
 
 from django.db import models
+from django.utils.timezone import now
 
 
 class TaskState:
@@ -65,6 +67,17 @@ class Task(models.Model):
     @result_dict.setter
     def result_dict(self, _dict: dict):
         self.result = json.dumps(_dict)
+
+    @property
+    def postponed_relative(self):
+        if self.postponed:
+            return self.postponed - datetime.now()
+        else:
+            return timedelta(seconds=0)
+
+    @postponed_relative.setter
+    def postponed_relative(self, delta: timedelta):
+        self.postponed = now() + delta
 
     def _stats(self):
         return {

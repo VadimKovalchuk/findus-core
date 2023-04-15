@@ -203,4 +203,13 @@ def define_ticker_daily_start_date(task: SystemTask):
     return True
 
 
+def draft_get_param_for_algo(task:SystemTask):
+    with open('pe.txt', 'w') as fh:
+        for tkr in tkrs:
+            fv = tkr.finvizfundamental_set.first()
+            if fv and fv.price_earnings:
+                line = f"{tkr.symbol},{fv.price_earnings}\n"
+                fh.write(line)
+
+
 PROCESSING_FUNCTIONS = {name: obj for name, obj in inspect.getmembers(sys.modules[__name__])}

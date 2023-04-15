@@ -30,5 +30,13 @@
     "artifacts": "",
     "commands": ["collect_daily_global"],
     "schedule" : []
+  },
+  "update_finviz_fundamental": {
+    "human_name": "Update fundamental from finviz",
+    "description": "Update fundamental ticker data from finviz",
+    "type": 3,
+    "artifacts": "",
+    "commands": ["collect_finviz_fundamental_global"],
+    "schedule" : []
   }
 }

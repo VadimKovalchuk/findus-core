@@ -40,6 +40,14 @@
       "command_arg": "ticker"
     }
   },
+  "collect_finviz_fundamental_global": {
+    "base": "base",
+    "run_on_start": ["get_all_tickers", "command_factory"],
+    "arguments": {
+      "command_name": "append_finviz_fundamental",
+      "command_arg": "ticker"
+    }
+  },
   "append_daily_ticker_data": {
     "base": "base",
     "dcn_task": true,

@@ -130,3 +130,22 @@ def test_finviz_fundamental(
     data_slice = ticker_sample.finvizfundamental_set.all()[0]
     for param, value in result['values'].items():
         assert getattr(data_slice, param) == value, f'Param "{param}" value mismatch "{getattr(data_slice, param)}" vs "{value}"'
+
+
+def test_finviz_fundamental_global(
+        network_client_on_dispatcher: NetworkClient,
+        scope_with_tickers: Scope,
+):
+    task_proc = TaskProcessor()
+    cmd: Command = COMMANDS['collect_finviz_fundamental_global']
+    task: SystemTask = cmd.create_task()
+    start = monotonic()
+    while not task.state == TaskState.DONE and monotonic() < start + 20:
+        task_proc.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        task.refresh_from_db()
+    logger.info(monotonic() - start)
+    for ticker in scope_with_tickers.tickers.all():
+        db_finviz_count = ticker.finvizfundamental_set.count()
+        logger.info(f'{ticker.symbol} fundamental slice count: {db_finviz_count}')
+        assert db_finviz_count == 1, f'Tickers finviz fundamental slice count "{db_finviz_count}" is not 1'
