@@ -59,7 +59,8 @@ def test_normalization_parameters(
     test_task['function'] = 'normalization'
     args = {
         "input_data": data,
-        "norm_method": normalization_method
+        "norm_method": normalization_method,
+        "parameters": {}
     }
     test_task['arguments'] = args
     client.broker.publish(test_task)
@@ -68,3 +69,60 @@ def test_normalization_parameters(
     result = json.loads(result['result'])
     logger.info(json.dumps(result, indent=4))
     assert result['parameters'] == expected, f'Normalization parameters differs from expected'
+
+
+@pytest.mark.parametrize("normalization_method, parameters, data, expected", [
+        pytest.param(
+            "minmax",
+            {"min": 0.0, "max": 20.0},
+            {"SMPL": 6},
+            {"SMPL": 0.3},
+            id="minmax"
+        ),
+        pytest.param(
+            "minmax_inverted",
+            {"min": 0.0, "max": 20.0},
+            {"SMPL": 6},
+            {"SMPL": 0.7},
+            id="minmax_inverted"
+        ),
+        pytest.param(
+            "z_score",
+            {"mean": 5.0, "std": 2.0976176963403033},
+            {"SMPL": 4},
+            {"SMPL": -0.4767},
+            id="z_score"
+        ),
+        pytest.param(
+            "robust",
+            {"median": 10.0, "iqr": 10.0},
+            {"SMPL": 6},
+            {"SMPL": -0.4},
+            id="robust"
+        ),
+])
+def test_apply_normalization_params(
+        client_on_dispatcher: Client,
+        normalization_method: str,
+        parameters: dict,
+        data: dict,
+        expected: dict
+):
+    logger.info(data)
+    client = client_on_dispatcher
+    test_task = deepcopy(task_body)
+    test_task['client'] = client.broker.queue
+    test_task['module'] = 'findus_edge.algo.normalization'
+    test_task['function'] = 'normalization'
+    args = {
+        "input_data": data,
+        "norm_method": normalization_method,
+        "parameters": parameters
+    }
+    test_task['arguments'] = args
+    client.broker.publish(test_task)
+    # Validating result on client
+    _, result = next(client.broker.pull())
+    result = json.loads(result['result'])
+    logger.info(json.dumps(result, indent=4))
+    assert result['result'] == expected, f'Normalization parameters differs from expected'
