@@ -1,12 +1,18 @@
 {
-  "base": {
-    "base": "",
-    "dcn_task": false,
-    "run_on_start": [],
-    "child_tasks": [],
-    "module":"",
-    "function": "",
-    "arguments": {},
-    "run_on_done": []
+  "calculate_algo_metrics": {
+    "base": "base",
+    "run_on_start": ["get_metrics", "command_factory"],
+    "arguments": {
+      "command_name": "calculate_metric",
+      "command_arg": "metric"
+    }
+  },
+  "calculate_metric": {
+    "base": "base",
+    "dcn_task": true,
+    "run_on_start": ["apply_limitations", "collect_normalization_data"],
+    "module": "findus_edge.yahoo",
+    "function": "ticker_history",
+    "run_on_done": ["validate_result_json", "apply_metric_params", "append_slices", "fill_slices"]
   }
 }

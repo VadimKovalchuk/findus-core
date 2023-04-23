@@ -14,7 +14,7 @@
     "module": "findus_edge.tickers",
     "function": "get_scope",
     "arguments": {"scope": "SP500"},
-    "run_on_done": ["process_ticker_list"]
+    "run_on_done": ["process_ticker_list", "update_scope"]
   },
   "update_sp400_ticker_list": {
     "base": "update_sp500_ticker_list",

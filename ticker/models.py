@@ -47,6 +47,9 @@ class Scope(models.Model):
     name = models.TextField()
     tickers = models.ManyToManyField(Ticker)
 
+    def __str__(self):
+        return self.name
+
 
 class Price(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
