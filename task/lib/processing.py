@@ -135,40 +135,6 @@ def update_scope(task: Task):
     return True
 
 
-def process_ticker_list(task: Task):
-    all_tickers = [ticker.symbol for ticker in Ticker.objects.all()]
-    missing = [ticker for ticker in task.result_dict if ticker not in all_tickers]
-    if len(missing):
-        logger.info(f'{len(missing)} new ticker(s) found')
-        parent_args = task.parent_task.result
-        new_tickers = ','.join(missing)
-        task.parent_task.result = f'{parent_args},{new_tickers}' if parent_args else new_tickers
-        task.parent_task.save()
-    return True
-
-
-def new_tickers_processing(task: SystemTask):
-    if not task.result:
-        return True
-    tickers = task.result.split(',')
-    logger.info(f'{len(tickers)} new tickers found creating corresponding "new_ticker" events')
-    for tkr in tickers:
-        if len(tkr) > 6:
-            logger.error(f"Suspicious ticker name: {tkr}")
-            # TODO: Handle via event
-            continue
-        with transaction.atomic():
-            # logger.debug(tkr)
-            ticker = Ticker.objects.create(symbol=tkr)
-            ticker.save()
-            scheduler: Scheduler = Scheduler(
-                event_name='new_ticker',
-                artifacts=json.dumps({"ticker": tkr}),
-            )
-            scheduler.push()
-    return True
-
-
 def get_all_tickers(task: Task):
     arguments = task.arguments_dict
     tickers = Ticker.objects.all()

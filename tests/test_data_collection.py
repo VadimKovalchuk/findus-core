@@ -20,12 +20,23 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.django_db
 
 
-def test_ticker_list(network_client_on_dispatcher: NetworkClient):
+@pytest.fixture
+def sp_scopes():
+    tkr = Ticker.objects.create(symbol='X')
+    tkr.save()
+    for scope_name in ["SP500", "SP400", "SP600"]:
+        test_scope = Scope.objects.create(name=scope_name)
+        logger.debug(f"Creating scope: {scope_name}")
+        test_scope.tickers.add(tkr)
+        test_scope.save()
+
+
+def test_ticker_list(network_client_on_dispatcher: NetworkClient, sp_scopes):
     task_proc = TaskProcessor()
     cmd: Command = COMMANDS['update_ticker_list']
     task: SystemTask = cmd.create_task()
     start = monotonic()
-    while not task.state == TaskState.DONE and monotonic() < start + 20:
+    while not task.state == TaskState.DONE and monotonic() < start + 60:
         task_proc.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         task.refresh_from_db()
@@ -37,12 +48,7 @@ def test_ticker_list(network_client_on_dispatcher: NetworkClient):
     for child in children:
         assert child.state == TaskState.DONE, 'Child Network task is not in done state'
     assert task.state == TaskState.DONE, 'System task is not in done state'
-    args_ticker_count = len(task.result.split(','))
     db_ticker_count = Ticker.objects.count()
-    # logger.debug((args_ticker_count, db_ticker_count))
-    _min, _max = calculate_boundaries(args_ticker_count, 0.5)
-    assert _min <= db_ticker_count <= _max, f'Ticker count "{args_ticker_count}" ' \
-                                            f'in args differs from one from DB "{db_ticker_count}"'
     _min, _max = calculate_boundaries(1500, 0.5)
     assert _min <= db_ticker_count <= _max, \
         f'Tickers count "{db_ticker_count}" does not fit expected boundaries({_min},{_max})'
