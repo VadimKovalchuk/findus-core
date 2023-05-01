@@ -1,6 +1,13 @@
 from django.db import models
 
-from ticker.models import Ticker, Scope
+from ticker.models import Ticker, Scope, FinvizFundamental, Price, Dividend
+
+
+METRIC_MODELS_REFERENCE = {
+    'Dividend': Dividend,
+    'FinvizFundamental': FinvizFundamental,
+    'Price': Price
+}
 
 
 class Algo(models.Model):
@@ -25,6 +32,22 @@ class AlgoMetric(models.Model):
     target_field = models.CharField(max_length=100, help_text='Django model calculated field')
     normalization_method = models.CharField(max_length=20)
     method_parameters = models.TextField(help_text='Normalization method parameters')
+
+    @property
+    def target_model_class(self):
+        return METRIC_MODELS_REFERENCE.get(self.target_model)
+
+    def get_normalization_data(self, ignore_empty=True):
+        data = {}
+        tickers = self.algo.reference_scope.tickers.all()
+        for tkr in tickers:
+            model_obj = self.target_model_class.objects.filter(ticker=tkr).last()
+            if not model_obj:
+                continue
+            value = model_obj.__dict__.get(self.target_field)
+            if value or not ignore_empty:
+                data[tkr.symbol] = value
+        return data
 
     def __str__(self):
         return f'({self.id}) "{self.name}" of {self.algo.name}'
