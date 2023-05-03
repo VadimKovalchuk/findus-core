@@ -10,9 +10,9 @@
   "calculate_metric": {
     "base": "base",
     "dcn_task": true,
-    "run_on_start": ["apply_limitations", "collect_normalization_data"],
-    "module": "findus_edge.yahoo",
-    "function": "ticker_history",
-    "run_on_done": ["validate_result_json", "apply_metric_params", "append_slices", "fill_slices"]
+    "run_on_start": ["collect_normalization_data"],
+    "module": "findus_edge.algo.normalization",
+    "function": "normalization",
+    "run_on_done": ["validate_result_json", "set_metric_params", "append_slices"]
   }
 }
