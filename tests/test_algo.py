@@ -28,7 +28,7 @@ def algo_scope():
         finviz_slice = FinvizFundamental.objects.create(
             ticker=tkr,
             price_earnings=UNIFORM_DISTRIBUTION_DATA[symbol],
-            price_sales=UNIFORM_DISTRIBUTION_DATA[symbol]
+            price_sales=UNIFORM_DISTRIBUTION_DATA[symbol] * 2
         )
         finviz_slice.save()
     scope.save()
@@ -43,28 +43,41 @@ def algo(algo_scope: Scope):
         name='price_earnings',
         algo=alg,
         weight=0.6,
-        target_model='FinvizFundamental'
-)
+        target_model='FinvizFundamental',
+        target_field='price_earnings',
+    )
+    pe_metric.save()
+    ps_metric = AlgoMetric.objects.create(
+        name='price_sales',
+        algo=alg,
+        weight=0.4,
+        target_model='FinvizFundamental',
+        target_field='price_sales',
+    )
+    ps_metric.save()
+    yield alg
 
 
 def test_calculate_algo_metrics(
         network_client_on_dispatcher: NetworkClient,
-        algo_scope: Scope
+        algo: Algo
 ):
-    pass
-    # task_proc = TaskProcessor()
-    # cmd: Command = COMMANDS['append_finviz_fundamental']
-    # task: SystemTask = cmd.create_task()
-    # task.arguments = json.dumps({"ticker": ticker_sample.symbol})
-    # task.save()
-    # logger.debug(task.arguments)
-    # start = monotonic()
-    # while not task.state == TaskState.DONE and monotonic() < start + 20:
-    #     task_proc.processing_cycle()
-    #     network_client_on_dispatcher.processing_cycle()
-    #     task.refresh_from_db()
-    # logger.info(monotonic() - start)
-    # result = json.loads(task.result)
+    task_proc = TaskProcessor()
+    cmd: Command = COMMANDS['calculate_algo_metrics']
+    task: SystemTask = cmd.create_task()
+    args = task.arguments_dict
+    args['algo_id'] = algo.id
+    task.arguments_dict = args
+    task.save()
+    logger.debug(task.arguments)
+    start = monotonic()
+    while not task.state == TaskState.DONE and monotonic() < start + 20:
+        task_proc.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        task.refresh_from_db()
+    logger.info(monotonic() - start)
+    result = json.loads(task.result)
+    logger.info(json.dumps(result, indent=4))
     # data_slice_count = ticker_sample.finvizfundamental_set.count()
     # assert data_slice_count == 1, 'Ticker fundamental data was not correctly appended'
     # data_slice = ticker_sample.finvizfundamental_set.all()[0]

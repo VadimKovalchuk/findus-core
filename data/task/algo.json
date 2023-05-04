@@ -4,7 +4,7 @@
     "run_on_start": ["get_metrics", "command_factory"],
     "arguments": {
       "command_name": "calculate_metric",
-      "command_arg": "metric"
+      "command_arg": "metric_ids"
     }
   },
   "calculate_metric": {

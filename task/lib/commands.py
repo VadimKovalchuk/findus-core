@@ -12,16 +12,20 @@ from lib.file_processing import collect_json
 from schedule.lib.interface import Scheduler
 from task.models import Task, SystemTask, NetworkTask
 from task.lib.processing import PROCESSING_FUNCTIONS
+from algo.processing import ALGO_PROCESSING_FUNCTIONS
 
 logger = logging.getLogger('task_processor')
 
 JSON_FOLDER = Path('data/task')
 
-PROCESSING_FILES_LIST = [__name__, 'task.lib.processing']
+PROCESSING_FILES_LIST = [__name__, 'task.lib.processing', 'algo.processing']
 
 logger.debug(__name__)
 
+# TODO: Migrate to get_processing_functions
 FUNCTIONS = PROCESSING_FUNCTIONS
+FUNCTIONS.update(ALGO_PROCESSING_FUNCTIONS)
+
 
 def get_processing_functions():
     funcs = {}
