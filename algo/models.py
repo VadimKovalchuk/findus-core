@@ -33,7 +33,7 @@ class AlgoMetric(models.Model):
     target_model = models.CharField(max_length=100, help_text='calculated Django model')
     target_field = models.CharField(max_length=100, help_text='Django model calculated field')
     normalization_method = models.CharField(max_length=20)
-    method_parameters = models.TextField(help_text='Normalization method parameters')
+    method_parameters = models.TextField(default='{}', help_text='Normalization method parameters')
 
     @property
     def method_parameters_dict(self):

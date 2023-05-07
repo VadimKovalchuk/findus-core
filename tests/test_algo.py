@@ -37,12 +37,13 @@ def algo_scope():
 
 @pytest.fixture
 def algo(algo_scope: Scope):
-    alg = Algo.objects.create(name='Algo')
+    alg = Algo.objects.create(name='Algo', reference_scope=algo_scope)
     alg.save()
     pe_metric = AlgoMetric.objects.create(
         name='price_earnings',
         algo=alg,
         weight=0.6,
+        normalization_method='minmax',
         target_model='FinvizFundamental',
         target_field='price_earnings',
     )
@@ -51,6 +52,7 @@ def algo(algo_scope: Scope):
         name='price_sales',
         algo=alg,
         weight=0.4,
+        normalization_method='minmax',
         target_model='FinvizFundamental',
         target_field='price_sales',
     )
@@ -75,6 +77,7 @@ def test_calculate_algo_metrics(
         task_proc.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         task.refresh_from_db()
+        # logger.debug(task.arguments)
     logger.info(monotonic() - start)
     result = json.loads(task.result)
     logger.info(json.dumps(result, indent=4))
