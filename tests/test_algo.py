@@ -5,6 +5,8 @@ from time import monotonic
 
 import pytest
 
+from django.utils.timezone import now
+
 from algo.models import Algo, AlgoMetric, AlgoSlice, AlgoMetricSlice
 from task.lib.commands import COMMANDS, Command
 from task.lib.network_client import NetworkClient
@@ -79,8 +81,7 @@ def test_calculate_algo_metrics(
         task.refresh_from_db()
         # logger.debug(task.arguments)
     logger.info(monotonic() - start)
-    result = json.loads(task.result)
-    logger.info(json.dumps(result, indent=4))
+    logger.info(json.dumps(task.result, indent=4))
     # data_slice_count = ticker_sample.finvizfundamental_set.count()
     # assert data_slice_count == 1, 'Ticker fundamental data was not correctly appended'
     # data_slice = ticker_sample.finvizfundamental_set.all()[0]

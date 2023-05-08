@@ -84,8 +84,9 @@ class AlgoSlice(models.Model):
 
 class AlgoMetricSlice(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
+    slice = models.ForeignKey(AlgoSlice, on_delete=models.CASCADE)
     metric = models.ForeignKey(AlgoMetric, on_delete=models.CASCADE)
-    ticker = models.ForeignKey(Ticker, on_delete=models.CASCADE)
+    # ticker = models.ForeignKey(Ticker, on_delete=models.CASCADE)
     result = models.FloatField(null=True, help_text='metric rating')
 
     def __str__(self):
