@@ -65,10 +65,10 @@ def append_slices(task: Task):
         else:
             algo_slice: AlgoSlice = AlgoSlice.objects.create(algo=metric.algo, ticker=model_obj.ticker, date=now().date())
             algo_slice.save()
-        logger.debug(algo_slice)
+        # logger.debug(algo_slice)
         metric_slice: AlgoMetricSlice = AlgoMetricSlice.objects.create(slice=algo_slice, metric=metric, result=normalized[model_obj_id])
         metric_slice.save()
-        logger.debug(metric_slice)
+        # logger.debug(metric_slice)
     return True
 
 

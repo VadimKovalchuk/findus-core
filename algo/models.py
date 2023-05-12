@@ -15,11 +15,16 @@ METRIC_MODELS_REFERENCE = {
 class Algo(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     name = models.TextField()
-    reference_scope = models.ForeignKey(Scope, null=True, on_delete=models.SET_NULL)
+    reference_scope: Scope = models.ForeignKey(Scope, null=True, on_delete=models.SET_NULL)
 
     @property
     def metrics(self):
         return self.algometric_set.all()
+
+    def get_slices_by_ticker(self, ticker: Ticker):
+        assert ticker in self.reference_scope.tickers.all(), \
+            f'Ticker {ticker} is missing in {self.reference_scope} scope'
+        return self.algoslice_set.filter(ticker=ticker)
 
     def __str__(self):
         return f'({self.id}) "{self.name}"'  # : {self.scope}'
@@ -59,7 +64,7 @@ class AlgoMetric(models.Model):
             if not _obj:
                 continue
             value = _obj.__dict__.get(self.target_field)
-            if value or not ignore_empty:
+            if value is not None or not ignore_empty:
                 data[_obj.id] = value
         return data
 

@@ -24,15 +24,17 @@ pytestmark = pytest.mark.django_db
 def algo_scope():
     scope = Scope.objects.create(name='scope')
     for symbol in UNIFORM_DISTRIBUTION_DATA:
+        logger.debug(symbol)
         tkr = Ticker.objects.create(symbol=symbol)
         tkr.save()
         scope.tickers.add(tkr)
-        finviz_slice = FinvizFundamental.objects.create(
+        finviz_slice: FinvizFundamental = FinvizFundamental.objects.create(
             ticker=tkr,
             price_earnings=UNIFORM_DISTRIBUTION_DATA[symbol],
             price_sales=UNIFORM_DISTRIBUTION_DATA[symbol] * 2
         )
         finviz_slice.save()
+        logger.debug([finviz_slice.price_earnings, finviz_slice.price_sales])
     scope.save()
     yield scope
 
@@ -66,6 +68,7 @@ def test_calculate_algo_metrics(
         network_client_on_dispatcher: NetworkClient,
         algo: Algo
 ):
+    # logger.debug(json.dumps(algo.metrics[0].get_normalization_data(), indent=4))
     task_proc = TaskProcessor()
     cmd: Command = COMMANDS['calculate_algo_metrics']
     task: SystemTask = cmd.create_task()
@@ -81,10 +84,16 @@ def test_calculate_algo_metrics(
         task.refresh_from_db()
         # logger.debug(task.arguments)
     logger.info(monotonic() - start)
-    logger.info(json.dumps(task.result, indent=4))
-    # data_slice_count = ticker_sample.finvizfundamental_set.count()
-    # assert data_slice_count == 1, 'Ticker fundamental data was not correctly appended'
-    # data_slice = ticker_sample.finvizfundamental_set.all()[0]
-    # for param, value in result['values'].items():
-    #     assert getattr(data_slice, param) == value, f'Param "{param}" value mismatch "{getattr(data_slice, param)}" vs "{value}"'
-
+    # logger.info(json.dumps(task.result, indent=4))
+    for metric in algo.metrics:
+        parameters = metric.method_parameters_dict
+        logger.debug(json.dumps(parameters, indent=4))
+        values = metric.get_normalization_data().values()
+        assert 'min' in parameters, "MIN value is missing in parameters"
+        assert parameters["min"] == min(values), f"Metric MIN value {parameters['min']} " \
+                                                 f"differs from expected: {min(values)}"
+        assert 'max' in parameters, "MAX value is missing in parameters"
+        assert parameters["max"] == max(values), f"Metric MAX value {parameters['max']} " \
+                                                 f"differs from expected: {max(values)}"
+    for ticker in algo.reference_scope.tickers.all():
+        assert len(algo.get_slices_by_ticker(ticker)) == 1, f"Single slice is expected for ticker {ticker}"
