@@ -14,5 +14,21 @@
     "module": "findus_edge.algo.normalization",
     "function": "normalization",
     "run_on_done": ["validate_result_json", "set_metric_params", "append_slices"]
+  },
+  "calculate_algo_rates": {
+    "base": "base",
+    "run_on_start": ["get_slices", "command_factory"],
+    "arguments": {
+      "command_name": "calculate_algo_rate",
+      "command_arg": "metric_slice_ids"
+    }
+  },
+  "calculate_algo_rate": {
+    "base": "base",
+    "dcn_task": true,
+    "run_on_start": ["collect_normalization_data"],
+    "module": "findus_edge.algo.normalization",
+    "function": "normalization",
+    "run_on_done": ["validate_result_json", "set_metric_params", "append_slices"]
   }
 }

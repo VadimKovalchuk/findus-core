@@ -91,13 +91,14 @@ def test_price_history(client_on_dispatcher: Client):
     pytest.param('fundamental_converted', 40, id='fundamental_converted')
 ])
 def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func: str, expected_prop_count: int):
-    ticker = "MSFT"
+    ticker = 'MSFT'
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
     test_task['client'] = client.broker.queue
     test_task['module'] = 'findus_edge.finviz'
     test_task['function'] = module_func
-    test_task['arguments'] = {"ticker": ticker}
+    test_task['arguments'] = {'ticker': ticker}
+    #test_task['arguments'] = '{"ticker": "MSFT"}'
     client.broker.publish(test_task)
     # Validating result on client
     _, result = next(client.broker.pull())

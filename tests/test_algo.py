@@ -24,7 +24,7 @@ pytestmark = pytest.mark.django_db
 def algo_scope():
     scope = Scope.objects.create(name='scope')
     for symbol in UNIFORM_DISTRIBUTION_DATA:
-        logger.debug(symbol)
+        # logger.debug(symbol)
         tkr = Ticker.objects.create(symbol=symbol)
         tkr.save()
         scope.tickers.add(tkr)
@@ -34,7 +34,7 @@ def algo_scope():
             price_sales=UNIFORM_DISTRIBUTION_DATA[symbol] * 2
         )
         finviz_slice.save()
-        logger.debug([finviz_slice.price_earnings, finviz_slice.price_sales])
+        # logger.debug([finviz_slice.price_earnings, finviz_slice.price_sales])
     scope.save()
     yield scope
 
@@ -96,4 +96,37 @@ def test_calculate_algo_metrics(
         assert parameters["max"] == max(values), f"Metric MAX value {parameters['max']} " \
                                                  f"differs from expected: {max(values)}"
     for ticker in algo.reference_scope.tickers.all():
-        assert len(algo.get_slices_by_ticker(ticker)) == 1, f"Single slice is expected for ticker {ticker}"
+        algo_slices = list(algo.get_slices_by_ticker(ticker))
+        assert len(algo_slices) == 1, f"Single slice is expected for ticker {ticker}"
+        algo_slice: AlgoSlice = algo_slices[0]
+        assert len(algo_slice.metrics) == 2, f"Slice for ticker {ticker} has metrics count mismatch"
+
+
+def test_calculate_final_rate(
+        network_client_on_dispatcher: NetworkClient,
+        algo: Algo
+):
+    task_proc = TaskProcessor()
+    cmd: Command = COMMANDS['calculate_algo_metrics']
+    task: SystemTask = cmd.create_task()
+    args = task.arguments_dict
+    args['algo_id'] = algo.id
+    task.arguments_dict = args
+    task.save()
+    logger.debug(task.arguments)
+    start = monotonic()
+    while not task.state == TaskState.DONE and monotonic() < start + 20:
+        task_proc.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        task.refresh_from_db()
+        # logger.debug(task.arguments)
+    logger.info(monotonic() - start)
+
+    cmd: Command = COMMANDS['calculate_algo_metrics']
+    task: SystemTask = cmd.create_task()
+    args = task.arguments_dict
+    args['algo_id'] = algo.id
+    task.arguments_dict = args
+    task.save()
+    logger.debug(task.arguments)
+    start = monotonic()
