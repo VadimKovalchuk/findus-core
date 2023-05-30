@@ -59,13 +59,27 @@ class AlgoMetric(models.Model):
     def get_normalization_data(self, ignore_empty=True):
         data = {}
         tickers = self.algo.reference_scope.tickers.all()
+        limits = self.limits
         for tkr in tickers:
             _obj = self.target_model_class.objects.filter(ticker=tkr).last()
+            # Ignore ticker if it has no reference model instances
             if not _obj:
                 continue
             value = _obj.__dict__.get(self.target_field)
-            if value is not None or not ignore_empty:
-                data[_obj.id] = value
+            # Ignore empty field of corresponding reference model
+            if value is None and ignore_empty:
+                continue
+            # In case if metric field has reference data limits
+            if limits:
+                # Ignore value if it is over max limit
+                _max = limits.get("max")
+                if _max and _max < value:
+                    continue
+                # Ignore value if it is under min limit
+                _min = limits.get("min")
+                if _min and _min > value:
+                    continue
+            data[_obj.id] = value
         return data
 
     def __str__(self):
