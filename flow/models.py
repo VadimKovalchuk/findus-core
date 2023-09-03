@@ -7,6 +7,14 @@ from django.db import models
 from django.utils.timezone import now
 
 
+class FlowState:
+    CREATED = 'created'
+    RUNNING = 'running'
+    DONE = 'done'
+    states = [CREATED, RUNNING, DONE]
+    choices = ((state, state) for state in states)
+
+
 class Flow(models.Model):
 
     class Priorities(models.IntegerChoices):
@@ -18,9 +26,11 @@ class Flow(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     name = models.CharField(max_length=100)
     step = models.IntegerField(default=0)
+    event = models.ForeignKey('schedule.Event', null=True, on_delete=models.CASCADE)
+    state = models.CharField(max_length=10, choices=FlowState.choices, default=FlowState.CREATED)
+    arguments = models.TextField(null=True)
     postponed = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
-    arguments = models.TextField(null=True)
 
     @property
     def arguments_dict(self):
