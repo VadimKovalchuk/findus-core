@@ -51,7 +51,6 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
             yield task
 
     def append_task_result_to_db(self, dcn_task: Dict):
-        self.idle = False
         task_id = dcn_task['id']
         task: NetworkTask = NetworkTask.objects.get(pk=task_id)
         logger.info(f'Task {task.name} execution results received')
@@ -61,7 +60,6 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         return True
 
     def push_task_to_network(self, network_task: NetworkTask):
-        self.idle = False
         logger.info(f'Sending task: {network_task.name}')
         dcn_task = network_task.compose_for_dcn(self.name)
         dcn_task['client'] = self.broker.queue

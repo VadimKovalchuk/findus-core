@@ -27,6 +27,7 @@ class CommonServiceMixin:
         for _ in range(task_limit):
             task = next(queue)
             if task and self._active:
+                self.idle = False
                 func(task)
             else:
                 return
