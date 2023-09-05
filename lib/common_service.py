@@ -21,15 +21,12 @@ class CommonServiceMixin:
             logger.debug('Processing cycle is idle.')
             sleep(IDLE_SLEEP_TIMEOUT)
 
-    def generic_stage_handler(self, func: Callable, task_type: str = '', task_state: str = ''):
-        if task_type and task_state:
-            task_limit = self.quotas[task_type][task_state]
-            queue = self.queues[task_type][task_state]
-            for _ in range(task_limit):
-                task = next(queue)
-                if task and self._active:
-                    func(task)
-                else:
-                    return
-        else:
-            func()
+    def generic_stage_handler(self, func: Callable, state: str):
+        task_limit = self.quotas[state]
+        queue = self.queues[state]
+        for _ in range(task_limit):
+            task = next(queue)
+            if task and self._active:
+                func(task)
+            else:
+                return

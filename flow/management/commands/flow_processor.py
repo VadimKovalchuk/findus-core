@@ -1,5 +1,6 @@
 import logging
 
+from time import sleep
 from django.core.management.base import BaseCommand
 
 from flow.lib.flow_processor import FlowProcessor
@@ -14,10 +15,10 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
-        task_processor = FlowProcessor()
+        flow_processor = FlowProcessor()
         while True:
-            if not task_processor.db_connected and not task_processor.wait_db_connection():
+            if not flow_processor.db_connected and not flow_processor.wait_db_connection():
                 continue
-            task_processor.init_cycle()
-            task_processor.processing_cycle()
-            task_processor.finalize_cycle()
+            flow_processor.init_cycle()
+            flow_processor.processing_cycle()
+            flow_processor.finalize_cycle()

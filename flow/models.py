@@ -11,7 +11,8 @@ class FlowState:
     CREATED = 'created'
     RUNNING = 'running'
     DONE = 'done'
-    states = [CREATED, RUNNING, DONE]
+    POSTPONED = 'postponed'
+    states = [CREATED, RUNNING, DONE, POSTPONED]
     choices = ((state, state) for state in states)
 
 
@@ -27,10 +28,21 @@ class Flow(models.Model):
     name = models.CharField(max_length=100)
     step = models.IntegerField(default=0)
     event = models.ForeignKey('schedule.Event', null=True, on_delete=models.CASCADE)
-    state = models.CharField(max_length=10, choices=FlowState.choices, default=FlowState.CREATED)
+    processing_state = models.CharField(max_length=10, choices=FlowState.choices, default=FlowState.CREATED)
     arguments = models.TextField(null=True)
     postponed = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
+
+    @property
+    def state(self):
+        if self.postponed:
+            return FlowState.POSTPONED
+        else:
+            return self.processing_state
+
+    @state.setter
+    def state(self, state: str):
+        self.processing_state = state
 
     @property
     def arguments_dict(self):

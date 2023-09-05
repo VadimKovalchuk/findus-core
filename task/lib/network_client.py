@@ -27,11 +27,9 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         super().__init__(name, token, dsp_host, dsp_port)
         CommonServiceMixin.__init__(self)
         self.queues = {
-            TaskType.Network: {
-                TaskState.STARTED: pending_network_tasks(),
-                TaskState.PROCESSED: self._pull_task_result(),
-                OVERDUE: overdue_network_tasks()  # TODO: not implemented
-            }
+            TaskState.STARTED: pending_network_tasks(),
+            TaskState.PROCESSED: self._pull_task_result(),
+            OVERDUE: overdue_network_tasks()  # TODO: not implemented
         }
         self.quotas = TASK_PROCESSING_QUOTAS
         self.stages = (
@@ -72,9 +70,6 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         network_task.save()
         return True
 
-    def stage_handler(self, func: Callable, task_state: str = ''):
-        return self.generic_stage_handler(func, TaskType.Network, task_state)
-
     def processing_cycle(self):
         for stage_handler, task_state in self.stages:
-            self.stage_handler(stage_handler, task_state)
+            self.generic_stage_handler(stage_handler, task_state)

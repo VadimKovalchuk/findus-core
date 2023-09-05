@@ -1,3 +1,4 @@
+from flow.models import FlowState
 from task.models import NetworkTask, SystemTask, TaskState
 
 
@@ -8,18 +9,16 @@ class TaskType:
 
 
 IDLE_SLEEP_TIMEOUT = 10  # seconds
+FLOW_PROCESSING_QUOTAS = {
+    FlowState.CREATED: 1,
+    FlowState.RUNNING: 4,
+    FlowState.DONE: 1,
+    FlowState.POSTPONED: 100
+}
 TASK_PROCESSING_QUOTAS = {
-    TaskType.System: {
-        TaskState.CREATED: 1,
-        TaskState.PROCESSED: 2,
-        TaskState.DONE: 1,
-        TaskState.POSTPONED: 10
-    },
-    TaskType.Network: {
-        TaskState.CREATED: 2,
-        TaskState.STARTED: 2,
-        TaskState.PROCESSED: 4,
-        TaskState.DONE: 1,
-        TaskState.POSTPONED: 100
-    }
+    TaskState.CREATED: 2,
+    TaskState.STARTED: 2,
+    TaskState.PROCESSED: 4,
+    TaskState.DONE: 1,
+    TaskState.POSTPONED: 100
 }
