@@ -11,15 +11,15 @@ from django.utils.timezone import now
 logger = logging.getLogger('scheduler')
 
 
-def get_pending_schedules(schedule: Schedule) -> QuerySet:
-    query_set = schedule.objects.filter(next_trigger__lt=now())
+def get_pending_schedules() -> QuerySet:
+    query_set = Schedule.objects.filter(next_trigger__lt=now())
     return query_set
 
 
 class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
     def __init__(self):
         CommonServiceMixin.__init__(self)
-        self.queue = generic_query_set_generator(get_pending_schedules, Schedule)
+        self.queue = generic_query_set_generator(get_pending_schedules)
 
     @staticmethod
     def clone(event: Event):

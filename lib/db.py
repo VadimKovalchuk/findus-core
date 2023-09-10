@@ -72,7 +72,7 @@ def overdue_network_tasks():
 
 def get_created_flows() -> QuerySet:
     query_set = Flow.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(state=FlowState.CREATED)
+    query_set = query_set.filter(processing_state=FlowState.CREATED)
     query_set = query_set.order_by('id')
     return query_set
 
@@ -90,15 +90,3 @@ def get_postponed_flows() -> QuerySet:
     query_set = query_set.filter(sent__lt=now() - timedelta(days=1))
     query_set = query_set.order_by('id')
     return query_set
-
-
-def created_flows():
-    yield from generic_query_set_generator(get_created_flows)
-
-
-def running_flows():
-    yield from generic_query_set_generator(get_running_flows)
-
-
-def postponed_flows():
-    yield from generic_query_set_generator(get_postponed_flows)

@@ -32,13 +32,14 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'algo.apps.AlgoConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'algo.apps.AlgoConfig',
+    'flow.apps.FlowConfig',
     'schedule.apps.ScheduleConfig',
     'task.apps.TaskConfig',
     'ticker.apps.TickerConfig'
@@ -170,6 +171,11 @@ LOGGING = {
             'propagate': True,
         },
         'task_processor': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'flow_processor': {
             'handlers': ['file'],
             'level': 'DEBUG',
             'propagate': True,

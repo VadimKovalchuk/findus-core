@@ -46,11 +46,18 @@ services:
       - ./log/client/:/src/log/django/
     deploy:
       mode: global
-  task_processor:
+#  task_processor:
+#    image: "findus:latest"
+#    command: ["python", "manage.py", "task_processor"]
+#    volumes:
+#      - ./log/task_processor/:/src/log/django/
+#    deploy:
+#      mode: global
+  flow_processor:
     image: "findus:latest"
-    command: ["python", "manage.py", "task_processor"]
+    command: ["python", "manage.py", "flow_processor"]
     volumes:
-      - ./log/task_processor/:/src/log/django/
+      - ./log/flow_processor/:/src/log/django/
     deploy:
       mode: global
   scheduler:
