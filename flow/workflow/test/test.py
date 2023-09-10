@@ -2,7 +2,7 @@ from flow.models import Flow
 from task.models import NetworkTask
 
 
-class RelayFlow(Flow):
+class TestRelayFlow:
 
     def stage_1(self):
         task = NetworkTask.objects.create(

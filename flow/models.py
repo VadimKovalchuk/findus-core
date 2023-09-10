@@ -8,6 +8,7 @@ from django.utils.timezone import now
 
 STAGE_COUNT_CAP = 100
 
+
 class FlowState:
     CREATED = 'created'
     RUNNING = 'running'
