@@ -35,6 +35,7 @@ def validate_task_queue(task: Task, expected_queue: Generator, task_proc: TaskPr
 
 
 def test_task_queues_range():
+    # LEGACY
     # Task states validation range
     expected_sates = ('created', 'started', 'processed', 'done', 'postponed')
     assert len(TaskState.states) == len(expected_sates), 'Task states range less than expected one'
@@ -56,6 +57,7 @@ def test_task_queues_range():
         ]
 )
 def test_task_queues(task_name: str, task_type: str):
+    # LEGACY
     def validate_task_in_queue(state: str):
         assert task.state == state, 'Task state validation failure'
         task_from_queue = next(task_processor.queues[task_type][state])
@@ -87,6 +89,7 @@ def test_task_queues(task_name: str, task_type: str):
         ]
 )
 def test_postponed_task(task_name: str, task_type: str):
+    # LEGACY
     def validate_task_in_queue(state: str):
         assert task.state == state, 'Task state validation failure'
         task_from_queue = next(task_processor.queues[task_type][state])

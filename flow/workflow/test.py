@@ -1,10 +1,11 @@
 from flow.models import Flow
+from flow.workflow.generic import Workflow
 from task.models import NetworkTask
 
 
-class TestRelayFlow:
+class TestRelayFlow(Workflow):
 
-    def stage_1(self):
+    def stage_0(self):
         task = NetworkTask.objects.create(
             name='network_relay_task',
             module='builtin',
@@ -14,7 +15,7 @@ class TestRelayFlow:
         task.save()
         return True
 
-    def stage_2(self):
+    def stage_1(self):
         task = NetworkTask.objects.get(name='network_relay_task')
         print(task.state)
         return False

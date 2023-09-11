@@ -6,8 +6,6 @@ from typing import List
 from django.db import models
 from django.utils.timezone import now
 
-STAGE_COUNT_CAP = 100
-
 
 class FlowState:
     CREATED = 'created'
@@ -53,16 +51,3 @@ class Flow(models.Model):
     @arguments_dict.setter
     def arguments_dict(self, _dict: dict):
         self.arguments = json.dumps(_dict)
-
-    @property
-    def stage_count(self):
-        max_stage = 0
-        for stage_id in range(STAGE_COUNT_CAP + 1):
-            try:
-                if getattr(self, f'stage_{stage_id}'):
-                    max_stage = stage_id
-            except AttributeError:
-                return max_stage
-
-    def stage_0(self):
-        return True

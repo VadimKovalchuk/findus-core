@@ -7,7 +7,8 @@ from django.utils.timezone import now
 
 from flow.models import Flow, FlowState
 from task.lib.constants import FLOW_PROCESSING_QUOTAS
-from lib.db import DatabaseMixin, get_created_flows, get_running_flows, get_postponed_flows, generic_query_set_generator
+from lib.db import (DatabaseMixin, get_created_flows, get_done_flows, get_running_flows,
+                    get_postponed_flows, generic_query_set_generator)
 from lib.common_service import CommonServiceMixin
 from task.models import SystemTask, NetworkTask, TaskState
 
@@ -21,6 +22,7 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
                 FlowState.CREATED: generic_query_set_generator(get_created_flows),
                 FlowState.RUNNING: generic_query_set_generator(get_running_flows),
                 FlowState.POSTPONED: generic_query_set_generator(get_postponed_flows),
+                FlowState.DONE: generic_query_set_generator(get_done_flows),
             }
         self.quotas = FLOW_PROCESSING_QUOTAS
         self.stages = (
@@ -30,10 +32,11 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
         )
 
     def start_flow(self, flow: Flow):
-        logger.info(f'Starting flow: {flow}')
+        logger.info(f'Starting flow: {flow.name}')
+
 
     def process_flow(self, flow: Flow):
-        logger.info(f'Processing flow: {flow}')
+        logger.info(f'Processing flow: {flow.name}')
 
     def cancel_postpone(self, flow: Flow):
         flow.postponed = None

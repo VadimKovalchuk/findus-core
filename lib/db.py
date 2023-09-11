@@ -78,15 +78,20 @@ def get_created_flows() -> QuerySet:
 
 
 def get_running_flows() -> QuerySet:
-    query_set = NetworkTask.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(processing_state=TaskState.STARTED)
-    query_set = query_set.filter(sent__lt=now() - timedelta(days=1))
+    query_set = Flow.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(processing_state=FlowState.RUNNING)
     query_set = query_set.order_by('id')
     return query_set
 
 
 def get_postponed_flows() -> QuerySet:
-    query_set = NetworkTask.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(sent__lt=now() - timedelta(days=1))
+    query_set = Flow.objects.filter(postponed__lt=now())
+    query_set = query_set.order_by('postponed')
+    return query_set
+
+
+def get_done_flows() -> QuerySet:
+    query_set = Flow.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(processing_state=FlowState.DONE)
     query_set = query_set.order_by('id')
     return query_set
