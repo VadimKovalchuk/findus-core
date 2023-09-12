@@ -124,6 +124,7 @@ def test_postponed_task(task_name: str, task_type: str):
         ]
 )
 def test_task_start(task_name: str, task_type: str):
+    # LEGACY
     task_processor = TaskProcessor()
     cmd: Command = COMMANDS[task_name]
     task = cmd.create_task()
@@ -139,6 +140,7 @@ def test_task_start(task_name: str, task_type: str):
 
 
 def test_child_task_creation():
+    # LEGACY
     task_processor = TaskProcessor()
     cmd: Command = COMMANDS[SYS_CMD_NAME]
     task = cmd.create_task()
@@ -160,6 +162,7 @@ def test_child_task_creation():
         ]
 )
 def test_task_finalization(task_name: str, task_type: str):
+    # LEGACY
     task_processor = TaskProcessor()
     cmd: Command = COMMANDS[task_name]
     task = cmd.create_task()

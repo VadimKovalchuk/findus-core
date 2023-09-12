@@ -31,7 +31,7 @@ class Task(models.Model):
     processing_state = models.CharField(max_length=10, choices=TaskState.choices, default=TaskState.CREATED)
     postponed = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
-    parent_task = models.ForeignKey('SystemTask', null=True, on_delete=models.CASCADE)
+    flow = models.ForeignKey('flow.Flow', null=True, on_delete=models.CASCADE)
     arguments = models.TextField(null=True)
     result = models.TextField(null=True)
 

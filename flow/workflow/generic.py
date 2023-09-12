@@ -4,7 +4,7 @@ STAGE_COUNT_CAP = 100
 
 
 class Workflow:
-    name = 'Generic'
+    flow_name = 'generic'
 
     def __init__(self):
         self.flow = None
@@ -15,7 +15,7 @@ class Workflow:
         for stage_id in range(STAGE_COUNT_CAP + 1):
             try:
                 if getattr(self, f'stage_{stage_id}'):
-                    max_stage = stage_id
+                    max_stage += 1
             except AttributeError:
                 return max_stage
 
@@ -27,7 +27,7 @@ class Workflow:
         return getattr(self, f'stage_{self.flow.stage}')
 
     def create(self):
-        self.flow = Flow.objects.create(name=self.name)
+        self.flow = Flow.objects.create(name=self.flow_name)
         return self.flow
 
     def stage_0(self):

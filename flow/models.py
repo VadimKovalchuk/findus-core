@@ -6,6 +6,8 @@ from typing import List
 from django.db import models
 from django.utils.timezone import now
 
+from task.models import NetworkTask
+
 
 class FlowState:
     CREATED = 'created'
@@ -51,3 +53,7 @@ class Flow(models.Model):
     @arguments_dict.setter
     def arguments_dict(self, _dict: dict):
         self.arguments = json.dumps(_dict)
+
+    @property
+    def tasks(self) -> NetworkTask:
+        return self.networktask_set.all()
