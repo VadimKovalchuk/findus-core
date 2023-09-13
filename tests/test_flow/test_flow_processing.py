@@ -1,5 +1,7 @@
 import logging
 
+from time import monotonic, sleep
+
 import pytest
 
 from django.utils.timezone import now
@@ -40,6 +42,18 @@ def test_task_creation():
         assert task.name == 'network_relay_task', 'Child task name mismatch'
 
 
+def test_task_lifecycle():
+    flow_processor = FlowProcessor()
+    workflow = TestStagesWorklow()
+    flow = workflow.create()
+    start = monotonic()
+    while not flow.processing_state == FlowState.DONE and monotonic() < start + 5:
+        flow_processor.processing_cycle()
+        flow.refresh_from_db()
+        logger.debug(flow.processing_state)
+    logger.info(monotonic() - start)
+
+
 def test_flow_finalization():
     flow_processor = FlowProcessor()
     workflow = TestStagesWorklow()
@@ -49,20 +63,29 @@ def test_flow_finalization():
     flow.save()
     flow_processor.generic_stage_handler(flow_processor.process_flow, FlowState.RUNNING)
     flow.refresh_from_db()
-    # logger.info(flow.processing_state)
+    logger.info((flow.state, flow.processing_state, flow.postponed))
+
     assert not next(flow_processor.queues[FlowState.RUNNING]), \
         'Unexpected flow is received from running queue'
     assert not next(flow_processor.queues[FlowState.POSTPONED]), \
         'Unexpected flow is received from postponed queue'
+
     flow.postponed = now()
     flow.save()
+    logger.info((flow.state, flow.processing_state, flow.postponed))
+
     assert flow == next(flow_processor.queues[FlowState.POSTPONED]), \
         'Completed flow is missing in postponed queue'
+
     flow_processor.generic_stage_handler(flow_processor.cancel_postpone, FlowState.POSTPONED)
+    flow.refresh_from_db()
+    logger.info((flow.state, flow.processing_state, flow.postponed))
+
     assert flow == next(flow_processor.queues[FlowState.DONE]), \
         'Completed flow is missing in completed queue'
     assert not next(flow_processor.queues[FlowState.POSTPONED]), \
         'Unexpected flow is received from postponed queue'
+
     flow_processor.generic_stage_handler(flow_processor.cleanup_done, FlowState.DONE)
     assert not next(flow_processor.queues[FlowState.DONE]), \
         'Unexpected flow is received from completed queue'

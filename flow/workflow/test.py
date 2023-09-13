@@ -9,6 +9,9 @@ class TestStagesWorklow(Workflow):
     def stage_0(self):
         return True
 
+    def stage_1(self):
+        return True
+
     def stage_2(self):
         return True
 

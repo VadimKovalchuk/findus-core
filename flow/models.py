@@ -14,7 +14,7 @@ class FlowState:
     RUNNING = 'running'
     DONE = 'done'
     POSTPONED = 'postponed'
-    states = [CREATED, RUNNING, DONE, POSTPONED]
+    states = [CREATED, RUNNING, DONE]
     choices = ((state, state) for state in states)
 
 

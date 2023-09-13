@@ -65,7 +65,6 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
 
     def cleanup_done(self, flow: Flow):
         flow.delete()
-        flow.save()
         return True
 
     def processing_cycle(self):
