@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 
 from schedule.lib.event_templates import get_event_template
-from task.models import SystemTask
+from flow.models import Flow
 
 from croniter import croniter
 from django.db import models
@@ -34,8 +34,8 @@ class Event(models.Model):
     def get_schedule(self):
         return list(self.schedule_set.all())
 
-    def get_tasks(self) -> List[SystemTask]:
-        return self.systemtask_set.all()
+    def get_flows(self) -> List[Flow]:
+        return self.flow_set.all()
 
     def __str__(self):
         return f'({self.id}) "{self.name}": {self.artifacts}'

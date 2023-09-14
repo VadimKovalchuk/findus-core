@@ -6,8 +6,8 @@ STAGE_COUNT_CAP = 100
 class Workflow:
     flow_name = 'generic'
 
-    def __init__(self):
-        self.flow = None
+    def __init__(self, flow: Flow = None):
+        self.flow = flow
 
     @property
     def stage_count(self):

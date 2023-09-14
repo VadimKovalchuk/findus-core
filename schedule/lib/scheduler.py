@@ -1,8 +1,10 @@
 import logging
 from lib.common_service import CommonServiceMixin
 from lib.db import DatabaseMixin, generic_query_set_generator
-from task.lib.commands import COMMANDS, Command
-from task.lib.commands import SystemTask
+# from task.lib.commands import COMMANDS, Command
+# from task.lib.commands import SystemTask
+from flow.models import Flow
+from flow.workflow import get_workflow_map
 from schedule.models import Event, Schedule
 
 from django.db.models.query import QuerySet
@@ -20,6 +22,7 @@ class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
     def __init__(self):
         CommonServiceMixin.__init__(self)
         self.queue = generic_query_set_generator(get_pending_schedules)
+        self.workflow_map = get_workflow_map()
 
     @staticmethod
     def clone(event: Event):
@@ -30,17 +33,18 @@ class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
             tasks=event.tasks
         )
 
-    @staticmethod
-    def trigger(event: Event):
+    def trigger(self, event: Event):
 
         def _trigger(name: str):
-            logger.debug(COMMANDS.keys())
-            command: Command = COMMANDS[name]
-            task: SystemTask = command.create_task()
-            task.event = event
+            # logger.debug(COMMANDS.keys())
+            # command: Command = COMMANDS[name]
+            # task: SystemTask = command.create_task()
+            workflow = self.workflow_map[name]
+            flow: Flow = workflow.create()
+            flow.event = event
             if event.artifacts:
-                task.arguments = event.artifacts
-            task.save()
+                flow.arguments = event.artifacts
+            flow.save()
 
         if event.tasks:
             if ',' in event.tasks:
