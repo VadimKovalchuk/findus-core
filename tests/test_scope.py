@@ -8,7 +8,7 @@ from tests.conftest import TEST_TICKERS_STR_LIST
 from ticker.models import Ticker, Scope
 from task.models import Task, SystemTask, NetworkTask, TaskState
 from task.lib.commands import COMMANDS, Command
-from task.lib.task_processor import TaskProcessor
+# from task.lib.task_processor import TaskProcessor
 
 
 logger = logging.getLogger(__name__)

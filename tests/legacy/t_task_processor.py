@@ -195,6 +195,7 @@ def test_processed_transition():
 
 
 def test_task_lifecycle(network_client_on_dispatcher: NetworkClient):
+    # LEGACY
     task_proc = TaskProcessor()
     cmd: Command = COMMANDS[SYS_CMD_NAME]
     task: SystemTask = cmd.create_task()

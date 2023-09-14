@@ -9,7 +9,6 @@ from typing import Union, Tuple
 import pytest
 
 from dcn.client.client import Client
-from dcn.common.constants import SECOND
 from dcn.common.data_structures import compose_queue, task_body
 from dcn.common.defaults import RoutingKeys
 
@@ -87,7 +86,7 @@ def test_price_history(client_on_dispatcher: Client):
 
 
 @pytest.mark.parametrize('module_func, expected_prop_count', [
-    pytest.param('fundamental', 77, id='fundamental'),
+    pytest.param('fundamental', 78, id='fundamental'),
     pytest.param('fundamental_converted', 40, id='fundamental_converted')
 ])
 def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func: str, expected_prop_count: int):
@@ -102,6 +101,7 @@ def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func
     client.broker.publish(test_task)
     # Validating result on client
     _, result = next(client.broker.pull())
+    logger.debug(result)
     data = json.loads(result['result'])
     assert 'values' in data, f'Ticker fundamental values are missing in command result contents'
     assert len(data['values']) == expected_prop_count, \

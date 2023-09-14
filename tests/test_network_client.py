@@ -39,15 +39,15 @@ def test_online(network_client_on_dispatcher: NetworkClient):
 def test_task_queues(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
     created_task = create_network_task(arguments={"arg": "test"})
-    pending_task: NetworkTask = next(client.queues[TaskType.Network][TaskState.STARTED])
+    pending_task: NetworkTask = next(client.queues[TaskState.STARTED])
     assert created_task == pending_task, 'Pending task differs from created one'
     client.push_task_to_network(pending_task)
-    assert not next(client.queues[TaskType.Network][TaskState.STARTED]), 'Unexpected network task received'
+    assert not next(client.queues[TaskState.STARTED]), 'Unexpected network task received'
     pending_task.refresh_from_db()
     assert pending_task.sent, 'Network task is send to DCN but not marked as sent'
     for _ in range(20):  # x20 milliseconds
         sleep(0.02)
-        task_result = next(client.queues[TaskType.Network][TaskState.PROCESSED])
+        task_result = next(client.queues[TaskState.PROCESSED])
         if task_result:
             break
     else:
@@ -55,13 +55,13 @@ def test_task_queues(network_client_on_dispatcher: NetworkClient):
     client.append_task_result_to_db(task_result)
     pending_task.refresh_from_db()
     assert pending_task.state == TaskState.PROCESSED, f'Task result is processed but not marked as processed'
-    assert not next(client.queues[TaskType.Network][TaskState.PROCESSED]), 'Unexpected task is received from DCN'
+    assert not next(client.queues[TaskState.PROCESSED]), 'Unexpected task is received from DCN'
 
 
 def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
     task = create_network_task(arguments={"arg": "test"})
-    client.stage_handler(client.push_task_to_network, TaskState.STARTED)
-    client.stage_handler(client.append_task_result_to_db, TaskState.PROCESSED)
+    client.generic_stage_handler(client.push_task_to_network, TaskState.STARTED)
+    client.generic_stage_handler(client.append_task_result_to_db, TaskState.PROCESSED)
     task.refresh_from_db()
     assert task.state == TaskState.PROCESSED, f'Task result is processed but not marked as processed'
