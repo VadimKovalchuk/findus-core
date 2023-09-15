@@ -35,8 +35,6 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
 
     def start_flow(self, flow: Flow):
         logger.info(f'Starting flow: {flow.name}')
-        workflow = self.workflow_map[flow.name]()
-        workflow.flow = flow
         start_result = self.process_flow(flow)
         if start_result:
             flow.state = FlowState.RUNNING
@@ -45,12 +43,11 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
 
     def process_flow(self, flow: Flow):
         logger.info(f'Processing flow: {flow.name}')
-        workflow = self.workflow_map[flow.name]()
-        workflow.flow = flow
+        workflow = self.workflow_map[flow.name](flow)
         active_stage = workflow.get_active_stage_method()
         processing_result = active_stage()
         if processing_result:
-            if workflow.stage_count == flow.stage + 1:
+            if workflow.check_last_stage():
                 flow.state = FlowState.DONE
                 flow.postponed = now() + timedelta(days=92)
             else:

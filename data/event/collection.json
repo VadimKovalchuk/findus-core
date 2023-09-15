@@ -4,7 +4,7 @@
     "description": "base event example",
     "type": 3,
     "artifacts": "",
-    "commands": ["network_relay_task", "system_relay_task"],
+    "workflows": ["test_stages", "test_relay"],
     "schedule" : ["* * * * * *"]
   },
   "update_ticker_list": {
@@ -12,7 +12,7 @@
     "description": "Update ticker list",
     "type": 3,
     "artifacts": "",
-    "commands": ["update_ticker_list"],
+    "workflows": ["update_ticker_list"],
     "schedule" : []
   },
   "new_ticker": {
@@ -20,7 +20,7 @@
     "description": "New ticker created",
     "type": 3,
     "artifacts": "",
-    "commands": ["get_new_ticker_data"],
+    "workflows": ["get_new_ticker_data"],
     "schedule" : []
   },
   "update_daily": {
@@ -28,7 +28,7 @@
     "description": "Update prices and dividend payouts",
     "type": 3,
     "artifacts": "",
-    "commands": ["collect_daily_global"],
+    "workflows": ["collect_daily_global"],
     "schedule" : []
   },
   "update_finviz_fundamental": {
@@ -36,7 +36,7 @@
     "description": "Update fundamental ticker data from finviz",
     "type": 3,
     "artifacts": "",
-    "commands": ["collect_finviz_fundamental_global"],
+    "workflows": ["collect_finviz_fundamental_global"],
     "schedule" : []
   }
 }

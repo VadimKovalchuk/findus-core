@@ -1,4 +1,5 @@
 from flow.models import Flow
+from task.models import NetworkTask
 
 STAGE_COUNT_CAP = 100
 
@@ -19,9 +20,39 @@ class Workflow:
             except AttributeError:
                 return max_stage
 
-    def get_active_stage_method(self):
+    @property
+    def stage(self):
+        self.validate_flow()
+        return self.flow.stage
+
+    @stage.setter
+    def stage(self, stage: str):
+        self.validate_flow()
+        self.flow.stage = stage
+
+    @property
+    def arguments(self):
+        self.validate_flow()
+        return self.flow.arguments_dict
+
+    @arguments.setter
+    def arguments(self, _dict: dict):
+        self.flow.arguments_dict = _dict
+
+    @property
+    def tasks(self) -> NetworkTask:
+        return self.networktask_set.all()
+
+    def validate_flow(self):
         if not self.flow:
             raise AttributeError('Flow attribute is not set')
+
+    def check_last_stage(self):
+        self.validate_flow()
+        return self.stage_count == self.stage + 1
+
+    def get_active_stage_method(self):
+        self.validate_flow()
         if self.flow.stage > self.stage_count:
             raise AttributeError('Flow active stage is more than total stage count')
         return getattr(self, f'stage_{self.flow.stage}')

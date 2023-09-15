@@ -21,21 +21,22 @@ class Event(models.Model):
     type = models.IntegerField(choices=UserType.choices, default=UserType.REGULAR)
     triggered = models.DateTimeField(null=True)
     artifacts = models.TextField(null=True)
-    tasks = models.TextField(null=True)
+    workflows = models.TextField(null=True)
+
+    @property
+    def flows(self) -> List[Flow]:
+        return self.flow_set.all()
 
     def get_template(self):
         return get_event_template(self.name)
 
-    def tasks_from_template(self):
+    def workflows_from_template(self):
         template = self.get_template()
-        task_list = template.get('commands', [])
-        self.tasks = ','.join(task_list)
+        workflow_list = template.get('workflows', [])
+        self.workflows = ','.join(workflow_list)
 
     def get_schedule(self):
         return list(self.schedule_set.all())
-
-    def get_flows(self) -> List[Flow]:
-        return self.flow_set.all()
 
     def __str__(self):
         return f'({self.id}) "{self.name}": {self.artifacts}'

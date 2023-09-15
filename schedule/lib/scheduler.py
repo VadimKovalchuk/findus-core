@@ -30,28 +30,25 @@ class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
             name=event.name,
             type=event.type,
             artifacts=event.artifacts,
-            tasks=event.tasks
+            workflows=event.workflows
         )
 
     def trigger(self, event: Event):
 
         def _trigger(name: str):
-            # logger.debug(COMMANDS.keys())
-            # command: Command = COMMANDS[name]
-            # task: SystemTask = command.create_task()
             workflow = self.workflow_map[name]
-            flow: Flow = workflow.create()
+            flow: Flow = workflow().create()
             flow.event = event
             if event.artifacts:
                 flow.arguments = event.artifacts
             flow.save()
 
-        if event.tasks:
-            if ',' in event.tasks:
-                for task_name in event.tasks.split(','):
-                    _trigger(task_name)
+        if event.workflows:
+            if ',' in event.workflows:
+                for workflow_name in event.workflows.split(','):
+                    _trigger(workflow_name)
             else:
-                _trigger(event.tasks)
+                _trigger(event.workflows)
 
     def processing_cycle(self):
         for schedule in self.queue:

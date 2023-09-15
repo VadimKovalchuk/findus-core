@@ -9,7 +9,7 @@ logger = logging.getLogger('scheduler')
 class Scheduler:
     def __init__(self, event_name: str, artifacts: str):
         self.event: Event = Event.objects.create(name=event_name, artifacts=artifacts)
-        self.event.tasks_from_template()
+        self.event.workflows_from_template()
         self.schedule: Schedule = Schedule.objects.create(event=self.event)
         logger.info(f'Event created: {self.event}. Next trigger: {self.schedule.next_trigger}')
 
@@ -30,12 +30,12 @@ class Scheduler:
         self.event.artifacts = value
 
     @property
-    def tasks(self):
-        return self.event.tasks
+    def workflows(self):
+        return self.event.workflows
 
-    @tasks.setter
-    def tasks(self, value):
-        self.event.tasks = value
+    @workflows.setter
+    def workflows(self, value):
+        self.event.workflows = value
 
     @property
     def trigger_datetime(self):

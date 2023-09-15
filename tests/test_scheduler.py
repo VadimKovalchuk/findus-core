@@ -46,8 +46,8 @@ def test_event_template():
     assert template.get('human_name') == "base event", f'Human readable name mismatch'
     assert template.get('description') == "base event example", \
         'Description mismatch'
-    assert ','.join(template.get('commands')) == event_scheduler.event.tasks, \
-        'Commands are not reapplied from template'
+    assert ','.join(template.get('workflows')) == event_scheduler.event.workflows, \
+        'workflows are not reapplied from template'
 
 
 def test_trigger_single_event():
@@ -81,7 +81,7 @@ def test_trigger_periodic_event():
         "Next trigger datetime is not calculated for cron schedule"
 
 
-def test_trigger_event_with_task():
+def test_trigger_event_with_workflow():
     processor = ScheduleProcessor()
     event_scheduler = Scheduler('name', SAMPLE_TICKER)
     event_scheduler.tasks = 'system_relay_task'
@@ -89,10 +89,9 @@ def test_trigger_event_with_task():
     event: Event = event_scheduler.event
     processor.processing_cycle()
     event.refresh_from_db()
-    logger.debug(event.tasks)
-    tasks = event.systemtask_set.all()
-    assert tasks, "Triggered event with command has child task missing"
-    assert tasks[0].name == 'system_relay_task', "Triggered event child task name mismatch"
+    logger.debug(event.workflows)
+    assert event.flows, "Triggered event with workflows has related flows property empty"
+    assert event.flows[0].name == 'test_stages', "Triggered event child task name mismatch"
 
 
 def test_event_without_template():
@@ -102,6 +101,7 @@ def test_event_without_template():
 
 
 def test_task_wrapping_function_failure():
+    assert False, 'Not implemented'
     command: Command = deepcopy(COMMANDS['system_relay_task'])
     command.run_on_start = ['failing']
     system_task = command.create_task()
