@@ -27,13 +27,13 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         super().__init__(name, token, dsp_host, dsp_port)
         CommonServiceMixin.__init__(self)
         self.queues = {
-            TaskState.STARTED: pending_network_tasks(),
+            TaskState.CREATED: pending_network_tasks(),
             TaskState.PROCESSED: self._pull_task_result(),
             OVERDUE: overdue_network_tasks()  # TODO: not implemented
         }
         self.quotas = TASK_PROCESSING_QUOTAS
         self.stages = (
-            (self.push_task_to_network, TaskState.STARTED),
+            (self.push_task_to_network, TaskState.CREATED),
             # (self.finalize_task, OVERDUE),
             (self.append_task_result_to_db, TaskState.PROCESSED),
         )

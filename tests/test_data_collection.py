@@ -6,9 +6,10 @@ from time import monotonic, sleep
 
 import pytest
 
+from flow.lib.flow_processor import FlowProcessor
+from flow.workflow import ScopeUpdateWorklow
 from task.lib.commands import COMMANDS, Command
 from task.lib.network_client import NetworkClient
-from task.lib.task_processor import TaskProcessor
 from task.models import SystemTask, TaskState
 from ticker.models import Ticker, Scope, Price
 
@@ -32,22 +33,20 @@ def sp_scopes():
 
 
 def test_ticker_list(network_client_on_dispatcher: NetworkClient, sp_scopes):
-    task_proc = TaskProcessor()
-    cmd: Command = COMMANDS['update_ticker_list']
-    task: SystemTask = cmd.create_task()
+    flow_processor = FlowProcessor()
+    workflow = ScopeUpdateWorklow()
+    flow = workflow.create()
     start = monotonic()
-    while not task.state == TaskState.DONE and monotonic() < start + 60:
-        task_proc.processing_cycle()
+    while not flow.processing_state == TaskState.DONE and monotonic() < start + 60:
+        flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        task.refresh_from_db()
-        logger.debug(task.child_stats())
+        flow.refresh_from_db()
+        logger.debug([task.state for task in flow.tasks])
         sleep(0.5)
     logger.info(monotonic() - start)
-    children = task.get_children()
-    assert children, 'Children tasks are not created'
-    for child in children:
-        assert child.state == TaskState.DONE, 'Child Network task is not in done state'
-    assert task.state == TaskState.DONE, 'System task is not in done state'
+    for task in flow.tasks:
+        assert task.processing_state == TaskState.DONE, 'Task is not in done state'
+    assert flow.processing_state == TaskState.DONE, 'Flow is not in done state'
     db_ticker_count = Ticker.objects.count()
     _min, _max = calculate_boundaries(1500, 0.5)
     assert _min <= db_ticker_count <= _max, \

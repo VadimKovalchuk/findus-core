@@ -1,4 +1,3 @@
-from flow.models import Flow
 from flow.workflow.generic import Workflow
 from task.models import NetworkTask, TaskState
 from task.lib.processing import append_new_tickers, update_scope

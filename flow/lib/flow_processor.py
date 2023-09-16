@@ -1,7 +1,6 @@
 import logging
 
 from datetime import timedelta
-from typing import Union
 
 from django.utils.timezone import now
 

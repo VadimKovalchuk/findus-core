@@ -48,7 +48,7 @@ def generic_query_set_generator(query_getter: Callable) -> Generator:
 
 def get_pending_network_tasks() -> QuerySet:
     query_set = NetworkTask.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(processing_state=TaskState.STARTED)
+    query_set = query_set.filter(processing_state=TaskState.CREATED)
     query_set = query_set.filter(sent__isnull=True)
     query_set = query_set.order_by('id')
     return query_set
