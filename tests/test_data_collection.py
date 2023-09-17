@@ -7,10 +7,9 @@ from time import monotonic, sleep
 import pytest
 
 from flow.lib.flow_processor import FlowProcessor
-from flow.workflow import ScopeUpdateWorklow
-from task.lib.commands import COMMANDS, Command
+from flow.workflow import ScopeUpdateWorklow, AppendTickerPricesWorklow
 from task.lib.network_client import NetworkClient
-from task.models import SystemTask, TaskState
+from task.models import NetworkTask, TaskState
 from ticker.models import Ticker, Scope, Price
 
 from tests.test_edge.test_collection import calculate_boundaries
@@ -64,14 +63,20 @@ def test_ticker_daily_data(
         start_date: str,
         boundaries: tuple
 ):
-    task_proc = TaskProcessor()
-    cmd: Command = COMMANDS['append_daily_ticker_data']
-    task: SystemTask = cmd.create_task()
-    task.arguments = json.dumps({'ticker': ticker_sample.symbol, 'start': start_date})
+    flow_processor = FlowProcessor()
+    workflow = AppendTickerPricesWorklow()
+    flow = workflow.create()
+    workflow.arguments = {'ticker': ticker_sample.symbol}
+    flow_processor.processing_cycle()
+    flow.refresh_from_db()
+    task = flow.tasks[0]
+    args = task.arguments_dict
+    args['start'] = start_date
+    task.arguments_dict = args
     task.save()
     start = monotonic()
     while not task.state == TaskState.DONE and monotonic() < start + 20:
-        task_proc.processing_cycle()
+        flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         task.refresh_from_db()
     logger.info(monotonic() - start)

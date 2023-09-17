@@ -32,8 +32,8 @@ class Task(models.Model):
     postponed = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
     flow = models.ForeignKey('flow.Flow', null=True, on_delete=models.CASCADE)
-    arguments = models.TextField(null=True)
-    result = models.TextField(null=True)
+    arguments = models.TextField(default='{}')
+    result = models.TextField(default='{}')
 
     class Meta:
         abstract = True

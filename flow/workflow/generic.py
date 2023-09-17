@@ -1,3 +1,5 @@
+from typing import Dict
+
 from flow.models import Flow
 from task.models import NetworkTask
 
@@ -29,6 +31,7 @@ class Workflow:
     def stage(self, stage: str):
         self.validate_flow()
         self.flow.stage = stage
+        self.flow.save()
 
     @property
     def arguments(self):
@@ -36,8 +39,9 @@ class Workflow:
         return self.flow.arguments_dict
 
     @arguments.setter
-    def arguments(self, _dict: dict):
+    def arguments(self, _dict: Dict):
         self.flow.arguments_dict = _dict
+        self.flow.save()
 
     @property
     def tasks(self) -> NetworkTask:
@@ -46,6 +50,15 @@ class Workflow:
     def validate_flow(self):
         if not self.flow:
             raise AttributeError('Flow attribute is not set')
+
+    def save(self):
+        self.validate_flow()
+        self.flow.save()
+
+    def arguments_update(self, _dict: Dict):
+        arguments: Dict = self.arguments
+        arguments.update(_dict)
+        self.arguments = arguments
 
     def check_last_stage(self):
         self.validate_flow()

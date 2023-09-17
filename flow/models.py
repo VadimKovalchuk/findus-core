@@ -31,7 +31,7 @@ class Flow(models.Model):
     stage = models.IntegerField(default=0)
     event = models.ForeignKey('schedule.Event', null=True, on_delete=models.CASCADE)
     processing_state = models.CharField(max_length=10, choices=FlowState.choices, default=FlowState.CREATED)
-    arguments = models.TextField(null=True)
+    arguments = models.TextField(default='{}')
     postponed = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
 
