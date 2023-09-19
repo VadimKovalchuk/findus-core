@@ -1,12 +1,14 @@
 from datetime import timedelta
-from typing import Dict
+from typing import Dict, List
 
 from django.utils.timezone import now
 
 from flow.workflow.generic import Workflow
+from flow.models import Flow
 from task.models import NetworkTask, TaskState
 from task.lib.processing import (append_prices, append_dividends, append_new_tickers, update_scope,
                                  define_ticker_daily_start_date)
+from ticker.models import Ticker
 
 
 class ScopeUpdateWorklow(Workflow):
@@ -77,4 +79,34 @@ class AppendTickerPricesWorklow(Workflow):
     def stage_2(self):
         task_id = self.arguments['task_id']
         task = NetworkTask.objects.get(id=task_id)
-        return append_prices(task) and append_dividends(task)
+        done = append_prices(task) and append_dividends(task)
+        if done:
+            task.state = TaskState.DONE
+            task.postponed = now() + timedelta(days=92)
+            task.save()
+        return done
+
+
+class AddAllTickerPricesWorklow(Workflow):
+    flow_name = 'collect_daily_global'
+
+    def stage_0(self):
+        child_flow_ids: List = []
+        for ticker in [ticker.symbol for ticker in Ticker.objects.all()]:
+            workflow = AppendTickerPricesWorklow()
+            flow = workflow.create()
+            workflow.arguments = {'ticker': ticker}
+            child_flow_ids.append(flow.id)
+            self.arguments_update({'child_flow_ids': child_flow_ids})
+        self.flow.refresh_from_db()
+        print(self.arguments)
+        return True
+
+    def stage_1(self):
+        child_flow_ids: List = self.arguments['child_flow_ids']
+        for flow_id in child_flow_ids:
+            flow = Flow.objects.get(id=flow_id)
+            if flow.processing_state != TaskState.DONE:
+                return False
+        else:
+            return True

@@ -7,7 +7,7 @@ from time import monotonic, sleep
 import pytest
 
 from flow.lib.flow_processor import FlowProcessor
-from flow.workflow import ScopeUpdateWorklow, AppendTickerPricesWorklow
+from flow.workflow import ScopeUpdateWorklow, AppendTickerPricesWorklow, AddAllTickerPricesWorklow
 from task.lib.network_client import NetworkClient
 from task.models import NetworkTask, TaskState
 from ticker.models import Ticker, Scope, Price
@@ -75,10 +75,12 @@ def test_ticker_daily_data(
     task.arguments_dict = args
     task.save()
     start = monotonic()
-    while not task.state == TaskState.DONE and monotonic() < start + 20:
+    while not task.processing_state == TaskState.DONE and monotonic() < start + 20:
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         task.refresh_from_db()
+        sleep(0.1)
+        logger.debug(task.processing_state)
     logger.info(monotonic() - start)
     result = json.loads(task.result)
     args_price_count = len(result['prices'])
@@ -101,15 +103,16 @@ def test_daily_global(
             ticker.add_price([last_date, 1, 1, 1, 1, 1])
 
     _min, _max = 60, 65
-    task_proc = TaskProcessor()
-    cmd: Command = COMMANDS['collect_daily_global']
-    task: SystemTask = cmd.create_task()
+    flow_processor = FlowProcessor()
+    workflow = AddAllTickerPricesWorklow()
+    flow = workflow.create()
     set_sample_prices()
     start = monotonic()
-    while not task.state == TaskState.DONE and monotonic() < start + 20:
-        task_proc.processing_cycle()
+    while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
+        flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        task.refresh_from_db()
+        flow.refresh_from_db()
+        sleep(0.1)
     logger.info(monotonic() - start)
     for ticker in scope_with_tickers.tickers.all():
         db_price_count = ticker.price_set.count()
