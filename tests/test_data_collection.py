@@ -7,7 +7,8 @@ from time import monotonic, sleep
 import pytest
 
 from flow.lib.flow_processor import FlowProcessor
-from flow.workflow import ScopeUpdateWorklow, AppendTickerPricesWorklow, AddAllTickerPricesWorklow
+from flow.workflow import (ScopeUpdateWorkflow, AddAllTickerPricesWorkflow, AppendTickerPricesWorfklow,
+                           AppendFinvizWorkflow, AddAllTickerFinvizWorkflow)
 from task.lib.network_client import NetworkClient
 from task.models import NetworkTask, TaskState
 from ticker.models import Ticker, Scope, Price
@@ -33,7 +34,7 @@ def sp_scopes():
 
 def test_ticker_list(network_client_on_dispatcher: NetworkClient, sp_scopes):
     flow_processor = FlowProcessor()
-    workflow = ScopeUpdateWorklow()
+    workflow = ScopeUpdateWorkflow()
     flow = workflow.create()
     start = monotonic()
     while not flow.processing_state == TaskState.DONE and monotonic() < start + 60:
@@ -64,7 +65,7 @@ def test_ticker_daily_data(
         boundaries: tuple
 ):
     flow_processor = FlowProcessor()
-    workflow = AppendTickerPricesWorklow()
+    workflow = AppendTickerPricesWorfklow()
     flow = workflow.create()
     workflow.arguments = {'ticker': ticker_sample.symbol}
     flow_processor.processing_cycle()
@@ -104,7 +105,7 @@ def test_daily_global(
 
     _min, _max = 60, 65
     flow_processor = FlowProcessor()
-    workflow = AddAllTickerPricesWorklow()
+    workflow = AddAllTickerPricesWorkflow()
     flow = workflow.create()
     set_sample_prices()
     start = monotonic()
@@ -125,19 +126,18 @@ def test_finviz_fundamental(
         network_client_on_dispatcher: NetworkClient,
         ticker_sample: Ticker
 ):
-    task_proc = TaskProcessor()
-    cmd: Command = COMMANDS['append_finviz_fundamental']
-    task: SystemTask = cmd.create_task()
-    task.arguments = json.dumps({"ticker": ticker_sample.symbol})
-    task.save()
-    logger.debug(task.arguments)
+    flow_processor = FlowProcessor()
+    workflow = AppendFinvizWorkflow()
+    flow = workflow.create()
+    workflow.arguments = {'ticker': ticker_sample.symbol}
     start = monotonic()
-    while not task.state == TaskState.DONE and monotonic() < start + 20:
-        task_proc.processing_cycle()
+    while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
+        flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        task.refresh_from_db()
+        flow.refresh_from_db()
+        sleep(0.1)
     logger.info(monotonic() - start)
-    result = json.loads(task.result)
+    result = json.loads(flow.tasks[0].result)
     data_slice_count = ticker_sample.finvizfundamental_set.count()
     assert data_slice_count == 1, 'Ticker fundamental data was not correctly appended'
     data_slice = ticker_sample.finvizfundamental_set.all()[0]
@@ -149,14 +149,15 @@ def test_finviz_fundamental_global(
         network_client_on_dispatcher: NetworkClient,
         scope_with_tickers: Scope,
 ):
-    task_proc = TaskProcessor()
-    cmd: Command = COMMANDS['collect_finviz_fundamental_global']
-    task: SystemTask = cmd.create_task()
+    flow_processor = FlowProcessor()
+    workflow = AddAllTickerFinvizWorkflow()
+    flow = workflow.create()
     start = monotonic()
-    while not task.state == TaskState.DONE and monotonic() < start + 20:
-        task_proc.processing_cycle()
+    while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
+        flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        task.refresh_from_db()
+        flow.refresh_from_db()
+        sleep(0.1)
     logger.info(monotonic() - start)
     for ticker in scope_with_tickers.tickers.all():
         db_finviz_count = ticker.finvizfundamental_set.count()
