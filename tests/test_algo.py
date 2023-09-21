@@ -10,7 +10,7 @@ from django.utils.timezone import now
 from algo.models import Algo, AlgoMetric, AlgoSlice, AlgoMetricSlice
 from task.lib.commands import COMMANDS, Command
 from task.lib.network_client import NetworkClient
-from task.lib.task_processor import TaskProcessor
+# from task.lib.task_processor import TaskProcessor
 from task.models import SystemTask, TaskState
 from ticker.models import Scope, Ticker, FinvizFundamental
 from tests.test_edge.test_normalization import UNIFORM_DISTRIBUTION_DATA
@@ -68,10 +68,12 @@ def test_calculate_algo_metrics(
         network_client_on_dispatcher: NetworkClient,
         algo: Algo
 ):
-    # logger.debug(json.dumps(algo.metrics[0].get_normalization_data(), indent=4))
-    task_proc = TaskProcessor()
-    cmd: Command = COMMANDS['calculate_algo_metrics']
-    task: SystemTask = cmd.create_task()
+    flow_processor = FlowProcessor()
+    workflow = AddAllTickerFinvizWorkflow()
+    flow = workflow.create()
+    # task_proc = TaskProcessor()
+    # cmd: Command = COMMANDS['calculate_algo_metrics']
+    # task: SystemTask = cmd.create_task()
     args = task.arguments_dict
     args['algo_id'] = algo.id
     task.arguments_dict = args
