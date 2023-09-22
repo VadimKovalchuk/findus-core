@@ -99,7 +99,7 @@ class AddAllTickerPricesWorkflow(Workflow):
             child_flow_ids.append(flow.id)
             self.arguments_update({'child_flow_ids': child_flow_ids})
         self.flow.refresh_from_db()
-        print(self.arguments)
+        # print(self.arguments)
         return True
 
     def stage_1(self):
@@ -157,7 +157,7 @@ class AddAllTickerFinvizWorkflow(Workflow):
             child_flow_ids.append(flow.id)
             self.arguments_update({'child_flow_ids': child_flow_ids})
         self.flow.refresh_from_db()
-        print(self.arguments)
+        # print(self.arguments)
         return True
 
     def stage_1(self):

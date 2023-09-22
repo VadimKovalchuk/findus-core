@@ -80,10 +80,10 @@ def test_calculate_algo_metrics(
     task.save()
     logger.debug(task.arguments)
     start = monotonic()
-    while not task.state == TaskState.DONE and monotonic() < start + 20:
-        task_proc.processing_cycle()
+    while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
+        flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        task.refresh_from_db()
+        flow.refresh_from_db()
         # logger.debug(task.arguments)
     logger.info(monotonic() - start)
     # logger.info(json.dumps(task.result, indent=4))
