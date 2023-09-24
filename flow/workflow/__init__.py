@@ -1,3 +1,4 @@
+from flow.workflow.algo import *
 from flow.workflow.collection import *
 from flow.workflow.test import *
 from flow.workflow.generic import Workflow

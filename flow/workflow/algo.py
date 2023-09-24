@@ -22,6 +22,7 @@ class CalculateAlgoMetricWorkflow(Workflow):
             module='findus_edge.algo.normalization',
             function='normalization',
         )
+        task.arguments_dict = {'metric_ids': self.arguments['metric_ids']}
         collect_normalization_data(task)
         self.arguments_update({'task_id': task.id})
         return True

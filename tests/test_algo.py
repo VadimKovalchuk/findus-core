@@ -8,6 +8,8 @@ import pytest
 from django.utils.timezone import now
 
 from algo.models import Algo, AlgoMetric, AlgoSlice, AlgoMetricSlice
+from flow.lib.flow_processor import FlowProcessor
+from flow.workflow import CalculateAllAlgoMetricsWorkflow, CalculateAlgoMetricWorkflow
 from task.lib.commands import COMMANDS, Command
 from task.lib.network_client import NetworkClient
 # from task.lib.task_processor import TaskProcessor
@@ -69,16 +71,10 @@ def test_calculate_algo_metrics(
         algo: Algo
 ):
     flow_processor = FlowProcessor()
-    workflow = AddAllTickerFinvizWorkflow()
+    workflow = CalculateAllAlgoMetricsWorkflow()
     flow = workflow.create()
-    # task_proc = TaskProcessor()
-    # cmd: Command = COMMANDS['calculate_algo_metrics']
-    # task: SystemTask = cmd.create_task()
-    args = task.arguments_dict
-    args['algo_id'] = algo.id
-    task.arguments_dict = args
-    task.save()
-    logger.debug(task.arguments)
+    workflow.arguments_update({'algo_id': algo.id})
+    #logger.debug(task.arguments)
     start = monotonic()
     while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
         flow_processor.processing_cycle()
