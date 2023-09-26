@@ -92,36 +92,6 @@ class Task(models.Model):
         return f'({self.id}) "{self.name}"'
 
 
-class SystemTask(Task):
-
-    event = models.ForeignKey('schedule.Event', null=True, on_delete=models.CASCADE)
-
-    def get_children(self) -> List[Task]:
-        children = list()
-        children.extend(self.systemtask_set.all())
-        children.extend(self.networktask_set.all())
-        return children
-
-    def child_stats(self) -> dict:
-        result_stats = self._stats()
-        children = self.get_children()
-        for task in children:
-            if isinstance(task, SystemTask):
-                stats = task.child_stats()
-            elif isinstance(task, NetworkTask):
-                stats = task._stats()
-            else:
-                raise TypeError
-            for key in stats:
-                result_stats[key] += stats[key]
-        return result_stats
-
-    def is_processed(self) -> bool:
-        children = self.get_children()
-        processed = [task.state == TaskState.DONE for task in children]
-        return all(processed)
-
-
 class NetworkTask(Task):
 
     sent = models.DateTimeField(null=True)

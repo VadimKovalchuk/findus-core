@@ -11,7 +11,6 @@ from django.utils.timezone import now
 from schedule.lib.interface import Scheduler
 from schedule.lib.scheduler import ScheduleProcessor
 from schedule.models import Event, Schedule
-from task.lib.commands import COMMANDS, Command
 
 
 pytestmark = pytest.mark.django_db
@@ -98,15 +97,3 @@ def test_event_without_template():
     event_scheduler = Scheduler('random', 'artifactless')
     event_scheduler.push()
     assert Event.objects.all(), 'Event without template is not created'
-
-
-def test_task_wrapping_function_failure():
-    assert False, 'Not implemented'
-    command: Command = deepcopy(COMMANDS['system_relay_task'])
-    command.run_on_start = ['failing']
-    system_task = command.create_task()
-    command.on_start(system_task)
-    events = Event.objects.all()
-    assert events, 'Wrapping function failure is not followed by Event creation'
-    event = events[0]
-    assert 'failing' in event.name, 'Wrapping func failure Event is not descriptive'

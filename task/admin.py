@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import SystemTask, NetworkTask
+from .models import NetworkTask
 
-admin.site.register(SystemTask)
+
 admin.site.register(NetworkTask)

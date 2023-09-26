@@ -6,8 +6,7 @@ import pytest
 
 from tests.conftest import TEST_TICKERS_STR_LIST
 from ticker.models import Ticker, Scope
-from task.models import Task, SystemTask, NetworkTask, TaskState
-from task.lib.commands import COMMANDS, Command
+from task.models import NetworkTask, TaskState
 from flow.lib.flow_processor import FlowProcessor
 from flow.workflow import TestScopeWorklow
 

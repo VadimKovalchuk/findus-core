@@ -9,7 +9,7 @@ from django.db import transaction
 
 from settings import log_path
 from schedule.lib.interface import Scheduler
-from task.models import Task, SystemTask, NetworkTask
+from task.models import Task, NetworkTask
 from ticker.models import Ticker, FinvizFundamental, Scope
 
 logger = logging.getLogger('task_processor')
@@ -20,7 +20,7 @@ def failing(task):
     raise Exception('Wrapping function failure')
 
 
-def relay(task: Union[SystemTask, NetworkTask]):
+def relay(task: NetworkTask):
     def extend(dict_str: str):
         logger.debug(dict_str)
         if dict_str:
@@ -145,7 +145,7 @@ def get_all_tickers(task: Task):
     return True
 
 
-def clone_arguments_to_children(task: SystemTask):
+def clone_arguments_to_children(task):
     if task.arguments:
         for child_task in task.get_children():
             child_task.arguments = task.arguments
@@ -155,7 +155,7 @@ def clone_arguments_to_children(task: SystemTask):
     return True
 
 
-def define_ticker_daily_start_date(task: SystemTask):
+def define_ticker_daily_start_date(task: Task):
     arguments = task.arguments_dict
     symbol = arguments['ticker']
     ticker = Ticker.objects.get(symbol=symbol)
@@ -169,7 +169,7 @@ def define_ticker_daily_start_date(task: SystemTask):
     return True
 
 
-def draft_get_param_for_algo(task:SystemTask):
+def draft_get_param_for_algo(task: Task):
     with open('pe.txt', 'w') as fh:
         for tkr in tkrs:
             fv = tkr.finvizfundamental_set.first()

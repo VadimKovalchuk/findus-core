@@ -10,10 +10,8 @@ from django.utils.timezone import now
 from algo.models import Algo, AlgoMetric, AlgoSlice, AlgoMetricSlice
 from flow.lib.flow_processor import FlowProcessor
 from flow.workflow import CalculateAllAlgoMetricsWorkflow, CalculateAlgoMetricWorkflow
-from task.lib.commands import COMMANDS, Command
 from task.lib.network_client import NetworkClient
-# from task.lib.task_processor import TaskProcessor
-from task.models import SystemTask, TaskState
+from task.models import TaskState
 from ticker.models import Scope, Ticker, FinvizFundamental
 from tests.test_edge.test_normalization import UNIFORM_DISTRIBUTION_DATA
 
@@ -98,33 +96,3 @@ def test_calculate_algo_metrics(
         assert len(algo_slices) == 1, f"Single slice is expected for ticker {ticker}"
         algo_slice: AlgoSlice = algo_slices[0]
         assert len(algo_slice.metrics) == 2, f"Slice for ticker {ticker} has metrics count mismatch"
-
-
-def test_calculate_final_rate(
-        network_client_on_dispatcher: NetworkClient,
-        algo: Algo
-):
-    task_proc = TaskProcessor()
-    cmd: Command = COMMANDS['calculate_algo_metrics']
-    task: SystemTask = cmd.create_task()
-    args = task.arguments_dict
-    args['algo_id'] = algo.id
-    task.arguments_dict = args
-    task.save()
-    logger.debug(task.arguments)
-    start = monotonic()
-    while not task.state == TaskState.DONE and monotonic() < start + 20:
-        task_proc.processing_cycle()
-        network_client_on_dispatcher.processing_cycle()
-        task.refresh_from_db()
-        # logger.debug(task.arguments)
-    logger.info(monotonic() - start)
-
-    cmd: Command = COMMANDS['calculate_algo_metrics']
-    task: SystemTask = cmd.create_task()
-    args = task.arguments_dict
-    args['algo_id'] = algo.id
-    task.arguments_dict = args
-    task.save()
-    logger.debug(task.arguments)
-    start = monotonic()
