@@ -8,7 +8,7 @@ from django.db.models.query import QuerySet
 from django.utils.timezone import now
 
 from flow.models import Flow, FlowState
-from task.models import NetworkTask, TaskState
+from task.models import Task, TaskState
 
 logger = logging.getLogger('task_db_tools')
 
@@ -47,7 +47,7 @@ def generic_query_set_generator(query_getter: Callable) -> Generator:
 
 
 def get_pending_network_tasks() -> QuerySet:
-    query_set = NetworkTask.objects.filter(postponed__isnull=True)
+    query_set = Task.objects.filter(postponed__isnull=True)
     query_set = query_set.filter(processing_state=TaskState.CREATED)
     query_set = query_set.filter(sent__isnull=True)
     query_set = query_set.order_by('id')
@@ -55,7 +55,7 @@ def get_pending_network_tasks() -> QuerySet:
 
 
 def get_overdue_network_tasks() -> QuerySet:
-    query_set = NetworkTask.objects.filter(postponed__isnull=True)
+    query_set = Task.objects.filter(postponed__isnull=True)
     query_set = query_set.filter(processing_state=TaskState.STARTED)
     query_set = query_set.filter(sent__lt=now() - timedelta(days=1))
     query_set = query_set.order_by('id')

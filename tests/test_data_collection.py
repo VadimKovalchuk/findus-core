@@ -10,7 +10,7 @@ from flow.lib.flow_processor import FlowProcessor
 from flow.workflow import (ScopeUpdateWorkflow, AddAllTickerPricesWorkflow, AppendTickerPricesWorfklow,
                            AppendFinvizWorkflow, AddAllTickerFinvizWorkflow)
 from task.lib.network_client import NetworkClient
-from task.models import NetworkTask, TaskState
+from task.models import Task, TaskState
 from ticker.models import Ticker, Scope, Price
 
 from tests.test_edge.test_collection import calculate_boundaries

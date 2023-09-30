@@ -30,13 +30,13 @@ class Task(models.Model):
     name = models.CharField(max_length=100)
     processing_state = models.CharField(max_length=10, choices=TaskState.choices, default=TaskState.CREATED)
     postponed = models.DateTimeField(null=True)
+    sent = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
     flow = models.ForeignKey('flow.Flow', null=True, on_delete=models.CASCADE)
     arguments = models.TextField(default='{}')
+    module = models.CharField(max_length=100)
+    function = models.CharField(max_length=100)
     result = models.TextField(default='{}')
-
-    class Meta:
-        abstract = True
 
     @property
     def state(self):
@@ -79,6 +79,15 @@ class Task(models.Model):
     def postponed_relative(self, delta: timedelta):
         self.postponed = now() + delta
 
+    def compose_for_dcn(self, client: str = ''):
+        return {
+            'id': self.id,
+            'client': client,
+            'module': self.module,
+            'function': self.function,
+            'arguments': self.arguments_dict
+        }
+
     def _stats(self):
         return {
             TaskState.CREATED: 1 if self.state == TaskState.CREATED else 0,
@@ -90,19 +99,3 @@ class Task(models.Model):
 
     def __str__(self):
         return f'({self.id}) "{self.name}"'
-
-
-class NetworkTask(Task):
-
-    sent = models.DateTimeField(null=True)
-    module = models.CharField(max_length=100)
-    function = models.CharField(max_length=100)
-
-    def compose_for_dcn(self, client: str = ''):
-        return {
-            'id': self.id,
-            'client': client,
-            'module': self.module,
-            'function': self.function,
-            'arguments': self.arguments_dict
-        }

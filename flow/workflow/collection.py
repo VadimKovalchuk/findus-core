@@ -5,7 +5,7 @@ from django.utils.timezone import now
 
 from flow.workflow.generic import Workflow
 from flow.models import Flow
-from task.models import NetworkTask, TaskState
+from task.models import Task, TaskState
 from task.lib.processing import (append_prices, append_dividends, append_finviz_fundamental, append_new_tickers,
                                  update_scope, define_ticker_daily_start_date)
 from ticker.models import Ticker
@@ -17,7 +17,7 @@ class ScopeUpdateWorkflow(Workflow):
     def stage_0(self):
         task_ids = []
         for scope_name in ["SP500", "SP400", "SP600"]:
-            task = NetworkTask.objects.create(
+            task = Task.objects.create(
                 name=f'update_{scope_name.lower()}_ticker_list',
                 flow=self.flow,
                 module='findus_edge.tickers',
@@ -32,7 +32,7 @@ class ScopeUpdateWorkflow(Workflow):
     def stage_1(self):
         task_ids = self.flow.arguments_dict['task_ids']
         for task_id in task_ids:
-            task = NetworkTask.objects.get(id=task_id)
+            task = Task.objects.get(id=task_id)
             if task.state != TaskState.PROCESSED:
                 return False
         else:
@@ -42,7 +42,7 @@ class ScopeUpdateWorkflow(Workflow):
         task_ids = self.arguments['task_ids']
         all_pass = True
         for task_id in task_ids:
-            task = NetworkTask.objects.get(id=task_id)
+            task = Task.objects.get(id=task_id)
             if task.state == TaskState.PROCESSED:
                 if append_new_tickers(task) and update_scope(task):
                     task.state = TaskState.DONE
@@ -59,7 +59,7 @@ class AppendTickerPricesWorfklow(Workflow):
     def stage_0(self):
         if 'ticker' not in self.arguments:
             raise ValueError('Ticker is not defined for prices collection workflow')
-        task = NetworkTask.objects.create(
+        task = Task.objects.create(
             name='get_ticker_prices',
             flow=self.flow,
             module='findus_edge.yahoo',
@@ -73,12 +73,12 @@ class AppendTickerPricesWorfklow(Workflow):
 
     def stage_1(self):
         task_id = self.arguments['task_id']
-        task = NetworkTask.objects.get(id=task_id)
+        task = Task.objects.get(id=task_id)
         return task.state == TaskState.PROCESSED
 
     def stage_2(self):
         task_id = self.arguments['task_id']
-        task = NetworkTask.objects.get(id=task_id)
+        task = Task.objects.get(id=task_id)
         done = append_prices(task) and append_dividends(task)
         if done:
             task.state = TaskState.DONE
@@ -118,7 +118,7 @@ class AppendFinvizWorkflow(Workflow):
     def stage_0(self):
         if 'ticker' not in self.arguments:
             raise ValueError('Ticker is not defined for Finviz fundamental data collection workflow')
-        task = NetworkTask.objects.create(
+        task = Task.objects.create(
             name='append_finviz_fundamental',
             flow=self.flow,
             module='findus_edge.finviz',
@@ -131,12 +131,12 @@ class AppendFinvizWorkflow(Workflow):
 
     def stage_1(self):
         task_id = self.arguments['task_id']
-        task = NetworkTask.objects.get(id=task_id)
+        task = Task.objects.get(id=task_id)
         return task.state == TaskState.PROCESSED
 
     def stage_2(self):
         task_id = self.arguments['task_id']
-        task = NetworkTask.objects.get(id=task_id)
+        task = Task.objects.get(id=task_id)
         done = append_finviz_fundamental(task)
         if done:
             task.state = TaskState.DONE

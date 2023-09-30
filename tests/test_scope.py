@@ -6,7 +6,7 @@ import pytest
 
 from tests.conftest import TEST_TICKERS_STR_LIST
 from ticker.models import Ticker, Scope
-from task.models import NetworkTask, TaskState
+from task.models import Task, TaskState
 from flow.lib.flow_processor import FlowProcessor
 from flow.workflow import TestScopeWorklow
 
@@ -38,7 +38,7 @@ def test_scope_extend_via_task(scope_with_tickers):
     flow = workflow.create()
     for _ in range(2):
         flow_processor.processing_cycle()
-    child_task: NetworkTask = flow.tasks[0]
+    child_task: Task = flow.tasks[0]
     assert child_task, 'Children task is not created'
     child_task.result_dict = [artifact_tkr] + TEST_TICKERS_STR_LIST
     child_task.state = TaskState.PROCESSED
@@ -56,7 +56,7 @@ def test_scope_reduce_via_task(scope_with_tickers):
     flow = workflow.create()
     for _ in range(2):
         flow_processor.processing_cycle()
-    child_task: NetworkTask = flow.tasks[0]
+    child_task: Task = flow.tasks[0]
     assert child_task, 'Children task is not created'
     child_task.result_dict = TEST_TICKERS_STR_LIST[1:]
     child_task.state = TaskState.PROCESSED

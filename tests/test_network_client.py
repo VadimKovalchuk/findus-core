@@ -8,7 +8,7 @@ import pytest
 from django.utils.timezone import now
 
 from task.lib.network_client import NetworkClient
-from task.models import NetworkTask, TaskState
+from task.models import Task, TaskState
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ pytestmark = pytest.mark.django_db
 
 
 def create_network_task(module: str = 'findus_edge.stub', function: str = 'relay', arguments: dict = {}):
-    task: NetworkTask = NetworkTask.objects.create(name='pytest')
+    task: Task = Task.objects.create(name='pytest')
     task.module = module
     task.function = function
     task.arguments_dict = arguments
@@ -37,7 +37,7 @@ def test_online(network_client_on_dispatcher: NetworkClient):
 def test_task_queues(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
     created_task = create_network_task(arguments={"arg": "test"})
-    pending_task: NetworkTask = next(client.queues[TaskState.CREATED])
+    pending_task: Task = next(client.queues[TaskState.CREATED])
     assert created_task == pending_task, 'Pending task differs from created one'
     client.push_task_to_network(pending_task)
     assert not next(client.queues[TaskState.CREATED]), 'Unexpected network task received'

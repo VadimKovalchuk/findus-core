@@ -1,11 +1,5 @@
 from flow.models import FlowState
-from task.models import NetworkTask, TaskState
-
-
-class TaskType:
-    Network = NetworkTask.__name__
-    # System = SystemTask.__name__
-    ALL = (Network,)
+from task.models import Task, TaskState
 
 
 IDLE_SLEEP_TIMEOUT = 10  # seconds

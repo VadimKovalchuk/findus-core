@@ -9,33 +9,11 @@ from django.db import transaction
 
 from settings import log_path
 from schedule.lib.interface import Scheduler
-from task.models import Task, NetworkTask
+from task.models import Task
 from ticker.models import Ticker, FinvizFundamental, Scope
 
 logger = logging.getLogger('task_processor')
 logger.debug(log_path)
-
-
-def failing(task):
-    raise Exception('Wrapping function failure')
-
-
-def relay(task: NetworkTask):
-    def extend(dict_str: str):
-        logger.debug(dict_str)
-        if dict_str:
-            args_dict = json.loads(dict_str)
-            for key, value in args_dict.items():
-                args_dict[key] = f"{value}, relay" if value else "relay"
-            result = json.dumps(args_dict)
-            logger.debug(result)
-            return result
-        else:
-            return dict_str
-    task.arguments = extend(task.arguments)
-    task.result = extend(task.result)
-    task.save()
-    return True
 
 
 def validate_result_json(task: Task):

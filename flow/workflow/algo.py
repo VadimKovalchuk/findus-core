@@ -7,7 +7,7 @@ from algo.models import Algo
 from algo.processing import collect_normalization_data, set_metric_params, append_slices, get_metrics
 from flow.models import Flow
 from flow.workflow.generic import Workflow
-from task.models import NetworkTask, TaskState
+from task.models import Task, TaskState
 
 
 class CalculateAlgoMetricWorkflow(Workflow):
@@ -16,7 +16,7 @@ class CalculateAlgoMetricWorkflow(Workflow):
     def stage_0(self):
         if 'metric_ids' not in self.arguments:
             raise ValueError('Metric ID is not defined for algorythm metric calculation workflow')
-        task = NetworkTask.objects.create(
+        task = Task.objects.create(
             name='calculate_metric',
             flow=self.flow,
             module='findus_edge.algo.normalization',
@@ -29,12 +29,12 @@ class CalculateAlgoMetricWorkflow(Workflow):
 
     def stage_1(self):
         task_id = self.arguments['task_id']
-        task = NetworkTask.objects.get(id=task_id)
+        task = Task.objects.get(id=task_id)
         return task.state == TaskState.PROCESSED
 
     def stage_2(self):
         task_id = self.arguments['task_id']
-        task = NetworkTask.objects.get(id=task_id)
+        task = Task.objects.get(id=task_id)
         done = set_metric_params(task) and append_slices(task)
         if done:
             task.state = TaskState.DONE

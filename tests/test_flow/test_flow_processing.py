@@ -9,7 +9,7 @@ from django.utils.timezone import now
 from flow.lib.flow_processor import FlowProcessor
 from flow.models import FlowState
 from flow.workflow import TestRelayWorklow, TestStagesWorklow
-from task.models import NetworkTask
+from task.models import Task
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def test_task_creation():
     flow.refresh_from_db()
     assert len(flow.tasks) == 1, 'Task is not created when expected'
     for task in flow.tasks:
-        assert isinstance(task, NetworkTask), 'Child task type mismatch'
+        assert isinstance(task, Task), 'Child task type mismatch'
         assert task.name == 'network_relay_task', 'Child task name mismatch'
 
 

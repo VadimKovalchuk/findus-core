@@ -1,7 +1,7 @@
 from typing import Dict
 
 from flow.models import Flow
-from task.models import NetworkTask
+from task.models import Task
 
 STAGE_COUNT_CAP = 100
 
@@ -44,8 +44,8 @@ class Workflow:
         self.flow.save()
 
     @property
-    def tasks(self) -> NetworkTask:
-        return self.networktask_set.all()
+    def tasks(self) -> Task:
+        return self.task_set.all()
 
     def validate_flow(self):
         if not self.flow:

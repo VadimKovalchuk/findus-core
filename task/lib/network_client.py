@@ -6,10 +6,10 @@ from typing import Callable, Dict
 from django.utils.timezone import now
 
 from dcn.client.client import Client
-from task.lib.constants import TaskType, TASK_PROCESSING_QUOTAS
+from task.lib.constants import TASK_PROCESSING_QUOTAS
 from lib.db import DatabaseMixin, overdue_network_tasks, pending_network_tasks
 from lib.common_service import CommonServiceMixin
-from task.models import NetworkTask, TaskState
+from task.models import Task, TaskState
 
 logger = logging.getLogger('dcn_client')
 
@@ -52,14 +52,14 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
 
     def append_task_result_to_db(self, dcn_task: Dict):
         task_id = dcn_task['id']
-        task: NetworkTask = NetworkTask.objects.get(pk=task_id)
+        task: Task = Task.objects.get(pk=task_id)
         logger.info(f'Task {task.name} execution results received')
         task.result = dcn_task['result']
         task.state = TaskState.PROCESSED
         task.save()
         return True
 
-    def push_task_to_network(self, network_task: NetworkTask):
+    def push_task_to_network(self, network_task: Task):
         logger.info(f'Sending task: {network_task.name}')
         dcn_task = network_task.compose_for_dcn(self.name)
         dcn_task['client'] = self.broker.queue
