@@ -88,14 +88,5 @@ class Task(models.Model):
             'arguments': self.arguments_dict
         }
 
-    def _stats(self):
-        return {
-            TaskState.CREATED: 1 if self.state == TaskState.CREATED else 0,
-            TaskState.STARTED: 1 if self.state == TaskState.STARTED else 0,
-            TaskState.PROCESSED: 1 if self.state == TaskState.PROCESSED else 0,
-            TaskState.DONE: 1 if self.state == TaskState.DONE else 0,
-            TaskState.POSTPONED: 1 if self.state == TaskState.POSTPONED else 0,
-        }
-
     def __str__(self):
         return f'({self.id}) "{self.name}"'

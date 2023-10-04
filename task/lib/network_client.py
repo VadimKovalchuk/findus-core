@@ -65,6 +65,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         dcn_task['client'] = self.broker.queue
         self.broker.publish(dcn_task)
         network_task.sent = now()
+        network_task.state = TaskState.STARTED
         network_task.save()
         return True
 
