@@ -1,13 +1,14 @@
 import logging
 from datetime import timedelta
 from time import sleep
-from typing import Callable, Generator, List, Union
+from typing import Callable, Generator
 
 from django.db import connection, OperationalError
 from django.db.models.query import QuerySet
 from django.utils.timezone import now
 
-from task.models import NetworkTask, SystemTask, TaskState
+from flow.models import Flow, FlowState
+from task.models import Task, TaskState
 
 logger = logging.getLogger('task_db_tools')
 
@@ -35,11 +36,9 @@ class DatabaseMixin:
         return True
 
 
-def generic_query_set_generator(
-        query_getter: Callable,
-        task_model) -> Generator:
+def generic_query_set_generator(query_getter: Callable) -> Generator:
     while True:
-        query_set = query_getter(task_model)
+        query_set = query_getter()
         if query_set:
             for task in query_set:
                 yield task
@@ -47,64 +46,16 @@ def generic_query_set_generator(
             yield None
 
 
-def get_created_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
-    query_set = task_model.objects.filter(postponed__isnull=True)
+def get_pending_network_tasks() -> QuerySet:
+    query_set = Task.objects.filter(postponed__isnull=True)
     query_set = query_set.filter(processing_state=TaskState.CREATED)
-    query_set = query_set.order_by('id')
-    return query_set
-
-
-def get_started_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
-    query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(processing_state=TaskState.STARTED)
-    query_set = query_set.order_by('id')
-    return query_set
-
-
-def get_processed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
-    query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(processing_state=TaskState.PROCESSED)
-    query_set = query_set.order_by('id')
-    return query_set
-
-
-def get_postponed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
-    query_set = task_model.objects.filter(postponed__lt=now())
-    query_set = query_set.order_by('postponed')
-    return query_set
-
-
-def get_completed_tasks(task_model: Union[NetworkTask, SystemTask]) -> QuerySet:
-    query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(processing_state=TaskState.DONE)
-    query_set = query_set.order_by('id')
-    return query_set
-
-
-QUERYSET_MAP = {
-    TaskState.CREATED: get_created_tasks,
-    TaskState.STARTED: get_started_tasks,
-    TaskState.PROCESSED: get_processed_tasks,
-    TaskState.DONE: get_completed_tasks,
-    TaskState.POSTPONED: get_postponed_tasks
-}
-
-
-def compose_queryset_gen(task_state: str, task_model: Union[NetworkTask, SystemTask]):
-    getter = QUERYSET_MAP[task_state]
-    yield from generic_query_set_generator(getter, task_model)
-
-
-def get_pending_network_tasks(task_model: NetworkTask) -> QuerySet:
-    query_set = task_model.objects.filter(postponed__isnull=True)
-    query_set = query_set.filter(processing_state=TaskState.STARTED)
     query_set = query_set.filter(sent__isnull=True)
     query_set = query_set.order_by('id')
     return query_set
 
 
-def get_overdue_network_tasks(task_model: NetworkTask) -> QuerySet:
-    query_set = task_model.objects.filter(postponed__isnull=True)
+def get_overdue_network_tasks() -> QuerySet:
+    query_set = Task.objects.filter(postponed__isnull=True)
     query_set = query_set.filter(processing_state=TaskState.STARTED)
     query_set = query_set.filter(sent__lt=now() - timedelta(days=1))
     query_set = query_set.order_by('id')
@@ -112,8 +63,35 @@ def get_overdue_network_tasks(task_model: NetworkTask) -> QuerySet:
 
 
 def pending_network_tasks():
-    yield from generic_query_set_generator(get_pending_network_tasks, NetworkTask)
+    yield from generic_query_set_generator(get_pending_network_tasks)
 
 
 def overdue_network_tasks():
-    yield from generic_query_set_generator(get_overdue_network_tasks, NetworkTask)
+    yield from generic_query_set_generator(get_overdue_network_tasks)
+
+
+def get_created_flows() -> QuerySet:
+    query_set = Flow.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(processing_state=FlowState.CREATED)
+    query_set = query_set.order_by('id')
+    return query_set
+
+
+def get_running_flows() -> QuerySet:
+    query_set = Flow.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(processing_state=FlowState.RUNNING)
+    query_set = query_set.order_by('id')
+    return query_set
+
+
+def get_postponed_flows() -> QuerySet:
+    query_set = Flow.objects.filter(postponed__lt=now())
+    query_set = query_set.order_by('postponed')
+    return query_set
+
+
+def get_done_flows() -> QuerySet:
+    query_set = Flow.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(processing_state=FlowState.DONE)
+    query_set = query_set.order_by('id')
+    return query_set

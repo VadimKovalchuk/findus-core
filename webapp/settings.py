@@ -38,9 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'task',
-    'ticker',
-    'schedule'
+    'algo.apps.AlgoConfig',
+    'flow.apps.FlowConfig',
+    'schedule.apps.ScheduleConfig',
+    'task.apps.TaskConfig',
+    'ticker.apps.TickerConfig'
 ]
 
 MIDDLEWARE = [
@@ -163,14 +165,24 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        'dcn_client': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
         'task_processor': {
             'handlers': ['file'],
-            'level': 'INFO',
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'flow_processor': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
             'propagate': True,
         },
         'network_client': {
             'handlers': ['file'],
-            'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': True,
         },
         'broker': {

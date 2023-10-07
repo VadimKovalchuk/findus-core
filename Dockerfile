@@ -2,6 +2,7 @@ FROM python:3.10-slim
 
 # Installing requirements
 COPY ./requirements.txt /src/
+RUN pip install --upgrade pip wheel
 RUN pip install -r /src/requirements.txt
 
 # Installing DCN module
@@ -14,8 +15,10 @@ RUN pip install dist/dcn-0.0.1-py3-none-any.whl
 RUN rm -rf /tmp/*
 
 # COPY . /src
+COPY ./algo /src/algo
 COPY ./lib /src/lib
 COPY ./data /src/data
+COPY ./flow /src/flow
 COPY ./schedule /src/schedule
 COPY ./task /src/task
 COPY ./ticker /src/ticker
