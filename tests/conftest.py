@@ -2,7 +2,6 @@ import logging
 import shutil
 
 from pathlib import Path
-from threading import Thread
 from time import sleep
 
 import docker
@@ -14,16 +13,19 @@ from dcn.common.constants import SECOND
 from dcn.common.data_structures import compose_queue
 from dcn.common.defaults import RoutingKeys
 from task.lib.network_client import NetworkClient
-from task.lib.task_processor import TaskProcessor
 from tests.constants import REFERENCE_TICKER
 from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
-from ticker.models import Ticker
+from ticker.models import Ticker, Scope
 
 logger = logging.getLogger(__name__)
 
 
 BROKER_HOST = 'localhost'
 DISPATCHER_LISTEN_TIMEOUT = 0.01
+
+TEST_TICKERS_STR_LIST = ['MSFT', 'C', 'T', 'META']
+TEST_SCOPE_NAME = 'TestScope'
+
 
 log_file_formatter = None
 cur_log_handler = None
@@ -32,20 +34,13 @@ cur_artifacts_path = None
 task_queue = compose_queue(RoutingKeys.TASK)
 
 
-def flush_queue(broker: str,
-                queue: dict = task_queue,
-                assert_non_empty: bool = True):
-    with Broker(broker) as br:
-        br.connect()
-        br.declare(queue)
-        br._inactivity_timeout = 0.1  # seconds
-        empty = True
-        logger.info(f'Flushing queue: {queue}')
-        for task in br.pulling_generator():
-            empty = False
-            br.set_task_done(task)
-        if assert_non_empty:
-            assert empty, f'Flushed queue {queue} is not empty'
+def flush_queue(broker: str, queue: dict = task_queue):
+    broker = Broker(queue=queue, host=broker)
+    broker.connect()
+    logger.info(f'Flushing queue: {queue}')
+    state, task = broker.consume()
+    while state and task:
+        state, task = broker.consume()
 
 
 def get_container(client, container_filter: str):
@@ -65,9 +60,9 @@ def docker_client():
 @pytest.fixture(autouse=True, scope='session')
 def rabbit_mq(docker_client):
     container = get_container(docker_client, 'rabbitmq')
-    with Broker(BROKER_HOST) as broker:
-        while not broker.connect():
-            sleep(10)
+    broker = Broker(BROKER_HOST)
+    while not broker.connect():
+        sleep(10)
     yield container
 
 
@@ -91,19 +86,18 @@ def client():
         yield client
         if client.broker:
             host = client.broker.host
-            input_queue = client.broker.input_queue
+            queue = client.broker.queue
         else:
             return
-    flush_queue(host, input_queue)
+    flush_queue(host, queue)
 
 
 @pytest.fixture()
 def client_on_dispatcher(dispatcher, client: Client):
     while not client.get_client_queues():
+        logger.debug('Requesting client queues')
         sleep(10)
     client.broker.connect()
-    client.broker.declare()
-    client.broker._inactivity_timeout = 10 * SECOND
     yield client
 
 
@@ -117,7 +111,7 @@ def network_client():
         yield network_client
         if network_client.broker:
             host = network_client.broker.host
-            input_queue = network_client.broker.input_queue
+            input_queue = network_client.broker.queue
         else:
             return
     flush_queue(host, input_queue)
@@ -126,10 +120,11 @@ def network_client():
 @pytest.fixture()
 def network_client_on_dispatcher(dispatcher, network_client: NetworkClient):
     while not network_client.get_client_queues():
-        sleep(10)
+        logger.info('Requesting Client queues')
+        sleep(3)
+    # network_client.get_client_queues()
     network_client.broker.connect()
-    network_client.broker.declare()
-    network_client.broker._inactivity_timeout = 0.1 * SECOND
+    network_client.broker.inactivity_timeout = 0.1 * SECOND
     yield network_client
 
 
@@ -138,6 +133,33 @@ def ticker_sample():
     ticker = Ticker(symbol=REFERENCE_TICKER)
     ticker.save()
     yield ticker
+
+
+@pytest.fixture
+def scope_tickers():
+    tickers = list()
+    for ticker_str in TEST_TICKERS_STR_LIST:
+        tkr = Ticker.objects.create(symbol=ticker_str)
+        tkr.save()
+        tickers.append(tkr)
+    yield tickers
+
+
+@pytest.fixture
+def scope():
+    test_scope = Scope.objects.create(name=TEST_SCOPE_NAME)
+    test_scope.save()
+    yield test_scope
+
+
+@pytest.fixture
+def scope_with_tickers(scope, scope_tickers):
+    for ticker in scope_tickers:
+        scope.tickers.add(ticker)
+    scope.save()
+    yield scope
+
+
 
 
 # PYTEST HOOKS

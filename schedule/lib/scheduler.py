@@ -1,23 +1,28 @@
 import logging
 from lib.common_service import CommonServiceMixin
 from lib.db import DatabaseMixin, generic_query_set_generator
+# from task.lib.commands import COMMANDS, Command
+# from task.lib.commands import SystemTask
+from flow.models import Flow
+from flow.workflow import get_workflow_map
 from schedule.models import Event, Schedule
 
 from django.db.models.query import QuerySet
 from django.utils.timezone import now
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('scheduler')
 
 
-def get_pending_schedules(schedule: Schedule) -> QuerySet:
-    query_set = schedule.objects.filter(next_trigger__lt=now())
+def get_pending_schedules() -> QuerySet:
+    query_set = Schedule.objects.filter(next_trigger__lt=now())
     return query_set
 
 
 class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
     def __init__(self):
         CommonServiceMixin.__init__(self)
-        self.queue = generic_query_set_generator(get_pending_schedules, Schedule)
+        self.queue = generic_query_set_generator(get_pending_schedules)
+        self.workflow_map = get_workflow_map()
 
     @staticmethod
     def clone(event: Event):
@@ -25,8 +30,25 @@ class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
             name=event.name,
             type=event.type,
             artifacts=event.artifacts,
-            tasks=event.tasks
+            workflows=event.workflows
         )
+
+    def trigger(self, event: Event):
+
+        def _trigger(name: str):
+            workflow = self.workflow_map[name]
+            flow: Flow = workflow().create()
+            flow.event = event
+            if event.artifacts:
+                flow.arguments = event.artifacts
+            flow.save()
+
+        if event.workflows:
+            if ',' in event.workflows:
+                for workflow_name in event.workflows.split(','):
+                    _trigger(workflow_name)
+            else:
+                _trigger(event.workflows)
 
     def processing_cycle(self):
         for schedule in self.queue:
@@ -35,8 +57,8 @@ class ScheduleProcessor(CommonServiceMixin, DatabaseMixin):
             logger.debug(schedule.__dict__)
             # Trigger schedule related event
             event: Event = schedule.event
-            logger.debug(f'Triggering event: {event}')
-            event.trigger()
+            logger.info(f'Triggering event: {event}')
+            self.trigger(event)
             event.triggered = now()  # Marking event as triggered
             event.save()
             if schedule.cron:  # if event is periodic

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+    <ul>
+    {% for ticker in tickers %}
+        <li><a href="/ticker/{{ ticker.id }}/">{{ ticker.symbol }}</a></li>
+    {% endfor %}
+    </ul>
+{% endblock content %}

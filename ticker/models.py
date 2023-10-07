@@ -1,8 +1,6 @@
 from django.db import models
 
 
-HISTORY_LIMIT_DATE = '2017-01-01'
-
 class AbstractTicker(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     symbol = models.CharField(max_length=6)
@@ -15,7 +13,7 @@ class AbstractTicker(models.Model):
 
 
 class Ticker(AbstractTicker):
-    company = models.CharField(max_length=100)
+    company = models.CharField(max_length=100, null=True)
 
     def get_price_by_date(self, date: str):
         return self.price_set.filter(date=date)
@@ -42,6 +40,15 @@ class Ticker(AbstractTicker):
         else:
             Dividend.objects.create(ticker=self, date=date, size=size)
             return True
+
+
+class Scope(models.Model):
+    id = models.AutoField(primary_key=True, help_text='Internal ID')
+    name = models.TextField()
+    tickers = models.ManyToManyField(Ticker)
+
+    def __str__(self):
+        return self.name
 
 
 class Price(models.Model):

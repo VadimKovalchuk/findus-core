@@ -7,23 +7,20 @@ import pytest
 
 from django.utils.timezone import now
 
-from dcn.common.broker import Task
-from task.lib.commands import COMMANDS, Command
-from task.lib.constants import TaskType
 from task.lib.network_client import NetworkClient
-from task.models import NetworkTask, TaskState
+from task.models import Task, TaskState
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.django_db
 
 
-def create_network_task(module: str = 'findus-edge.stub', function: str = 'relay', arguments: Union[str, None] = None):
-    task: NetworkTask = NetworkTask.objects.create(name='pytest')
+def create_network_task(module: str = 'findus_edge.stub', function: str = 'relay', arguments: dict = {}):
+    task: Task = Task.objects.create(name='pytest')
     task.module = module
     task.function = function
-    task.arguments = arguments
-    task.state = TaskState.STARTED
+    task.arguments_dict = arguments
+    task.state = TaskState.CREATED
     task.save()
     logger.debug(f'Network task is created: {task}')
     return task
@@ -39,16 +36,16 @@ def test_online(network_client_on_dispatcher: NetworkClient):
 
 def test_task_queues(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
-    created_task = create_network_task(arguments='test')
-    pending_task: NetworkTask = next(client.queues[TaskType.Network][TaskState.STARTED])
+    created_task = create_network_task(arguments={"arg": "test"})
+    pending_task: Task = next(client.queues[TaskState.CREATED])
     assert created_task == pending_task, 'Pending task differs from created one'
     client.push_task_to_network(pending_task)
-    assert not next(client.queues[TaskType.Network][TaskState.STARTED]), 'Unexpected network task received'
+    assert not next(client.queues[TaskState.CREATED]), 'Unexpected network task received'
     pending_task.refresh_from_db()
     assert pending_task.sent, 'Network task is send to DCN but not marked as sent'
     for _ in range(20):  # x20 milliseconds
         sleep(0.02)
-        task_result: Task = next(client.queues[TaskType.Network][TaskState.PROCESSED])
+        task_result = next(client.queues[TaskState.PROCESSED])
         if task_result:
             break
     else:
@@ -56,13 +53,16 @@ def test_task_queues(network_client_on_dispatcher: NetworkClient):
     client.append_task_result_to_db(task_result)
     pending_task.refresh_from_db()
     assert pending_task.state == TaskState.PROCESSED, f'Task result is processed but not marked as processed'
-    assert not next(client.queues[TaskType.Network][TaskState.PROCESSED]), 'Unexpected task is received from DCN'
+    assert not next(client.queues[TaskState.PROCESSED]), 'Unexpected task is received from DCN'
 
 
 def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
-    task = create_network_task(arguments='test')
-    client.stage_handler(client.push_task_to_network, TaskState.STARTED)
-    client.stage_handler(client.append_task_result_to_db, TaskState.PROCESSED)
+    task = create_network_task(arguments={"arg": "test"})
+    client.generic_stage_handler(client.push_task_to_network, TaskState.CREATED)
     task.refresh_from_db()
+    logger.debug(task.state)
+    client.generic_stage_handler(client.append_task_result_to_db, TaskState.PROCESSED)
+    task.refresh_from_db()
+    logger.debug(task.state)
     assert task.state == TaskState.PROCESSED, f'Task result is processed but not marked as processed'
