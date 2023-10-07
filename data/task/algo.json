@@ -1,0 +1,26 @@
+{
+  "calculate_algo_metrics": {
+    "base": "base",
+    "run_on_start": ["get_metrics", "command_factory"],
+    "arguments": {
+      "command_name": "calculate_metric",
+      "command_arg": "metric_ids"
+    }
+  },
+  "calculate_metric": {
+    "base": "base",
+    "dcn_task": true,
+    "run_on_start": ["collect_normalization_data"],
+    "module": "findus_edge.algo.normalization",
+    "function": "normalization",
+    "run_on_done": ["validate_result_json", "set_metric_params", "append_slices"]
+  },
+  "finalize_algo_rates": {
+    "base": "base",
+    "dcn_task": true,
+    "run_on_start": ["get_param_weights", "collect_unprocessed_slices"],
+    "module": "findus_edge.calculation.rate",
+    "function": "rate_weighted_params",
+    "run_on_done": ["validate_result_json", "set_rates"]
+  }
+}

@@ -2,11 +2,10 @@ from datetime import datetime
 from typing import List
 
 from schedule.lib.event_templates import get_event_template
-from task.models import SystemTask
+from flow.models import Flow
 
 from croniter import croniter
 from django.db import models
-from django.utils.timezone import now
 
 
 class Event(models.Model):
@@ -22,30 +21,22 @@ class Event(models.Model):
     type = models.IntegerField(choices=UserType.choices, default=UserType.REGULAR)
     triggered = models.DateTimeField(null=True)
     artifacts = models.TextField(null=True)
-    tasks = models.TextField(null=True)
+    workflows = models.TextField(null=True)
+
+    @property
+    def flows(self) -> List[Flow]:
+        return self.flow_set.all()
 
     def get_template(self):
         return get_event_template(self.name)
 
+    def workflows_from_template(self):
+        template = self.get_template()
+        workflow_list = template.get('workflows', [])
+        self.workflows = ','.join(workflow_list)
+
     def get_schedule(self):
         return list(self.schedule_set.all())
-
-    def get_tasks(self) -> List[SystemTask]:
-        return self.systemtask_set.all()
-
-    def trigger(self):
-        def _trigger(name: str):
-            task: SystemTask = SystemTask.objects.create(name=name)
-            task.event = self
-            task.arguments = self.artifacts
-            task.save()
-
-        if self.tasks:
-            if ',' in self.tasks:
-                for task_name in self.tasks.split(','):
-                    _trigger(task_name)
-            else:
-                _trigger(self.tasks)
 
     def __str__(self):
         return f'({self.id}) "{self.name}": {self.artifacts}'

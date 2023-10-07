@@ -8,7 +8,7 @@ EVENTS_JSON = collect_json(TEMPLATES_FOLDER)
 
 
 def get_event_template(name: str):
-    event = EVENTS_JSON.get(name, {})
+    event = EVENTS_JSON.get(name, dict())
     if event:
         event = deepcopy(event)
     return event

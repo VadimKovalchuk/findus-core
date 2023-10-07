@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 
 from schedule.lib.scheduler import ScheduleProcessor
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('scheduler')
 
 
 class Command(BaseCommand):

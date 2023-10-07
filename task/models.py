@@ -1,8 +1,10 @@
 import json
 
+from datetime import datetime, timedelta
 from typing import List
 
 from django.db import models
+from django.utils.timezone import now
 
 
 class TaskState:
@@ -28,13 +30,13 @@ class Task(models.Model):
     name = models.CharField(max_length=100)
     processing_state = models.CharField(max_length=10, choices=TaskState.choices, default=TaskState.CREATED)
     postponed = models.DateTimeField(null=True)
+    sent = models.DateTimeField(null=True)
     priority = models.IntegerField(choices=Priorities.choices, default=Priorities.MEDIUM)
-    parent_task = models.ForeignKey('SystemTask', null=True, on_delete=models.CASCADE)
-    arguments = models.TextField(null=True)
-    result = models.TextField(null=True)
-
-    class Meta:
-        abstract = True
+    flow = models.ForeignKey('flow.Flow', null=True, on_delete=models.CASCADE)
+    arguments = models.TextField(default='{}')
+    module = models.CharField(max_length=100)
+    function = models.CharField(max_length=100)
+    result = models.TextField(default='{}')
 
     @property
     def state(self):
@@ -47,54 +49,35 @@ class Task(models.Model):
     def state(self, state: str):
         self.processing_state = state
 
-    def _stats(self):
-        return {
-            TaskState.CREATED: 1 if self.state == TaskState.CREATED else 0,
-            TaskState.STARTED: 1 if self.state == TaskState.STARTED else 0,
-            TaskState.PROCESSED: 1 if self.state == TaskState.PROCESSED else 0,
-            TaskState.DONE: 1 if self.state == TaskState.DONE else 0,
-            TaskState.POSTPONED: 1 if self.state == TaskState.POSTPONED else 0,
-        }
+    @property
+    def arguments_dict(self):
+        return json.loads(self.arguments)
 
-    def __str__(self):
-        return f'({self.id}) "{self.name}"'
+    @arguments_dict.setter
+    def arguments_dict(self, _dict: dict):
+        self.arguments = json.dumps(_dict)
 
+    @property
+    def result_dict(self):
+        if self.result:
+            return json.loads(self.result)
+        else:
+            return dict()
 
-class SystemTask(Task):
+    @result_dict.setter
+    def result_dict(self, _dict: dict):
+        self.result = json.dumps(_dict)
 
-    event = models.ForeignKey('schedule.Event', null=True, on_delete=models.CASCADE)
+    @property
+    def postponed_relative(self):
+        if self.postponed:
+            return self.postponed - datetime.now()
+        else:
+            return timedelta(seconds=0)
 
-    def get_children(self) -> List[Task]:
-        children = list()
-        children.extend(self.systemtask_set.all())
-        children.extend(self.networktask_set.all())
-        return children
-
-    def child_stats(self) -> dict:
-        result_stats = self._stats()
-        children = self.get_children()
-        for task in children:
-            if isinstance(task, SystemTask):
-                stats = task.child_stats()
-            elif isinstance(task, NetworkTask):
-                stats = task._stats()
-            else:
-                raise TypeError
-            for key in stats:
-                result_stats[key] += stats[key]
-        return result_stats
-
-    def is_processed(self) -> bool:
-        children = self.get_children()
-        processed = [task.state == TaskState.DONE for task in children]
-        return all(processed)
-
-
-class NetworkTask(Task):
-
-    sent = models.DateTimeField(null=True)
-    module = models.CharField(max_length=100)
-    function = models.CharField(max_length=100)
+    @postponed_relative.setter
+    def postponed_relative(self, delta: timedelta):
+        self.postponed = now() + delta
 
     def compose_for_dcn(self, client: str = ''):
         return {
@@ -102,5 +85,8 @@ class NetworkTask(Task):
             'client': client,
             'module': self.module,
             'function': self.function,
-            'arguments': json.loads(self.arguments) if (self.arguments and '{' in self.arguments) else self.arguments
+            'arguments': self.arguments_dict
         }
+
+    def __str__(self):
+        return f'({self.id}) "{self.name}"'
