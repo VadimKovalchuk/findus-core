@@ -2,7 +2,7 @@ import json
 
 from django.db import models
 
-from ticker.models import Ticker, Scope, FinvizFundamental, Price, Dividend
+from ticker.models import Ticker, Scope
 
 
 class Algo(models.Model):
