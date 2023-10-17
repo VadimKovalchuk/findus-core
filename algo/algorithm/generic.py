@@ -35,9 +35,10 @@ class Algorithm:
         self.algo.save()
 
     def deploy(self):
-        self.algo = Algo.model.create(name=self.name, reference_scope=self.scope)
+        self.algo = Algo.objects.create(name=self.name, reference_scope=self.scope)
         for metric in self.metrics:
-            db_metric: AlgoMetric = AlgoMetric.model.create(**metric.convert_for_db())
+            algo_metric_args = self._convert_metric_for_db(metric)
+            db_metric: AlgoMetric = AlgoMetric.objects.create(**algo_metric_args)
             db_metric.save()
 
     def _convert_metric_for_db(self, metric: Metric):
@@ -45,14 +46,19 @@ class Algorithm:
         result.update({
             'algo': self.algo
         })
+        return result
 
     def validate_db_correspondence(self):
-        db_entries = Algo.model.get(name=self.name)
+        db_entries = Algo.objects.filter(name=self.name)
         if db_entries.count() > 1:
             raise ReferenceError(f'More than one Algo instance detected for {self.name} algorithm')
         if not db_entries.count():
             self.deploy()
         algo: Algo = db_entries[0]
+        algo_metric_names = [algo_metric.name for algo_metric in algo.metrics]
+        for metric in self.metrics:
+            if metric.name not in algo_metric_names:
+                raise AttributeError(f'Metric {metric.name} is missing in algo metric list')
 
     def calculate_parameters(self):
         pass
