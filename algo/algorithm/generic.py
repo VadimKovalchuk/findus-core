@@ -59,10 +59,19 @@ class Algorithm:
         for metric in self.metrics:
             if metric.name not in algo_metric_names:
                 raise AttributeError(f'Metric {metric.name} is missing in algo metric list')
+        for metric_name in algo_metric_names:
+            if metric_name not in [metric.name for metric in self.metrics]:
+                raise AttributeError(f'Redundant metric {metric_name} is found in algo metric list')
 
-    def calculate_parameters(self):
+    def collects_parameters(self):
         pass
 
-    def perform_slice(self):
+    def store_parameters(self):
+        pass
+
+    def get_slice_source_data(self):
+        pass
+
+    def create_slice_after_processing(self):
         pass
 
