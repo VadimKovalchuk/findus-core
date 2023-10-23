@@ -4,13 +4,15 @@ from typing import Dict, List
 from django.utils.timezone import now
 
 from algo.models import Algo
-from algo.processing import collect_normalization_data, set_metric_params, append_slices, get_metrics
+from algo.algorithm import get_algorithm_map
+from algo.algorithm.generic import Algorithm, Metric
+from algo.processing import collect_normalization_data, set_metric_params, append_slices
 from flow.models import Flow
 from flow.workflow.generic import Workflow
 from task.models import Task, TaskState
 
 
-class CalculateAlgoMetricWorkflow(Workflow):
+class CalculateAlgoMetricWorkflowLegacy(Workflow):
     flow_name = 'calculate_metric'
 
     def stage_0(self):
@@ -24,6 +26,56 @@ class CalculateAlgoMetricWorkflow(Workflow):
         )
         task.arguments_dict = {'metric_ids': self.arguments['metric_ids']}
         collect_normalization_data(task)
+        self.arguments_update({'task_id': task.id})
+        return True
+
+    def stage_1(self):
+        task_id = self.arguments['task_id']
+        task = Task.objects.get(id=task_id)
+        return task.state == TaskState.PROCESSED
+
+    def stage_2(self):
+        task_id = self.arguments['task_id']
+        task = Task.objects.get(id=task_id)
+        done = set_metric_params(task) and append_slices(task)
+        if done:
+            task.state = TaskState.DONE
+            task.postponed = now() + timedelta(days=92)
+            task.save()
+        return done
+
+
+class CalculateAlgoMetricWorkflow(Workflow):
+    flow_name = 'calculate_metric'
+    '''
+    Flow arguments dict should have following keys:
+     - algo_name
+     - metric_name
+     - is_reference - whether reference metric values should be used
+    '''
+    def stage_0(self):
+        for key in ['algo_name', 'metric_name', 'is_reference']:
+            if key not in self.arguments:
+                raise ValueError(f'{key} is not defined for algorythm metric calculation workflow')
+        algo = Algo.objects.get(name=self.arguments['algo_name'])
+        algo_map = get_algorithm_map()
+        algorithm_class = algo_map[algo.name]
+        algorithm: Algorithm = algorithm_class(algo)
+        metric: Metric = algorithm.get_metric_by_name(self.arguments['metric_name'])
+
+        task = Task.objects.create(
+            name='calculate_metric',
+            flow=self.flow,
+            module='findus_edge.algo.normalization',
+            function='normalization',
+        )
+        task.arguments_dict = {
+            "input_data": algorithm.collect_metric_normalization_data(metric),
+            "norm_method": metric.normalization_method,
+            # "parameters": metric.method_parameters_dict
+        }
+        task.save()
+
         self.arguments_update({'task_id': task.id})
         return True
 

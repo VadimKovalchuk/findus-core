@@ -29,6 +29,8 @@ class AlgoMetric(models.Model):
     algo = models.ForeignKey(Algo, on_delete=models.CASCADE)
     weight = models.FloatField(help_text='metric weight in final rating')
     normalization_method = models.CharField(max_length=20)
+    min_threshold = models.FloatField(help_text='minimal metric value that can be used in calculations')
+    max_threshold = models.FloatField(help_text='maximum metric value that can be used in calculations')
     method_parameters = models.TextField(default='{}', help_text='Normalization method parameters')
 
     @property
@@ -38,36 +40,6 @@ class AlgoMetric(models.Model):
     @method_parameters_dict.setter
     def method_parameters_dict(self, _dict: dict):
         self.method_parameters = json.dumps(_dict)
-
-    @property
-    def limits(self):
-        return self.method_parameters_dict.get('limits', {})
-
-    def get_normalization_data(self, ignore_empty=True):
-        data = {}
-        tickers = self.algo.reference_scope.tickers.all()
-        limits = self.limits
-        for tkr in tickers:
-            _obj = self.target_model_class.objects.filter(ticker=tkr).last()
-            # Ignore ticker if it has no reference model instances
-            if not _obj:
-                continue
-            value = _obj.__dict__.get(self.target_field)
-            # Ignore empty field of corresponding reference model
-            if value is None and ignore_empty:
-                continue
-            # In case if metric field has reference data limits
-            if limits:
-                # Ignore value if it is over max limit
-                _max = limits.get("max")
-                if _max and _max < value:
-                    continue
-                # Ignore value if it is under min limit
-                _min = limits.get("min")
-                if _min and _min > value:
-                    continue
-            data[_obj.id] = value
-        return data
 
     def __str__(self):
         return f'({self.id}) "{self.name}" of {self.algo.name}'

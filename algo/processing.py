@@ -11,16 +11,6 @@ from task.models import Task
 logger = logging.getLogger(__name__)
 
 
-def get_metrics(task: Task):
-    args = task.arguments_dict
-    algo_id = args['algo_id']
-    algo = Algo.objects.get(id=algo_id)
-    args['metric_ids'] = [metric.id for metric in algo.metrics]
-    task.arguments_dict = args
-    task.save()
-    return True
-
-
 def collect_normalization_data(task: Task):
     args = task.arguments_dict
     metric_id = args['metric_ids']

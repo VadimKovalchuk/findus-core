@@ -5,38 +5,17 @@ from time import monotonic
 
 import pytest
 
-from django.utils.timezone import now
-
-from algo.models import Algo, AlgoMetric, AlgoSlice, AlgoMetricSlice
+from algo.models import Algo, AlgoMetric, AlgoSlice
 from flow.lib.flow_processor import FlowProcessor
-from flow.workflow import CalculateAllAlgoMetricsWorkflow, CalculateAlgoMetricWorkflow
+from flow.workflow import CalculateAllAlgoMetricsWorkflow
 from task.lib.network_client import NetworkClient
 from task.models import TaskState
-from ticker.models import Scope, Ticker, FinvizFundamental
-from tests.test_edge.test_normalization import UNIFORM_DISTRIBUTION_DATA
+from tests.test_algo.conftest import algo_scope
+from ticker.models import Scope
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.django_db
-
-
-@pytest.fixture
-def algo_scope():
-    scope = Scope.objects.create(name='scope')
-    for symbol in UNIFORM_DISTRIBUTION_DATA:
-        # logger.debug(symbol)
-        tkr = Ticker.objects.create(symbol=symbol)
-        tkr.save()
-        scope.tickers.add(tkr)
-        finviz_slice: FinvizFundamental = FinvizFundamental.objects.create(
-            ticker=tkr,
-            price_earnings=UNIFORM_DISTRIBUTION_DATA[symbol],
-            price_sales=UNIFORM_DISTRIBUTION_DATA[symbol] * 2
-        )
-        finviz_slice.save()
-        # logger.debug([finviz_slice.price_earnings, finviz_slice.price_sales])
-    scope.save()
-    yield scope
 
 
 @pytest.fixture

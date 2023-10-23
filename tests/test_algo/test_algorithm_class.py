@@ -28,5 +28,12 @@ def test_algorithm_deploy():
     for metric_name in algo_metric_names:
         assert metric_name in [metric.name for metric in algorithm.metrics], \
             f'Redundant metric {metric_name} is found in algo metric list'
-
     algorithm.validate_db_correspondence()
+
+
+# def test_redundant_metric():
+#     pass
+#
+# def test_missing_metric():
+#     pass
+
