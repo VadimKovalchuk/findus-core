@@ -45,53 +45,58 @@ class CalculateAlgoMetricWorkflowLegacy(Workflow):
         return done
 
 
-class CalculateAlgoMetricWorkflow(Workflow):
-    flow_name = 'calculate_metric'
+class CalculateAlgoMetricsWorkflow(Workflow):
+    flow_name = 'calculate_algo_metrics'
     '''
     Flow arguments dict should have following keys:
      - algo_name
-     - metric_name
      - is_reference - whether reference metric values should be used
     '''
     def stage_0(self):
-        for key in ['algo_name', 'metric_name', 'is_reference']:
+        for key in ['algo_name', 'is_reference']:
             if key not in self.arguments:
                 raise ValueError(f'{key} is not defined for algorythm metric calculation workflow')
         algo = Algo.objects.get(name=self.arguments['algo_name'])
         algo_map = get_algorithm_map()
         algorithm_class = algo_map[algo.name]
         algorithm: Algorithm = algorithm_class(algo)
-        metric: Metric = algorithm.get_metric_by_name(self.arguments['metric_name'])
-
-        task = Task.objects.create(
-            name='calculate_metric',
-            flow=self.flow,
-            module='findus_edge.algo.normalization',
-            function='normalization',
-        )
-        task.arguments_dict = {
-            "input_data": algorithm.collect_metric_normalization_data(metric),
-            "norm_method": metric.normalization_method,
-            # "parameters": metric.method_parameters_dict
-        }
-        task.save()
-
-        self.arguments_update({'task_id': task.id})
+        task_ids = []
+        for metric in algorithm.metrics:
+            task = Task.objects.create(
+                name='calculate_metric',
+                flow=self.flow,
+                module='findus_edge.algo.normalization',
+                function='normalization',
+            )
+            task.arguments_dict = {
+                "input_data": algorithm.collect_metric_normalization_data(metric),
+                "norm_method": metric.normalization_method,
+                "metric_name": metric.name
+                # "parameters": metric.method_parameters_dict
+            }
+            task.save()
+            task_ids.append(task.id)
+        self.arguments_update({'task_ids': task_ids})
         return True
 
     def stage_1(self):
-        task_id = self.arguments['task_id']
-        task = Task.objects.get(id=task_id)
-        return task.state == TaskState.PROCESSED
+        task_ids = self.arguments['task_ids']
+        for task_id in task_ids:
+            task = Task.objects.get(id=task_id)
+            if task.state != TaskState.PROCESSED:
+                return False
+        else:
+            return True
 
     def stage_2(self):
-        task_id = self.arguments['task_id']
-        task = Task.objects.get(id=task_id)
-        done = set_metric_params(task) and append_slices(task)
-        if done:
-            task.state = TaskState.DONE
-            task.postponed = now() + timedelta(days=92)
-            task.save()
+        task_ids = self.arguments['task_ids']
+        for task_id in task_ids:
+            task = Task.objects.get(id=task_id)
+            done = set_metric_params(task) and append_slices(task)
+            if done:
+                task.state = TaskState.DONE
+                task.postponed = now() + timedelta(days=92)
+                task.save()
         return done
 
 
