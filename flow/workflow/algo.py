@@ -3,10 +3,8 @@ from typing import Dict, List
 
 from django.utils.timezone import now
 
-from algo.models import Algo
-from algo.algorithm import get_algorithm_map
-from algo.algorithm.generic import Algorithm, Metric
-from algo.processing import collect_normalization_data, set_metric_params, append_slices
+from algo.models import Algo, AlgoMetric
+from algo.processing import collect_normalization_data, append_slices
 from flow.models import Flow
 from flow.workflow.generic import Workflow
 from task.models import Task, TaskState
@@ -57,11 +55,8 @@ class CalculateAlgoMetricsWorkflow(Workflow):
             if key not in self.arguments:
                 raise ValueError(f'{key} is not defined for algorythm metric calculation workflow')
         algo = Algo.objects.get(name=self.arguments['algo_name'])
-        algo_map = get_algorithm_map()
-        algorithm_class = algo_map[algo.name]
-        algorithm: Algorithm = algorithm_class(algo)
         task_ids = []
-        for metric in algorithm.metrics:
+        for metric in algo.metrics:
             task = Task.objects.create(
                 name='calculate_metric',
                 flow=self.flow,
@@ -69,9 +64,9 @@ class CalculateAlgoMetricsWorkflow(Workflow):
                 function='normalization',
             )
             task.arguments_dict = {
-                "input_data": algorithm.collect_metric_normalization_data(metric),
+                "input_data": metric.get_normalization_data(),
                 "norm_method": metric.normalization_method,
-                "metric_name": metric.name
+                "metric_id": metric.id
                 # "parameters": metric.method_parameters_dict
             }
             task.save()
@@ -89,10 +84,22 @@ class CalculateAlgoMetricsWorkflow(Workflow):
             return True
 
     def stage_2(self):
+        def set_metric_params(task: Task):
+            args = task.arguments_dict
+            metric_id = args['metric_id']
+            metric: AlgoMetric = AlgoMetric.objects.get(id=metric_id)
+            result = task.result_dict
+            calculated_parameters = result['parameters']
+            metric_params = metric.method_parameters_dict
+            metric_params.update(calculated_parameters)
+            metric.method_parameters_dict = metric_params
+            metric.save()
+            return True
+
         task_ids = self.arguments['task_ids']
         for task_id in task_ids:
             task = Task.objects.get(id=task_id)
-            done = set_metric_params(task) and append_slices(task)
+            done = set_metric_params(task)  and append_slices(task)
             if done:
                 task.state = TaskState.DONE
                 task.postponed = now() + timedelta(days=92)
@@ -101,7 +108,7 @@ class CalculateAlgoMetricsWorkflow(Workflow):
 
 
 class CalculateAllAlgoMetricsWorkflow(Workflow):
-    flow_name = 'calculate_algo_metrics'
+    flow_name = 'calculate_algo_metrics_legacy'
 
     def stage_0(self):
         if 'algo_id' not in self.arguments:

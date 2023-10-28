@@ -1,5 +1,4 @@
 from algo.algorithm.generic import Algorithm, Metric
-from ticker.models import FinvizFundamental
 
 
 class TestAlgorithm(Algorithm):

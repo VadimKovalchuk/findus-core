@@ -43,7 +43,7 @@ def set_metric_params(task: Task):
 
 def append_slices(task: Task):
     args = task.arguments_dict
-    metric_id = args['metric_ids']
+    metric_id = args['metric_id']
     metric: AlgoMetric = AlgoMetric.objects.get(id=metric_id)
     result = task.result_dict
     normalized = result['result']
