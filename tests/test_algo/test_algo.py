@@ -65,6 +65,7 @@ def test_normalize_algo_metrics(
         network_client_on_dispatcher: NetworkClient,
         algorithm: Algorithm,
 ):
+    assert False, 'Not implemented'
     flow_processor = FlowProcessor()
     algo = algorithm.algo
     workflow = ApplyAlgoNormalizationWorkflow()
