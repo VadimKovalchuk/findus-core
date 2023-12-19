@@ -3,11 +3,12 @@ from typing import Dict, List
 
 from django.utils.timezone import now
 
-from algo.models import Algo, AlgoMetric
+from algo.models import Algo, AlgoMetric, AlgoSlice, AlgoMetricSlice
 from algo.processing import collect_normalization_data, append_slices
 from flow.models import Flow
 from flow.workflow.generic import Workflow
 from task.models import Task, TaskState
+from ticker.models import Ticker
 
 
 class CalculateAlgoMetricsWorkflow(Workflow):
@@ -146,27 +147,28 @@ class WeightMetricsWorkflow(Workflow):
      - is_reference - whether reference metric values should be used
     '''
     def stage_0(self):
-        for key in ['algo_name', 'is_reference']:
+        for key in ['algo_name', 'is_reference', 'ticker']:
             if key not in self.arguments:
-                raise ValueError(f'{key} is not defined for algorythm metric calculation workflow')
+                raise ValueError(f'{key} is not defined for algorythm metrics based rate workflow')
         algo = Algo.objects.get(name=self.arguments['algo_name'])
         task_ids = []
-        for metric in algo.metrics:
-            # END HERE!
-            task = Task.objects.create(
-                name='calculate_metric',
-                flow=self.flow,
-                module='findus_edge.algo.normalization',
-                function='normalization',
-            )
-            task.arguments_dict = {
-                "input_data": metric.get_normalization_data(),
-                "norm_method": metric.normalization_method,
-                "metric_id": metric.id
-                # "parameters": metric.method_parameters_dict
-            }
-            task.save()
-            task_ids.append(task.id)
+        task_arguments = {}
+        ticker = Ticker.objects.get(name=self.arguments['ticker'])
+        algo_slices: AlgoSlice = AlgoSlice.objects.filter(algo=algo, ticker=ticker)
+        algo_slice: AlgoSlice = algo_slices.last()
+        for metric_slice in algo_slice.metrics:
+            metric = metric_slice.metric
+            task_arguments[metric.name] = {'value': metric_slice.result, 'weight': metric.weight}
+        # END HERE!!!
+        task = Task.objects.create(
+            name='weight_metrics',
+            flow=self.flow,
+            module='findus_edge.algo.normalization',
+            function='weight',
+        )
+        task.arguments_dict = task_arguments
+        task.save()
+        task_ids.append(task.id)
         self.arguments_update({'task_ids': task_ids})
         return True
 
