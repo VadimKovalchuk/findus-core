@@ -159,11 +159,10 @@ class WeightMetricsWorkflow(Workflow):
         for metric_slice in algo_slice.metrics:
             metric = metric_slice.metric
             task_arguments[metric.name] = {'value': metric_slice.result, 'weight': metric.weight}
-        # END HERE!!!
         task = Task.objects.create(
             name='weight_metrics',
             flow=self.flow,
-            module='findus_edge.algo.normalization',
+            module='findus_edge.algo.metrics',
             function='weight',
         )
         task.arguments_dict = task_arguments
@@ -182,6 +181,8 @@ class WeightMetricsWorkflow(Workflow):
             return True
 
     def stage_2(self):
+        return True
+
         def set_metric_params(task: Task):
             args = task.arguments_dict
             metric_id = args['metric_id']
@@ -195,6 +196,7 @@ class WeightMetricsWorkflow(Workflow):
             return True
 
         task_ids = self.arguments['task_ids']
+
         for task_id in task_ids:
             task = Task.objects.get(id=task_id)
             done = set_metric_params(task)  and append_slices(task)
