@@ -1,3 +1,5 @@
+import json
+import logging
 from datetime import timedelta
 from typing import Dict, List
 
@@ -153,7 +155,7 @@ class WeightMetricsWorkflow(Workflow):
         algo = Algo.objects.get(name=self.arguments['algo_name'])
         task_ids = []
         task_arguments = {}
-        ticker = Ticker.objects.get(name=self.arguments['ticker'])
+        ticker = Ticker.objects.get(symbol=self.arguments['ticker'])
         algo_slices: AlgoSlice = AlgoSlice.objects.filter(algo=algo, ticker=ticker)
         algo_slice: AlgoSlice = algo_slices.last()
         for metric_slice in algo_slice.metrics:
@@ -165,10 +167,12 @@ class WeightMetricsWorkflow(Workflow):
             module='findus_edge.algo.metrics',
             function='weight',
         )
+        print(json.dumps(task_arguments,indent=4))
         task.arguments_dict = task_arguments
         task.save()
         task_ids.append(task.id)
         self.arguments_update({'task_ids': task_ids})
+        self.arguments_update({'algo_slice_id': algo_slice.id})
         return True
 
     def stage_1(self):
@@ -181,27 +185,28 @@ class WeightMetricsWorkflow(Workflow):
             return True
 
     def stage_2(self):
-        return True
-
-        def set_metric_params(task: Task):
-            args = task.arguments_dict
-            metric_id = args['metric_id']
-            metric: AlgoMetric = AlgoMetric.objects.get(id=metric_id)
-            result = task.result_dict
-            calculated_parameters = result['parameters']
-            metric_params = metric.method_parameters_dict
-            metric_params.update(calculated_parameters)
-            metric.method_parameters_dict = metric_params
-            metric.save()
+        def set_rate_value(task: Task):
+            algo_slice: AlgoSlice = AlgoSlice.objects.get(id=algo_slice_id)
+            algo_slice.result = task.result
+            algo_slice.save()
+            # args = task.arguments_dict
+            # metric_id = args['metric_id']
+            # metric: AlgoMetric = AlgoMetric.objects.get(id=metric_id)
+            # result = task.result_dict
+            # calculated_parameters = result['parameters']
+            # metric_params = metric.method_parameters_dict
+            # metric_params.update(calculated_parameters)
+            # metric.method_parameters_dict = metric_params
+            # metric.save()
             return True
 
         task_ids = self.arguments['task_ids']
-
+        algo_slice_id = self.arguments['algo_slice_id']
         for task_id in task_ids:
             task = Task.objects.get(id=task_id)
-            done = set_metric_params(task)  and append_slices(task)
+            done = set_rate_value(task)
             if done:
                 task.state = TaskState.DONE
                 task.postponed = now() + timedelta(days=92)
                 task.save()
-        return done
+            return done
