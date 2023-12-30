@@ -2,6 +2,7 @@ import json
 import logging
 
 from time import monotonic, sleep
+from typing import List
 
 import pytest
 
@@ -13,7 +14,7 @@ from flow.workflow import CalculateAlgoMetricsWorkflow, ApplyAlgoNormalizationWo
 from task.lib.network_client import NetworkClient
 from task.models import TaskState
 from tests.test_algo.conftest import algo_scope
-from ticker.models import Scope
+from ticker.models import Scope, Ticker
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def test_calculate_algo_metrics(
         assert len(algo_slice.metrics) == 2, f"Slice for ticker {ticker} has metrics count mismatch"
 
 
-def test_normalize_algo_metrics(
+def test_calculate_metrics(
         network_client_on_dispatcher: NetworkClient,
         algorithm: Algorithm,
 ):
@@ -119,6 +120,7 @@ def test_algo_rate(
             # logger.debug(task.arguments)
         logger.info(monotonic() - start)
     algo.refresh_from_db()
-    algo_slices = algo.algoslice_set.all()
+    algo_slices: List[AlgoSlice] = algo.algoslice_set.all()
     for algo_slice in algo_slices:
         logger.info(algo_slice)
+        assert float(algo_slice.ticker.symbol) / 10 == algo_slice.result, f'Actual rate differs from expected'

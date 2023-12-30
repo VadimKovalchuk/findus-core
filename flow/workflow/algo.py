@@ -77,8 +77,8 @@ class CalculateAlgoMetricsWorkflow(Workflow):
         return done
 
 
-class ApplyAlgoNormalizationWorkflow(Workflow):
-    flow_name = 'apply_algo_normalization'
+class CalculateAlgoMetricWorkflow(Workflow):
+    flow_name = 'calculate_algo_metrics'
     '''
     Flow arguments dict should have following keys:
      - algo_name
