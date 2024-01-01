@@ -77,8 +77,8 @@ class CalculateAlgoMetricsWorkflow(Workflow):
         return done
 
 
-class CalculateAlgoMetricWorkflow(Workflow):
-    flow_name = 'calculate_algo_metrics'
+class ApplyAlgoMetricsWorkflow(Workflow):
+    flow_name = 'apply_algo_metrics'
     '''
     Flow arguments dict should have following keys:
      - algo_name
@@ -89,16 +89,20 @@ class CalculateAlgoMetricWorkflow(Workflow):
             if key not in self.arguments:
                 raise ValueError(f'{key} is not defined for algorythm metric calculation workflow')
         algo = Algo.objects.get(name=self.arguments['algo_name'])
+        ticker = Ticker.objects.get(symbol=self.arguments['ticker'])
         task_ids = []
         for metric in algo.metrics:
+            metric_argument = metric.get_ticker_data(ticker)
+            if metric_argument is None:
+                continue
             task = Task.objects.create(
-                name='calculate_metric',
+                name='apply_metric',
                 flow=self.flow,
                 module='findus_edge.algo.normalization',
                 function='normalization',
             )
             task.arguments_dict = {
-                "input_data": metric.get_normalization_data(),
+                "input_data": metric_argument,
                 "norm_method": metric.normalization_method,
                 "metric_id": metric.id,
                 "parameters": metric.method_parameters_dict,
@@ -118,22 +122,10 @@ class CalculateAlgoMetricWorkflow(Workflow):
             return True
 
     def stage_2(self):
-        def set_metric_params(task: Task):
-            args = task.arguments_dict
-            metric_id = args['metric_id']
-            metric: AlgoMetric = AlgoMetric.objects.get(id=metric_id)
-            result = task.result_dict
-            calculated_parameters = result['parameters']
-            metric_params = metric.method_parameters_dict
-            metric_params.update(calculated_parameters)
-            metric.method_parameters_dict = metric_params
-            metric.save()
-            return True
-
         task_ids = self.arguments['task_ids']
         for task_id in task_ids:
             task = Task.objects.get(id=task_id)
-            done = set_metric_params(task)  and append_slices(task)
+            done = append_slices(task)
             if done:
                 task.state = TaskState.DONE
                 task.postponed = now() + timedelta(days=92)
@@ -189,15 +181,6 @@ class WeightMetricsWorkflow(Workflow):
             algo_slice: AlgoSlice = AlgoSlice.objects.get(id=algo_slice_id)
             algo_slice.result = task.result
             algo_slice.save()
-            # args = task.arguments_dict
-            # metric_id = args['metric_id']
-            # metric: AlgoMetric = AlgoMetric.objects.get(id=metric_id)
-            # result = task.result_dict
-            # calculated_parameters = result['parameters']
-            # metric_params = metric.method_parameters_dict
-            # metric_params.update(calculated_parameters)
-            # metric.method_parameters_dict = metric_params
-            # metric.save()
             return True
 
         task_ids = self.arguments['task_ids']
@@ -209,4 +192,4 @@ class WeightMetricsWorkflow(Workflow):
                 task.state = TaskState.DONE
                 task.postponed = now() + timedelta(days=92)
                 task.save()
-            return done
+        return done

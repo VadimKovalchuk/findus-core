@@ -10,7 +10,7 @@ from algo.algorithm.test import TestAlgorithm
 from algo.algorithm.generic import Algorithm
 from algo.models import Algo, AlgoMetric, AlgoSlice
 from flow.lib.flow_processor import FlowProcessor
-from flow.workflow import CalculateAlgoMetricsWorkflow, ApplyAlgoNormalizationWorkflow, WeightMetricsWorkflow
+from flow.workflow import CalculateAlgoMetricsWorkflow, ApplyAlgoMetricsWorkflow, WeightMetricsWorkflow
 from task.lib.network_client import NetworkClient
 from task.models import TaskState
 from tests.test_algo.conftest import algo_scope
@@ -82,23 +82,27 @@ def test_calculate_algo_metrics(
         assert len(algo_slice.metrics) == 2, f"Slice for ticker {ticker} has metrics count mismatch"
 
 
-def test_calculate_metrics(
+def test_apply_metrics(
         network_client_on_dispatcher: NetworkClient,
-        algorithm: Algorithm,
+        algo_with_calculated_metrics: Algorithm,
 ):
-    assert False, 'Not implemented'
     flow_processor = FlowProcessor()
-    algo = algorithm.algo
-    workflow = ApplyAlgoNormalizationWorkflow()
-    flow = workflow.create()
-    workflow.arguments_update({'algo_name': algo.name, 'is_reference': True})
+    algo = algo_with_calculated_metrics.algo
+    flows = []
+    for ticker in algo_with_calculated_metrics.scope.tickers.all():
+        workflow = ApplyAlgoMetricsWorkflow()
+        flow = workflow.create()
+        flows.append(flow)
+        workflow.arguments_update({'algo_name': algo.name, 'is_reference': True, 'ticker': ticker.symbol})
     start = monotonic()
-    while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
+    while [flow for flow in flows if not flow.processing_state == TaskState.DONE] and monotonic() < start + 20:
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        flow.refresh_from_db()
+        [flow.refresh_from_db() for flow in flows]
         # logger.debug(task.arguments)
     logger.info(monotonic() - start)
+    for ticker in algo_with_calculated_metrics.scope.tickers.all():
+        logger.debug(len(algo.get_slices_by_ticker(ticker)))
 
 
 def test_algo_rate(

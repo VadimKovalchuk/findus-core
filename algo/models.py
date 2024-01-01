@@ -72,6 +72,20 @@ class AlgoMetric(models.Model):
             data[_obj.id] = value
         return data
 
+    def get_ticker_data(self, ticker: Ticker):
+        # TODO: Refactor query filter
+        _obj = self.target_model_class.objects.filter(ticker=ticker).last()
+        if not _obj:  # Ignore ticker if it has no reference model instances
+            return
+        value = getattr(_obj, self.target_field, None)
+        if value is None:  # Ignore empty field of corresponding reference model
+            return
+        if self.max_threshold and self.max_threshold < value:  # Ignore value if it is over max limit
+            return self.max_threshold
+        if self.min_threshold and self.min_threshold > value:  # Ignore value if it is under min limit
+            return self.min_threshold
+        return {_obj.id: value}
+
     def __str__(self):
         return f'({self.id}) "{self.name}" of {self.algo.name}'
 
