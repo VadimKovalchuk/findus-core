@@ -49,6 +49,14 @@ def algo_with_calculated_metrics(
     yield algorithm
 
 
+@pytest.fixture
+def cleanup_algo_slices(algorithm: Algorithm):
+    algo = algorithm.algo
+    for algo_slice in algo.algoslice_set.all():
+        algo_slice.delete()
+    yield algorithm
+
+
 def test_calculate_algo_metrics(
         network_client_on_dispatcher: NetworkClient,
         algorithm: Algorithm,
@@ -85,6 +93,7 @@ def test_calculate_algo_metrics(
 def test_apply_metrics(
         network_client_on_dispatcher: NetworkClient,
         algo_with_calculated_metrics: Algorithm,
+        cleanup_algo_slices,
 ):
     flow_processor = FlowProcessor()
     algo = algo_with_calculated_metrics.algo
@@ -102,7 +111,8 @@ def test_apply_metrics(
         # logger.debug(task.arguments)
     logger.info(monotonic() - start)
     for ticker in algo_with_calculated_metrics.scope.tickers.all():
-        logger.debug(len(algo.get_slices_by_ticker(ticker)))
+        slice: AlgoSlice = algo.get_slices_by_ticker(ticker)[0]
+        assert len(slice.metrics) == 2, f'Invalid metric slice count'
 
 
 def test_algo_rate(

@@ -17,6 +17,20 @@ logger = logging.getLogger(__name__)
 task_input_queue = compose_queue(RoutingKeys.TASK)
 task_result_queue = compose_queue(RoutingKeys.RESULTS)
 
+FINVIZ_EXPECTED_FIELDS = {"Company", "Sector", "Industry", "Country", "Exchange", "Index", "P/E", "EPS (ttm)",
+                          "Insider Own", "Shs Outstand", "Perf Week", "Market Cap", "Forward P/E", "EPS next Y",
+                          "Insider Trans", "Shs Float", "Perf Month", "Income", "PEG", "EPS next Q", "Inst Own",
+                          "Short Float / Ratio", "Perf Quarter", "Sales", "P/S", "EPS this Y", "Inst Trans",
+                          "Short Interest", "Perf Half Y", "Book/sh", "P/B", "EPS next Y Percentage", "ROA",
+                          "Target Price", "Perf Year", "Cash/sh", "P/C", "EPS next 5Y", "ROE", "52W Range From",
+                          "52W Range To", "Perf YTD", "Dividend", "P/FCF", "EPS past 5Y", "ROI", "52W High", "Beta",
+                          "Dividend %", "Quick Ratio", "Sales past 5Y", "Gross Margin", "52W Low", "ATR", "Employees",
+                          "Current Ratio", "Sales Q/Q", "Oper. Margin", "RSI (14)", "Volatility W", "Volatility M",
+                          "Optionable", "Debt/Eq", "EPS Q/Q", "Profit Margin", "Rel Volume", "Prev Close", "Shortable",
+                          "LT Debt/Eq", "Earnings", "Payout", "Avg Volume", "Price", "Recom", "SMA20", "SMA50",
+                          "SMA200", "Volume", "Change"
+}
+
 
 def calculate_boundaries(expected: Union[int, float], accuracy: float) -> Tuple[float, float]:
     _min = expected * (100 - accuracy) / 100
@@ -101,9 +115,11 @@ def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func
     client.broker.publish(test_task)
     # Validating result on client
     _, result = next(client.broker.pull())
-    logger.debug(result)
     data = json.loads(result['result'])
+    logger.debug(json.dumps(data, indent=4))
+    logger.info(f"Diff from actual: {set(data['values'].keys()).difference(FINVIZ_EXPECTED_FIELDS)}")
+    logger.info(f"Diff from expected: {FINVIZ_EXPECTED_FIELDS.difference(set(data['values'].keys()))}")
     assert 'values' in data, f'Ticker fundamental values are missing in command result contents'
-    assert len(data['values']) == expected_prop_count, \
+    assert len(data['values']) == len(FINVIZ_EXPECTED_FIELDS), \
         f'Fields count differs in fundamental data for ticker {ticker}: ' \
-        f'actual - {len(data["values"])}, expected - {expected_prop_count}'
+        f'actual - {len(data["values"])}, expected - {len(FINVIZ_EXPECTED_FIELDS)}'
