@@ -1,7 +1,9 @@
-from typing import Dict
+from typing import Dict, List
+
+from django.db.models import Q
 
 from flow.models import Flow
-from task.models import Task
+from task.models import Task, TaskState
 
 STAGE_COUNT_CAP = 100
 
@@ -43,10 +45,6 @@ class Workflow:
         self.flow.arguments_dict = _dict
         self.flow.save()
 
-    @property
-    def tasks(self) -> Task:
-        return self.task_set.all()
-
     def validate_flow(self):
         if not self.flow:
             raise AttributeError('Flow attribute is not set')
@@ -76,3 +74,22 @@ class Workflow:
 
     def stage_0(self):
         return True
+
+
+class TaskHandler:
+
+    @property
+    def tasks(self) -> Task:
+        return self.flow.task_set.all()
+
+    @property
+    def undone_tasks(self) -> List[Task]:
+        return self.flow.task_set.filter(~Q(processing_state=TaskState.DONE))
+
+    def check_all_task_processed(self):
+        processed = self.flow.task_set.filter(processing_state=TaskState.PROCESSED)
+        return len(processed) == len(self.undone_tasks)
+
+
+class ChildWorkflowHandler:
+    pass

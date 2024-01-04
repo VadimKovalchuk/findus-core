@@ -1,4 +1,4 @@
-from flow.workflow.generic import Workflow
+from flow.workflow.generic import Workflow, TaskHandler
 from task.models import Task, TaskState
 from task.lib.processing import append_new_tickers, update_scope
 
@@ -42,7 +42,7 @@ class TestRelayWorklow(Workflow):
         return False
 
 
-class TestScopeWorklow(Workflow):
+class TestScopeWorklow(Workflow, TaskHandler):
     flow_name = 'test_scope'
 
     def stage_0(self):
@@ -54,16 +54,11 @@ class TestScopeWorklow(Workflow):
         )
         task.arguments_dict = {"scope": "TestScope"}
         task.save()
-        self.flow.arguments_dict = {'task_id': task.id}
-        self.flow.save()
         return True
 
     def stage_1(self):
-        task_id = self.flow.arguments_dict['task_id']
-        task = Task.objects.get(id=task_id)
-        return task.state == TaskState.PROCESSED
+        return self.check_all_task_processed()
 
     def stage_2(self):
-        task_id = self.flow.arguments_dict['task_id']
-        task = Task.objects.get(id=task_id)
+        task = self.tasks[0]
         return append_new_tickers(task) and update_scope(task)

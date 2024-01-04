@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from django.utils.timezone import now
 
-from flow.workflow.generic import Workflow
+from flow.workflow.generic import Workflow, TaskHandler
 from flow.models import Flow
 from task.models import Task, TaskState
 from task.lib.processing import (append_prices, append_dividends, append_finviz_fundamental, append_new_tickers,
@@ -11,11 +11,10 @@ from task.lib.processing import (append_prices, append_dividends, append_finviz_
 from ticker.models import Ticker
 
 
-class ScopeUpdateWorkflow(Workflow):
+class ScopeUpdateWorkflow(Workflow, TaskHandler):
     flow_name = 'update_ticker_list'
 
     def stage_0(self):
-        task_ids = []
         for scope_name in ["SP500", "SP400", "SP600"]:
             task = Task.objects.create(
                 name=f'update_{scope_name.lower()}_ticker_list',
@@ -25,29 +24,22 @@ class ScopeUpdateWorkflow(Workflow):
             )
             task.arguments_dict = {"scope": scope_name}
             task.save()
-            task_ids.append(task.id)
-        self.arguments_update({'task_ids': task_ids})
         return True
 
     def stage_1(self):
-        task_ids = self.flow.arguments_dict['task_ids']
-        for task_id in task_ids:
-            task = Task.objects.get(id=task_id)
+        for task in self.undone_tasks:
             if task.state != TaskState.PROCESSED:
                 return False
         else:
             return True
 
     def stage_2(self):
-        task_ids = self.arguments['task_ids']
         all_pass = True
-        for task_id in task_ids:
-            task = Task.objects.get(id=task_id)
-            if task.state == TaskState.PROCESSED:
-                if append_new_tickers(task) and update_scope(task):
-                    task.set_done()
-                else:
-                    all_pass = False
+        for task in self.undone_tasks:
+            if append_new_tickers(task) and update_scope(task):
+                task.set_done()
+            else:
+                all_pass = False
         return all_pass
 
 
