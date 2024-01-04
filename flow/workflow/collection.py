@@ -45,9 +45,7 @@ class ScopeUpdateWorkflow(Workflow):
             task = Task.objects.get(id=task_id)
             if task.state == TaskState.PROCESSED:
                 if append_new_tickers(task) and update_scope(task):
-                    task.state = TaskState.DONE
-                    task.postponed = now() + timedelta(days=92)
-                    task.save()
+                    task.set_done()
                 else:
                     all_pass = False
         return all_pass
@@ -81,9 +79,7 @@ class AppendTickerPricesWorfklow(Workflow):
         task = Task.objects.get(id=task_id)
         done = append_prices(task) and append_dividends(task)
         if done:
-            task.state = TaskState.DONE
-            task.postponed = now() + timedelta(days=92)
-            task.save()
+            task.set_done()
         return done
 
 
@@ -137,12 +133,9 @@ class AppendFinvizWorkflow(Workflow):
     def stage_2(self):
         task_id = self.arguments['task_id']
         task = Task.objects.get(id=task_id)
-        done = append_finviz_fundamental(task)
-        if done:
-            task.state = TaskState.DONE
-            task.postponed = now() + timedelta(days=92)
-            task.save()
-        return done
+        if append_finviz_fundamental(task):
+            task.set_done()
+            return True
 
 
 class AddAllTickerFinvizWorkflow(Workflow):

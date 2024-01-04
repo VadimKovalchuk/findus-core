@@ -71,9 +71,7 @@ class CalculateAlgoMetricsWorkflow(Workflow):
             task = Task.objects.get(id=task_id)
             done = set_metric_params(task)  and append_slices(task)
             if done:
-                task.state = TaskState.DONE
-                task.postponed = now() + timedelta(days=92)
-                task.save()
+                task.set_done()
         return done
 
 
@@ -125,12 +123,12 @@ class ApplyAlgoMetricsWorkflow(Workflow):
         task_ids = self.arguments['task_ids']
         for task_id in task_ids:
             task = Task.objects.get(id=task_id)
-            done = append_slices(task)
-            if done:
-                task.state = TaskState.DONE
-                task.postponed = now() + timedelta(days=92)
-                task.save()
-        return done
+            if append_slices(task):
+                task.set_done()
+            else:
+                return False
+        else:
+            return True
 
 
 class WeightMetricsWorkflow(Workflow):

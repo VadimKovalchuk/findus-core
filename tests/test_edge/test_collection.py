@@ -30,6 +30,14 @@ FINVIZ_EXPECTED_FIELDS = {"Company", "Sector", "Industry", "Country", "Exchange"
                           "LT Debt/Eq", "Earnings", "Payout", "Avg Volume", "Price", "Recom", "SMA20", "SMA50",
                           "SMA200", "Volume", "Change"
 }
+FINVIZ_CONVERTED_FIELDS = {"market_cap", "income", "sales", "book_share", "cash_share", "dividend", "dividend_percent",
+                           "recommendation", "price_earnings", "price_earnings_forward", "price_earnings_growth",
+                           "price_sales", "price_book", "price_cash", "price_free_cash", "quick_ratio", "current_ratio",
+                           "debt_equity", "lt_debt_equity", "eps_ttm", "eps_next_y", "eps_next_q", "eps_this_y",
+                           "eps_next_5y", "eps_past_5y", "sales_past_5y", "sales_qq", "eps_qq", "return_asset",
+                           "return_equity", "return_invest", "gross_margin", "oper_margin", "profit_margin",
+                           "payout_ratio", "target_price", "beta", "sma20", "sma50", "sma200"
+                           }
 
 
 def calculate_boundaries(expected: Union[int, float], accuracy: float) -> Tuple[float, float]:
@@ -99,11 +107,11 @@ def test_price_history(client_on_dispatcher: Client):
     assert dividend_count, 'Dividend rows are missing'
 
 
-@pytest.mark.parametrize('module_func, expected_prop_count', [
-    pytest.param('fundamental', 78, id='fundamental'),
-    pytest.param('fundamental_converted', 40, id='fundamental_converted')
+@pytest.mark.parametrize('module_func, expected_properties', [
+    pytest.param('fundamental', FINVIZ_EXPECTED_FIELDS, id='fundamental'),
+    pytest.param('fundamental_converted', FINVIZ_CONVERTED_FIELDS, id='fundamental_converted')
 ])
-def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func: str, expected_prop_count: int):
+def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func: str, expected_properties: set):
     ticker = 'MSFT'
     client = client_on_dispatcher
     test_task = deepcopy(task_body)
@@ -117,9 +125,9 @@ def test_finviz_fundamental_collection(client_on_dispatcher: Client, module_func
     _, result = next(client.broker.pull())
     data = json.loads(result['result'])
     logger.debug(json.dumps(data, indent=4))
-    logger.info(f"Diff from actual: {set(data['values'].keys()).difference(FINVIZ_EXPECTED_FIELDS)}")
-    logger.info(f"Diff from expected: {FINVIZ_EXPECTED_FIELDS.difference(set(data['values'].keys()))}")
+    logger.info(f"Diff from actual: {set(data['values'].keys()).difference(expected_properties)}")
+    logger.info(f"Diff from expected: {expected_properties.difference(set(data['values'].keys()))}")
     assert 'values' in data, f'Ticker fundamental values are missing in command result contents'
-    assert len(data['values']) == len(FINVIZ_EXPECTED_FIELDS), \
+    assert len(data['values']) == len(expected_properties), \
         f'Fields count differs in fundamental data for ticker {ticker}: ' \
-        f'actual - {len(data["values"])}, expected - {len(FINVIZ_EXPECTED_FIELDS)}'
+        f'actual - {len(data["values"])}, expected - {len(expected_properties)}'
