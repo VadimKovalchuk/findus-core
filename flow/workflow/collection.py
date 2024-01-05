@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from django.utils.timezone import now
 
-from flow.workflow.generic import Workflow, TaskHandler
+from flow.workflow.generic import Workflow, TaskHandler, ChildWorkflowHandler
 from flow.models import Flow
 from task.models import Task, TaskState
 from task.lib.processing import (append_prices, append_dividends, append_finviz_fundamental, append_new_tickers,
@@ -66,16 +66,15 @@ class AppendTickerPricesWorfklow(Workflow, TaskHandler):
             return True
 
 
-class AddAllTickerPricesWorkflow(Workflow):
-    flow_name = 'collect_daily_global'
+class AddAllTickerPricesWorkflow(Workflow, ChildWorkflowHandler):
+    flow_name = 'collect_daily_prices_global'
 
     def stage_0(self):
-        child_flow_ids: List = []
         for ticker in [ticker.symbol for ticker in Ticker.objects.all()]:
             workflow = AppendTickerPricesWorfklow()
             flow = workflow.create()
             workflow.arguments = {'ticker': ticker}
-            child_flow_ids.append(flow.id)
+            self.append_child_flow(flow)
             self.arguments_update({'child_flow_ids': child_flow_ids})
         self.flow.refresh_from_db()
         # print(self.arguments)
@@ -117,7 +116,7 @@ class AppendFinvizWorkflow(Workflow, TaskHandler):
             return True
 
 
-class AddAllTickerFinvizWorkflow(Workflow):
+class AddAllTickerFinvizWorkflow(Workflow, ChildWorkflowHandler):
     flow_name = 'collect_finviz_fundamental_global'
 
     def stage_0(self):

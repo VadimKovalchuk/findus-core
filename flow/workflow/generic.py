@@ -1,8 +1,8 @@
-from typing import Dict, List
+from typing import Dict, List, Iterable
 
 from django.db.models import Q
 
-from flow.models import Flow
+from flow.models import Flow, FlowState
 from task.models import Task, TaskState
 
 STAGE_COUNT_CAP = 100
@@ -88,10 +88,33 @@ class TaskHandler:
 
     def check_all_task_processed(self):
         processed = self.flow.task_set.filter(processing_state=TaskState.PROCESSED)
-        print((len(processed), len(self.undone_tasks)))
-        print(len(processed) == len(self.undone_tasks))
+        # print((len(processed), len(self.undone_tasks)))
+        # print(len(processed) == len(self.undone_tasks))
         return len(processed) == len(self.undone_tasks)
 
 
 class ChildWorkflowHandler:
-    pass
+
+    @property
+    def child_flows_ids(self: Workflow):
+        if 'child_flow_ids' in self.arguments:
+            self.arguments_update({'child_flow_ids': []})
+
+    @child_flows_ids.setter
+    def child_flows_ids(self, id_list: list):
+        self.arguments_update({'child_flow_ids': id_list})
+
+    @property
+    def child_flows(self) -> Iterable[Flow]:
+        for flow_id in self.child_flows_ids:
+            yield Flow.objects.get(id=flow_id)
+
+    def append_child_flow(self, flow: Flow):
+        self.child_flows_ids.append(flow.id)
+
+    def check_child_flows_done(self):
+        for flow in self.child_flows:
+            if flow.state != FlowState.DONE:
+                return False
+        else:
+            return True

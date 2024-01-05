@@ -38,7 +38,6 @@ class TestRelayWorklow(Workflow):
 
     def stage_1(self):
         task = Task.objects.get(name='network_relay_task')
-        print(task.state)
         return False
 
 
