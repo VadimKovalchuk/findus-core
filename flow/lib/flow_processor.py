@@ -41,7 +41,7 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
         return start_result
 
     def process_flow(self, flow: Flow):
-        logger.info(f'Processing flow: {flow.name}')
+        logger.info(f'Processing flow: ({flow.id}){flow.name}')
         workflow = self.workflow_map[flow.name](flow)
         active_stage = workflow.get_active_stage_method()
         processing_result = active_stage()

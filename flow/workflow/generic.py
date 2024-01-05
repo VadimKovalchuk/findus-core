@@ -79,7 +79,7 @@ class Workflow:
 class TaskHandler:
 
     @property
-    def tasks(self) -> Task:
+    def tasks(self) -> List[Task]:
         return self.flow.task_set.all()
 
     @property
@@ -88,6 +88,8 @@ class TaskHandler:
 
     def check_all_task_processed(self):
         processed = self.flow.task_set.filter(processing_state=TaskState.PROCESSED)
+        print((len(processed), len(self.undone_tasks)))
+        print(len(processed) == len(self.undone_tasks))
         return len(processed) == len(self.undone_tasks)
 
 

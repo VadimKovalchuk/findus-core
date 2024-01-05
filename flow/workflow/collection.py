@@ -27,11 +27,7 @@ class ScopeUpdateWorkflow(Workflow, TaskHandler):
         return True
 
     def stage_1(self):
-        for task in self.undone_tasks:
-            if task.state != TaskState.PROCESSED:
-                return False
-        else:
-            return True
+        return self.check_all_task_processed()
 
     def stage_2(self):
         all_pass = True
@@ -43,7 +39,7 @@ class ScopeUpdateWorkflow(Workflow, TaskHandler):
         return all_pass
 
 
-class AppendTickerPricesWorfklow(Workflow):
+class AppendTickerPricesWorfklow(Workflow, TaskHandler):
     flow_name = 'append_ticker_price_data'
 
     def stage_0(self):
@@ -58,21 +54,16 @@ class AppendTickerPricesWorfklow(Workflow):
         task.arguments_dict = {'ticker': self.arguments['ticker']}
         task.save()
         define_ticker_daily_start_date(task)  # TODO: REFACTOR!
-        self.arguments_update({'task_id': task.id})
         return True
 
     def stage_1(self):
-        task_id = self.arguments['task_id']
-        task = Task.objects.get(id=task_id)
-        return task.state == TaskState.PROCESSED
+        return self.check_all_task_processed()
 
     def stage_2(self):
-        task_id = self.arguments['task_id']
-        task = Task.objects.get(id=task_id)
-        done = append_prices(task) and append_dividends(task)
-        if done:
+        task = self.tasks[0]
+        if append_prices(task) and append_dividends(task):
             task.set_done()
-        return done
+            return True
 
 
 class AddAllTickerPricesWorkflow(Workflow):
@@ -100,7 +91,7 @@ class AddAllTickerPricesWorkflow(Workflow):
             return True
 
 
-class AppendFinvizWorkflow(Workflow):
+class AppendFinvizWorkflow(Workflow, TaskHandler):
     flow_name = 'append_finviz_fundamental'
 
     def stage_0(self):
@@ -114,17 +105,13 @@ class AppendFinvizWorkflow(Workflow):
         )
         task.arguments_dict = {'ticker': self.arguments['ticker']}
         task.save()
-        self.arguments_update({'task_id': task.id})
         return True
 
     def stage_1(self):
-        task_id = self.arguments['task_id']
-        task = Task.objects.get(id=task_id)
-        return task.state == TaskState.PROCESSED
+        return self.check_all_task_processed()
 
     def stage_2(self):
-        task_id = self.arguments['task_id']
-        task = Task.objects.get(id=task_id)
+        task = self.tasks[0]
         if append_finviz_fundamental(task):
             task.set_done()
             return True
@@ -142,7 +129,6 @@ class AddAllTickerFinvizWorkflow(Workflow):
             child_flow_ids.append(flow.id)
             self.arguments_update({'child_flow_ids': child_flow_ids})
         self.flow.refresh_from_db()
-        # print(self.arguments)
         return True
 
     def stage_1(self):

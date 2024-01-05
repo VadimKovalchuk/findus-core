@@ -104,7 +104,7 @@ def test_apply_metrics(
         flows.append(flow)
         workflow.arguments_update({'algo_name': algo.name, 'is_reference': True, 'ticker': ticker.symbol})
     start = monotonic()
-    while [flow for flow in flows if not flow.processing_state == TaskState.DONE] and monotonic() < start + 20:
+    while [flow for flow in flows if not flow.processing_state == TaskState.DONE] and monotonic() < start + 10:
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         [flow.refresh_from_db() for flow in flows]
@@ -121,18 +121,20 @@ def test_algo_rate(
 ):
     flow_processor = FlowProcessor()
     algo: Algo = algo_with_calculated_metrics.algo
+    flows = []
     for ticker in algo_with_calculated_metrics.scope.tickers.all():
         logger.info(f'Processing ticker: {ticker.symbol}')
         workflow = WeightMetricsWorkflow()
         flow = workflow.create()
+        flows.append(flow)
         workflow.arguments_update({'algo_name': algo.name, 'is_reference': True, 'ticker': ticker.symbol})
         start = monotonic()
-        while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
-            flow_processor.processing_cycle()
-            network_client_on_dispatcher.processing_cycle()
-            flow.refresh_from_db()
-            # logger.debug(task.arguments)
-        logger.info(monotonic() - start)
+    while [flow for flow in flows if not flow.processing_state == TaskState.DONE] and monotonic() < start + 10:
+        flow_processor.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        [flow.refresh_from_db() for flow in flows]
+        # logger.debug(task.arguments)
+    logger.info(monotonic() - start)
     algo.refresh_from_db()
     algo_slices: List[AlgoSlice] = algo.algoslice_set.all()
     for algo_slice in algo_slices:
