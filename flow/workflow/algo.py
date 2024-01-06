@@ -8,7 +8,7 @@ from django.utils.timezone import now
 from algo.models import Algo, AlgoMetric, AlgoSlice, AlgoMetricSlice
 from algo.processing import collect_normalization_data, append_slices
 from flow.models import Flow
-from flow.workflow.generic import Workflow, TaskHandler
+from flow.workflow.generic import Workflow, TaskHandler, ChildWorkflowHandler
 from task.models import Task, TaskState
 from ticker.models import Ticker
 
@@ -57,13 +57,7 @@ class CalculateAlgoMetricsWorkflow(Workflow, TaskHandler):
             metric.save()
             return True
 
-        for task in self.tasks:
-            if set_metric_params(task) and append_slices(task):
-                task.set_done()
-            else:
-                return False
-        else:
-            return True
+        return self.map_task_results([set_metric_params, append_slices])
 
 
 class ApplyAlgoMetricsWorkflow(Workflow, TaskHandler):
@@ -102,24 +96,57 @@ class ApplyAlgoMetricsWorkflow(Workflow, TaskHandler):
         return self.check_all_task_processed()
 
     def stage_2(self):
-        for task in self.tasks:
-            if append_slices(task):
-                task.set_done()
-            else:
-                return False
-        else:
-            return True
+        return self.map_task_results([append_slices])
 
 
-class WeightMetricsWorkflow(Workflow, TaskHandler):
-    flow_name = 'weight_algo_metrics'
+class RateAlgoSliceWorkflow(Workflow, TaskHandler):
+    flow_name = 'weight_algo_slice'
     '''
     Flow arguments dict should have following keys:
      - algo_name
      - is_reference - whether reference metric values should be used
     '''
     def stage_0(self):
-        for key in ['algo_name', 'is_reference', 'ticker']:
+        if 'algo_slice_id' not in self.arguments:
+            raise ValueError('algo_slice_id is not defined for algorythm metrics based rate workflow')
+        algo_slice: AlgoSlice = AlgoSlice.objects.get(self.arguments['algo_slice_id'])
+        task_arguments = {'algo_slice_id': self.arguments['algo_slice_id']}
+        for metric_slice in algo_slice.metrics:
+            metric = metric_slice.metric
+            task_arguments[metric.name] = {'value': metric_slice.result, 'weight': metric.weight}
+        task = Task.objects.create(
+            name='weight_metrics',
+            flow=self.flow,
+            module='findus_edge.algo.metrics',
+            function='weight',
+        )
+        task.arguments_dict = task_arguments
+        task.save()
+        return True
+
+    def stage_1(self):
+        return self.check_all_task_processed()
+
+    def stage_2(self):
+        def set_rate_value(task: Task):
+            algo_slice_id = task.arguments_dict['algo_slice_id']
+            algo_slice: AlgoSlice = AlgoSlice.objects.get(id=algo_slice_id)
+            algo_slice.result = task.result
+            algo_slice.save()
+            return True
+
+        return self.map_task_results([set_rate_value])
+
+
+class RateAllSlicesWorkflow(Workflow, ChildWorkflowHandler):
+    flow_name = 'rate_all_algo_slices'
+    '''
+    Flow arguments dict should have following keys:
+     - algo_name
+     - is_reference - whether reference metric values should be used
+    '''
+    def stage_0(self):
+        for key in ['algo_name']:
             if key not in self.arguments:
                 raise ValueError(f'{key} is not defined for algorythm metrics based rate workflow')
         algo = Algo.objects.get(name=self.arguments['algo_name'])
@@ -136,7 +163,6 @@ class WeightMetricsWorkflow(Workflow, TaskHandler):
             module='findus_edge.algo.metrics',
             function='weight',
         )
-        # print(json.dumps(task_arguments,indent=4))
         task.arguments_dict = task_arguments
         task.save()
         self.arguments_update({'algo_slice_id': algo_slice.id})

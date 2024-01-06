@@ -10,7 +10,7 @@ from algo.algorithm.test import TestAlgorithm
 from algo.algorithm.generic import Algorithm
 from algo.models import Algo, AlgoMetric, AlgoSlice
 from flow.lib.flow_processor import FlowProcessor
-from flow.workflow import CalculateAlgoMetricsWorkflow, ApplyAlgoMetricsWorkflow, WeightMetricsWorkflow
+from flow.workflow import CalculateAlgoMetricsWorkflow, ApplyAlgoMetricsWorkflow, RateAlgoSliceWorkflow
 from task.lib.network_client import NetworkClient
 from task.models import TaskState
 from tests.test_algo.conftest import algo_scope
@@ -124,7 +124,7 @@ def test_algo_rate(
     flows = []
     for ticker in algo_with_calculated_metrics.scope.tickers.all():
         logger.info(f'Processing ticker: {ticker.symbol}')
-        workflow = WeightMetricsWorkflow()
+        workflow = RateAlgoSliceWorkflow()
         flow = workflow.create()
         flows.append(flow)
         workflow.arguments_update({'algo_name': algo.name, 'is_reference': True, 'ticker': ticker.symbol})

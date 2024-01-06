@@ -30,13 +30,7 @@ class ScopeUpdateWorkflow(Workflow, TaskHandler):
         return self.check_all_task_processed()
 
     def stage_2(self):
-        all_pass = True
-        for task in self.undone_tasks:
-            if append_new_tickers(task) and update_scope(task):
-                task.set_done()
-            else:
-                all_pass = False
-        return all_pass
+        return self.map_task_results([append_new_tickers, update_scope])
 
 
 class AppendTickerPricesWorfklow(Workflow, TaskHandler):
@@ -60,10 +54,7 @@ class AppendTickerPricesWorfklow(Workflow, TaskHandler):
         return self.check_all_task_processed()
 
     def stage_2(self):
-        task = self.tasks[0]
-        if append_prices(task) and append_dividends(task):
-            task.set_done()
-            return True
+        return self.map_task_results([append_prices, append_dividends])
 
 
 class AddAllTickerPricesWorkflow(Workflow, ChildWorkflowHandler):
@@ -75,19 +66,10 @@ class AddAllTickerPricesWorkflow(Workflow, ChildWorkflowHandler):
             flow = workflow.create()
             workflow.arguments = {'ticker': ticker}
             self.append_child_flow(flow)
-            self.arguments_update({'child_flow_ids': child_flow_ids})
-        self.flow.refresh_from_db()
-        # print(self.arguments)
         return True
 
     def stage_1(self):
-        child_flow_ids: List = self.arguments['child_flow_ids']
-        for flow_id in child_flow_ids:
-            flow = Flow.objects.get(id=flow_id)
-            if flow.processing_state != TaskState.DONE:
-                return False
-        else:
-            return True
+        return self.check_child_flows_done()
 
 
 class AppendFinvizWorkflow(Workflow, TaskHandler):
@@ -110,31 +92,19 @@ class AppendFinvizWorkflow(Workflow, TaskHandler):
         return self.check_all_task_processed()
 
     def stage_2(self):
-        task = self.tasks[0]
-        if append_finviz_fundamental(task):
-            task.set_done()
-            return True
+        return self.map_task_results([append_finviz_fundamental])
 
 
 class AddAllTickerFinvizWorkflow(Workflow, ChildWorkflowHandler):
     flow_name = 'collect_finviz_fundamental_global'
 
     def stage_0(self):
-        child_flow_ids: List = []
         for ticker in [ticker.symbol for ticker in Ticker.objects.all()]:
             workflow = AppendFinvizWorkflow()
             flow = workflow.create()
             workflow.arguments = {'ticker': ticker}
-            child_flow_ids.append(flow.id)
-            self.arguments_update({'child_flow_ids': child_flow_ids})
-        self.flow.refresh_from_db()
+            self.append_child_flow(flow)
         return True
 
     def stage_1(self):
-        child_flow_ids: List = self.arguments['child_flow_ids']
-        for flow_id in child_flow_ids:
-            flow = Flow.objects.get(id=flow_id)
-            if flow.processing_state != TaskState.DONE:
-                return False
-        else:
-            return True
+        return self.check_child_flows_done()

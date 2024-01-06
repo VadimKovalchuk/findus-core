@@ -1,4 +1,4 @@
-from typing import Dict, List, Iterable
+from typing import Callable, Dict, List, Iterable
 
 from django.db.models import Q
 
@@ -92,16 +92,29 @@ class TaskHandler:
         # print(len(processed) == len(self.undone_tasks))
         return len(processed) == len(self.undone_tasks)
 
+    def map_task_results(self, func_list: List[Callable], interrupt_on_failure=False):
+        all_pass = True
+        for task in self.undone_tasks:
+            for func in func_list:
+                if func(task):
+                    task.set_done()
+                else:
+                    if interrupt_on_failure:
+                        return False
+                    all_pass = False
+        return all_pass
+
 
 class ChildWorkflowHandler:
 
     @property
     def child_flows_ids(self: Workflow):
-        if 'child_flow_ids' in self.arguments:
+        if 'child_flow_ids' not in self.arguments:
             self.arguments_update({'child_flow_ids': []})
+        return self.arguments.get('child_flow_ids')
 
     @child_flows_ids.setter
-    def child_flows_ids(self, id_list: list):
+    def child_flows_ids(self: Workflow, id_list: list):
         self.arguments_update({'child_flow_ids': id_list})
 
     @property
@@ -110,7 +123,9 @@ class ChildWorkflowHandler:
             yield Flow.objects.get(id=flow_id)
 
     def append_child_flow(self, flow: Flow):
-        self.child_flows_ids.append(flow.id)
+        flows_ids = self.child_flows_ids
+        flows_ids.append(flow.id)
+        self.child_flows_ids = flows_ids
 
     def check_child_flows_done(self):
         for flow in self.child_flows:
