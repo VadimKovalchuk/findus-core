@@ -79,8 +79,8 @@ def append_new_tickers(task: Task):
                 # logger.debug(tkr)
                 ticker = Ticker(symbol=tkr)
                 ticker.save()
-                scheduler: Scheduler = Scheduler(event_name='new_ticker', artifacts=json.dumps({"ticker": tkr}))
-                scheduler.push()
+                # scheduler: Scheduler = Scheduler(event_name='new_ticker', artifacts=json.dumps({"ticker": tkr}))
+                # scheduler.push()
     return True
 
 
@@ -98,8 +98,8 @@ def update_scope(task: Task):
             ticker = Ticker.objects.get(symbol=tkr)
             scope.tickers.add(ticker)
             scope.save()
-            scheduler: Scheduler = Scheduler(event_name='scope_add', artifacts=json.dumps({"ticker": tkr}))
-            scheduler.push()
+            # scheduler: Scheduler = Scheduler(event_name='scope_add', artifacts=json.dumps({"ticker": tkr}))
+            # scheduler.push()
     redundant = [ticker for ticker in scope_tickers if ticker not in reference_tkr_list]
     if redundant:
         logger.info(f'{len(redundant)} tickers will be removed from scope "{scope_name}"')
@@ -108,8 +108,8 @@ def update_scope(task: Task):
             logger.debug(ticker)
             scope.tickers.remove(ticker)
             scope.save()
-            scheduler: Scheduler = Scheduler(event_name='scope_exclude', artifacts=json.dumps({"ticker": tkr}))
-            scheduler.push()
+            # scheduler: Scheduler = Scheduler(event_name='scope_exclude', artifacts=json.dumps({"ticker": tkr}))
+            # scheduler.push()
     return True
 
 
