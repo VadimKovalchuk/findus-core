@@ -44,6 +44,7 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
         logger.info(f'Processing flow: ({flow.id}){flow.name}')
         workflow = self.workflow_map[flow.name](flow)
         active_stage = workflow.get_active_stage_method()
+        # TODO: Wrap with wide try-except
         processing_result = active_stage()
         if processing_result:
             if workflow.check_last_stage():
