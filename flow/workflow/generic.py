@@ -129,7 +129,7 @@ class ChildWorkflowHandler:
 
     def check_child_flows_done(self):
         for flow in self.child_flows:
-            if flow.state != FlowState.DONE:
+            if flow.processing_state != FlowState.DONE:
                 return False
         else:
             return True

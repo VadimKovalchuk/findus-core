@@ -109,11 +109,11 @@ class RateAlgoSliceWorkflow(Workflow, TaskHandler):
     def stage_0(self):
         if 'algo_slice_id' not in self.arguments:
             raise ValueError('algo_slice_id is not defined for algorythm metrics based rate workflow')
-        algo_slice: AlgoSlice = AlgoSlice.objects.get(self.arguments['algo_slice_id'])
-        task_arguments = {'algo_slice_id': self.arguments['algo_slice_id']}
+        algo_slice: AlgoSlice = AlgoSlice.objects.get(id=self.arguments['algo_slice_id'])
+        task_arguments = {"algo_slice_id": self.arguments['algo_slice_id'], "metrics": {}}
         for metric_slice in algo_slice.metrics:
             metric = metric_slice.metric
-            task_arguments[metric.name] = {'value': metric_slice.result, 'weight': metric.weight}
+            task_arguments['metrics'][metric.name] = {'value': metric_slice.result, 'weight': metric.weight}
         task = Task.objects.create(
             name='weight_metrics',
             flow=self.flow,
@@ -131,7 +131,7 @@ class RateAlgoSliceWorkflow(Workflow, TaskHandler):
         def set_rate_value(task: Task):
             algo_slice_id = task.arguments_dict['algo_slice_id']
             algo_slice: AlgoSlice = AlgoSlice.objects.get(id=algo_slice_id)
-            algo_slice.result = task.result
+            algo_slice.result = task.result_dict['rate']
             algo_slice.save()
             return True
 
@@ -146,45 +146,16 @@ class RateAllSlicesWorkflow(Workflow, ChildWorkflowHandler):
      - is_reference - whether reference metric values should be used
     '''
     def stage_0(self):
-        for key in ['algo_name']:
-            if key not in self.arguments:
-                raise ValueError(f'{key} is not defined for algorythm metrics based rate workflow')
+        if 'algo_name' not in self.arguments:
+            raise ValueError('"algo_name" is not defined for algorythm metrics based rate workflow')
         algo = Algo.objects.get(name=self.arguments['algo_name'])
-        task_arguments = {}
-        ticker = Ticker.objects.get(symbol=self.arguments['ticker'])
-        algo_slices: AlgoSlice = AlgoSlice.objects.filter(algo=algo, ticker=ticker)
-        algo_slice: AlgoSlice = algo_slices.last()
-        for metric_slice in algo_slice.metrics:
-            metric = metric_slice.metric
-            task_arguments[metric.name] = {'value': metric_slice.result, 'weight': metric.weight}
-        task = Task.objects.create(
-            name='weight_metrics',
-            flow=self.flow,
-            module='findus_edge.algo.metrics',
-            function='weight',
-        )
-        task.arguments_dict = task_arguments
-        task.save()
-        self.arguments_update({'algo_slice_id': algo_slice.id})
+        algo_slices: List[AlgoSlice] = AlgoSlice.objects.filter(algo=algo, result__isnull=True)
+        for algo_slice in algo_slices:
+            workflow = RateAlgoSliceWorkflow()
+            flow = workflow.create()
+            workflow.arguments = {'algo_slice_id': algo_slice.id}
+            self.append_child_flow(flow)
         return True
 
     def stage_1(self):
-        return self.check_all_task_processed()
-
-    def stage_2(self):
-        def set_rate_value(task: Task):
-            algo_slice: AlgoSlice = AlgoSlice.objects.get(id=algo_slice_id)
-            algo_slice.result = task.result
-            algo_slice.save()
-            return True
-
-        algo_slice_id = self.arguments['algo_slice_id']
-        for task in self.tasks:
-            if set_rate_value(task):
-                task.state = TaskState.DONE
-                task.postponed = now() + timedelta(days=92)
-                task.save()
-            else:
-                return False
-        else:
-            return True
+        return self.check_child_flows_done()

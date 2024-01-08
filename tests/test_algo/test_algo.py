@@ -10,7 +10,7 @@ from algo.algorithm.test import TestAlgorithm
 from algo.algorithm.generic import Algorithm
 from algo.models import Algo, AlgoMetric, AlgoSlice
 from flow.lib.flow_processor import FlowProcessor
-from flow.workflow import CalculateAlgoMetricsWorkflow, ApplyAlgoMetricsWorkflow, RateAlgoSliceWorkflow
+from flow.workflow import CalculateAlgoMetricsWorkflow, ApplyAlgoMetricsWorkflow, RateAlgoSliceWorkflow, RateAllSlicesWorkflow
 from task.lib.network_client import NetworkClient
 from task.models import TaskState
 from tests.test_algo.conftest import algo_scope
@@ -71,7 +71,6 @@ def test_calculate_algo_metrics(
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         flow.refresh_from_db()
-        # logger.debug(task.arguments)
     logger.info(monotonic() - start)
     for metric in algo.metrics:
         parameters = metric.method_parameters_dict
@@ -108,14 +107,13 @@ def test_apply_metrics(
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         [flow.refresh_from_db() for flow in flows]
-        # logger.debug(task.arguments)
     logger.info(monotonic() - start)
     for ticker in algo_with_calculated_metrics.scope.tickers.all():
         slice: AlgoSlice = algo.get_slices_by_ticker(ticker)[0]
         assert len(slice.metrics) == 2, f'Invalid metric slice count'
 
 
-def test_algo_rate(
+def test_per_slice_algo_rate(
         network_client_on_dispatcher: NetworkClient,
         algo_with_calculated_metrics: Algorithm,
 ):
@@ -127,13 +125,35 @@ def test_algo_rate(
         workflow = RateAlgoSliceWorkflow()
         flow = workflow.create()
         flows.append(flow)
-        workflow.arguments_update({'algo_name': algo.name, 'is_reference': True, 'ticker': ticker.symbol})
+        algo_slice = AlgoSlice.objects.get(ticker=ticker)
+        workflow.arguments_update({'algo_slice_id': algo_slice.id})
         start = monotonic()
     while [flow for flow in flows if not flow.processing_state == TaskState.DONE] and monotonic() < start + 10:
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
         [flow.refresh_from_db() for flow in flows]
-        # logger.debug(task.arguments)
+    logger.info(monotonic() - start)
+    algo.refresh_from_db()
+    algo_slices: List[AlgoSlice] = algo.algoslice_set.all()
+    for algo_slice in algo_slices:
+        logger.info(algo_slice)
+        assert float(algo_slice.ticker.symbol) / 10 == algo_slice.result, f'Actual rate differs from expected'
+
+
+def test_bulk_algo_rate(
+        network_client_on_dispatcher: NetworkClient,
+        algo_with_calculated_metrics: Algorithm,
+):
+    flow_processor = FlowProcessor()
+    algo: Algo = algo_with_calculated_metrics.algo
+    workflow = RateAllSlicesWorkflow()
+    flow = workflow.create()
+    workflow.arguments_update({'algo_name': algo.name})
+    start = monotonic()
+    while not flow.processing_state == TaskState.DONE and monotonic() < start + 10:
+        flow_processor.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        flow.refresh_from_db()
     logger.info(monotonic() - start)
     algo.refresh_from_db()
     algo_slices: List[AlgoSlice] = algo.algoslice_set.all()
