@@ -95,13 +95,16 @@ class TaskHandler:
     def map_task_results(self, func_list: List[Callable], interrupt_on_failure=False):
         all_pass = True
         for task in self.undone_tasks:
+            task_pass = True
             for func in func_list:
-                if func(task):
-                    task.set_done()
-                else:
+                if not func(task):
                     if interrupt_on_failure:
                         return False
+                    task_pass = False
                     all_pass = False
+            else:
+                if task_pass:
+                    task.set_done()
         return all_pass
 
 

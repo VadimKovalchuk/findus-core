@@ -89,3 +89,7 @@ def test_flow_finalization():
     flow_processor.generic_stage_handler(flow_processor.cleanup_done, FlowState.DONE)
     assert not next(flow_processor.queues[FlowState.DONE]), \
         'Unexpected flow is received from completed queue'
+
+
+def test_task_post_processing():
+    pass
