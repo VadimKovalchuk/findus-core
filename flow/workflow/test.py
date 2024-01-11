@@ -38,7 +38,25 @@ class TestRelayWorklow(Workflow):
 
     def stage_1(self):
         task = Task.objects.get(name='network_relay_task')
-        return False
+        return task
+
+
+class TestSingleTaskSingleFuncPass(Workflow, TaskHandler):
+    flow_name = 'test_single_task_single_func'
+
+    def stage_0(self):
+        task = Task.objects.create(
+            name='network_relay_task',
+            flow=self.flow,
+            module='builtin',
+            function='relay',
+        )
+        task.arguments_dict = {'foo': 'bar'}
+        task.save()
+        return True
+
+    def stage_1(self):
+        return self.map_task_results([lambda: True])
 
 
 class TestScopeWorklow(Workflow, TaskHandler):
@@ -59,5 +77,4 @@ class TestScopeWorklow(Workflow, TaskHandler):
         return self.check_all_task_processed()
 
     def stage_2(self):
-        task = self.tasks[0]
-        return append_new_tickers(task) and update_scope(task)
+        return self.map_task_results([append_new_tickers, update_scope])
