@@ -1,3 +1,4 @@
+import json
 import logging
 
 from time import monotonic, sleep
@@ -8,7 +9,7 @@ from django.utils.timezone import now
 
 from flow.lib.flow_processor import FlowProcessor
 from flow.models import FlowState
-from flow.workflow import TestRelayWorklow, TestStagesWorklow
+from flow.workflow import TestRelayWorklow, TestStagesWorklow, TestPreProcSingleTaskSingleFuncWorkflow
 from task.models import Task
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,17 @@ def test_task_creation():
 
 
 def test_task_post_processing():
-    pass
+    flow_processor = FlowProcessor()
+    workflow = TestPreProcSingleTaskSingleFuncWorkflow()
+    flow = workflow.create()
+    start = monotonic()
+    while not flow.processing_state == FlowState.DONE and monotonic() < start + 0.2:
+        flow_processor.processing_cycle()
+        flow.refresh_from_db()
+        logger.debug((flow.state, flow.stage, workflow.tasks))
+    logger.debug((flow.state, flow.stage, workflow.tasks))
+    logger.info(monotonic() - start)
+
 
 def test_task_lifecycle():
     flow_processor = FlowProcessor()

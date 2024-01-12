@@ -41,8 +41,8 @@ class TestRelayWorklow(Workflow):
         return task
 
 
-class TestSingleTaskSingleFuncPass(Workflow, TaskHandler):
-    flow_name = 'test_single_task_single_func'
+class TestPreProcSingleTaskSingleFuncWorkflow(Workflow, TaskHandler):
+    flow_name = 'test_preprocesing_single_task_single_function_workflow'
 
     def stage_0(self):
         task = Task.objects.create(
@@ -56,7 +56,7 @@ class TestSingleTaskSingleFuncPass(Workflow, TaskHandler):
         return True
 
     def stage_1(self):
-        return self.map_task_results([lambda: True])
+        return self.map_task_results([lambda x: True])
 
 
 class TestScopeWorklow(Workflow, TaskHandler):

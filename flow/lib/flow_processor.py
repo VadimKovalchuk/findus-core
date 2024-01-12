@@ -44,11 +44,12 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
         logger.info(f'Processing flow: ({flow.id}){flow.name}')
         workflow = self.workflow_map[flow.name](flow)
         active_stage = workflow.get_active_stage_method()
+        logger.debug(active_stage)
         try:
             processing_result = active_stage()
         except Exception:
             processing_result = False
-            logger.error(f'Flow "{flow.name}" has failed on stage "{active_stage.__name__}"')
+            logger.error(f'Flow "{flow.name}" has failed with exception on stage "{active_stage.__name__}"')
             # TODO: Create error notifying event
         if processing_result:
             if workflow.check_last_stage():
@@ -57,6 +58,8 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
             else:
                 flow.stage += 1
             flow.save()
+        else:
+            logger.error(f'Flow "{flow.name}" has failed on stage "{active_stage.__name__}"')
         return processing_result
 
     def cancel_postpone(self, flow: Flow):
