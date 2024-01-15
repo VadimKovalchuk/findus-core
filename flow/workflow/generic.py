@@ -53,6 +53,9 @@ class Workflow:
         self.validate_flow()
         self.flow.save()
 
+    def set_done(self):
+        self.flow.set_done()
+
     def arguments_update(self, _dict: Dict):
         arguments: Dict = self.arguments
         arguments.update(_dict)

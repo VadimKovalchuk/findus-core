@@ -1,3 +1,4 @@
+import json
 import logging
 
 from datetime import timedelta
@@ -10,6 +11,7 @@ from task.lib.constants import FLOW_PROCESSING_QUOTAS
 from lib.db import (DatabaseMixin, get_created_flows, get_done_flows, get_running_flows,
                     get_postponed_flows, generic_query_set_generator)
 from lib.common_service import CommonServiceMixin
+from schedule.lib.interface import Scheduler
 
 logger = logging.getLogger('flow_processor')
 
@@ -41,10 +43,10 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
         return start_result
 
     def process_flow(self, flow: Flow):
-        logger.info(f'Processing flow: ({flow.id}){flow.name}')
+        logger.info(f'Processing flow: ({flow.id}){flow.name} stage {flow.stage}')
         workflow = self.workflow_map[flow.name](flow)
         active_stage = workflow.get_active_stage_method()
-        logger.debug(active_stage)
+        #logger.debug(active_stage)
         try:
             processing_result = active_stage()
         except Exception:
@@ -53,13 +55,15 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
             # TODO: Create error notifying event
         if processing_result:
             if workflow.check_last_stage():
-                flow.state = FlowState.DONE
-                flow.postponed = now() + timedelta(days=92)
+                workflow.set_done()
             else:
                 flow.stage += 1
-            flow.save()
         else:
             logger.error(f'Flow "{flow.name}" has failed on stage "{active_stage.__name__}"')
+            scheduler: Scheduler = Scheduler(event_name='flow_failure', artifacts=json.dumps({"flow": flow.id}))
+            scheduler.push()
+            flow.postponed = now() + timedelta(days=92)
+        flow.save()
         return processing_result
 
     def cancel_postpone(self, flow: Flow):
@@ -72,5 +76,5 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
         return True
 
     def processing_cycle(self):
-        for stage_handler, task_state in self.stages:
-            self.generic_stage_handler(stage_handler, task_state)
+        for stage_handler, flow_state in self.stages:
+            self.generic_stage_handler(stage_handler, flow_state)

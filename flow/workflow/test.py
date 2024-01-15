@@ -41,8 +41,8 @@ class TestRelayWorklow(Workflow):
         return task
 
 
-class TestPreProcSingleTaskSingleFuncWorkflow(Workflow, TaskHandler):
-    flow_name = 'test_preprocesing_single_task_single_function_workflow'
+class TestTaskPostProcPositiveWorkflow(Workflow, TaskHandler):
+    flow_name = 'test_positive_task_post_processing_workflow'
 
     def stage_0(self):
         task = Task.objects.create(
@@ -57,6 +57,24 @@ class TestPreProcSingleTaskSingleFuncWorkflow(Workflow, TaskHandler):
 
     def stage_1(self):
         return self.map_task_results([lambda x: True])
+
+
+class TestTaskPostProcNegativeWorkflow(Workflow, TaskHandler):
+    flow_name = 'test_negative_task_post_processing_workflow'
+
+    def stage_0(self):
+        task = Task.objects.create(
+            name='network_relay_task',
+            flow=self.flow,
+            module='builtin',
+            function='relay',
+        )
+        task.arguments_dict = {'foo': 'bar'}
+        task.save()
+        return True
+
+    def stage_1(self):
+        return self.map_task_results([lambda x: False])
 
 
 class TestScopeWorklow(Workflow, TaskHandler):
