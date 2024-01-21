@@ -53,11 +53,13 @@ def test_task_post_processing_positive():
     workflow = TestTaskPostProcPositiveWorkflow()
     flow = workflow.create()
     start = monotonic()
-    while not flow.processing_state == FlowState.DONE and monotonic() < start + 1:
+    while not flow.processing_state == FlowState.DONE and monotonic() < start + 2:
         flow_processor.processing_cycle()
         flow.refresh_from_db()
         logger.debug((flow.state, flow.stage))
     logger.info(monotonic() - start)
+    flow.refresh_from_db()
+    assert flow.processing_state == FlowState.DONE, 'Flow is not DONE when expected'
 
 
 def test_task_post_processing_negative():
@@ -65,11 +67,13 @@ def test_task_post_processing_negative():
     workflow = TestTaskPostProcNegativeWorkflow()
     flow = workflow.create()
     start = monotonic()
-    while not flow.state == FlowState.POSTPONED and monotonic() < start + 0.2:
+    while not flow.state == FlowState.POSTPONED and monotonic() < start + 2:
         flow_processor.processing_cycle()
         flow.refresh_from_db()
         logger.debug((flow.state, flow.stage))
     logger.info(monotonic() - start)
+    flow.refresh_from_db()
+    assert flow.state == FlowState.POSTPONED, 'Flow is not POSTPONED when expected'
 
 
 def test_task_lifecycle():

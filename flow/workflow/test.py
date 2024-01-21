@@ -74,7 +74,7 @@ class TestTaskPostProcNegativeWorkflow(Workflow, TaskHandler):
         return True
 
     def stage_1(self):
-        return self.map_task_results([lambda x: False])
+        raise ValueError('Something went wrong')
 
 
 class TestScopeWorklow(Workflow, TaskHandler):

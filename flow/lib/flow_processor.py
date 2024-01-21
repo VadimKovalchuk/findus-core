@@ -52,17 +52,19 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
         except Exception:
             processing_result = False
             logger.error(f'Flow "{flow.name}" has failed with exception on stage "{active_stage.__name__}"')
-            # TODO: Create error notifying event
+            scheduler: Scheduler = Scheduler(event_name='flow_failure', artifacts=json.dumps({"flow": flow.id}))
+            scheduler.push()
+            flow.postponed = now() + timedelta(hours=1)
         if processing_result:
             if workflow.check_last_stage():
                 workflow.set_done()
             else:
                 flow.stage += 1
-        else:
-            logger.error(f'Flow "{flow.name}" has failed on stage "{active_stage.__name__}"')
-            scheduler: Scheduler = Scheduler(event_name='flow_failure', artifacts=json.dumps({"flow": flow.id}))
-            scheduler.push()
-            flow.postponed = now() + timedelta(days=92)
+        # else:
+        #     logger.error(f'Flow "{flow.name}" has failed on stage "{active_stage.__name__}"')
+        #     scheduler: Scheduler = Scheduler(event_name='flow_failure', artifacts=json.dumps({"flow": flow.id}))
+        #     scheduler.push()
+        #     flow.postponed = now() + timedelta(days=92)
         flow.save()
         return processing_result
 
