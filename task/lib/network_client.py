@@ -1,7 +1,8 @@
 import json
 import logging
 
-from typing import Callable, Dict
+from datetime import timedelta
+from typing import Dict
 
 from django.utils.timezone import now
 
@@ -37,7 +38,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         self.stages = (
             (self.push_task_to_network, TaskState.CREATED),
             # (self.finalize_task, OVERDUE),
-            (self.append_task_result_to_db, TaskState.PROCESSED),
+            (self.process_task_results, TaskState.PROCESSED),
             (self.process_postponed, TaskState.POSTPONED),
         )
 
@@ -50,21 +51,31 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
             status, task = self.broker.consume()
             yield task
 
-    def validate_task_failure(self, dcn_task: Dict):
-        if 'error' in dcn_task:
-            logger.error(f'Task "{dcn_task["id"]}" has failed with error')
-            return False
-        else:
+    def process_task_results(self, dcn_task: Dict):
+
+        def validate_failure(dcn_task: Dict):
+            if dcn_task['status'] is False:
+                logger.error(f'Task "{dcn_task["id"]}" has failed with error: {dcn_task.get("resolution")}')
+                return False
+            else:
+                return True
+
+        def append_result_to_db():
+            task.result = dcn_task['result']
+            task.state = TaskState.PROCESSED
+            task.save()
             return True
 
-    def append_task_result_to_db(self, dcn_task: Dict):
         task_id = dcn_task['id']
         task: Task = Task.objects.get(pk=task_id)
         logger.info(f'Task {task.name} execution results received')
-        task.result = dcn_task['result']
-        task.state = TaskState.PROCESSED
-        task.save()
-        return True
+        if validate_failure(dcn_task):
+            return append_result_to_db()
+        else:
+            task.postponed = now() + timedelta(hours=1)
+            task.reset()
+            return False
+
 
     def push_task_to_network(self, task: Task):
         logger.info(f'Sending task: {task.name}')
@@ -81,7 +92,6 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         task.postponed = None
         task.save()
         return True
-
 
     def processing_cycle(self):
         for stage_handler, task_state in self.stages:

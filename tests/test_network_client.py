@@ -28,7 +28,7 @@ def create_task(module: str = 'findus_edge.stub', function: str = 'relay', argum
 
 
 def pull_task(queue, strict=True):
-    for _ in range(20):  # x20 milliseconds
+    for _ in range(10):  # x1 seconds
         sleep(0.1)
         task_result = next(queue)
         if task_result:
@@ -56,7 +56,7 @@ def test_task_queues(network_client_on_dispatcher: NetworkClient):
     pending_task.refresh_from_db()
     assert pending_task.sent, 'Network task is send to DCN but not marked as sent'
     task_result = pull_task(client.queues[TaskState.PROCESSED])
-    client.append_task_result_to_db(task_result)
+    client.process_task_results(task_result)
     pending_task.refresh_from_db()
     assert pending_task.state == TaskState.PROCESSED, f'Task result is processed but not marked as processed'
     assert not next(client.queues[TaskState.PROCESSED]), 'Unexpected task is received from DCN'
@@ -68,7 +68,7 @@ def test_task_forwarding(network_client_on_dispatcher: NetworkClient):
     client.generic_stage_handler(client.push_task_to_network, TaskState.CREATED)
     task.refresh_from_db()
     logger.debug(task.state)
-    client.generic_stage_handler(client.append_task_result_to_db, TaskState.PROCESSED)
+    client.generic_stage_handler(client.process_task_results, TaskState.PROCESSED)
     task.refresh_from_db()
     logger.debug(task.state)
     assert task.state == TaskState.PROCESSED, f'Task result is processed but not marked as processed'
@@ -106,11 +106,32 @@ def test_task_postpone_cycle(network_client_on_dispatcher: NetworkClient, target
     assert task_result, f'Task is not detected in {target_state} queue, when expected'
 
 
-def test_task_failure_detection(network_client_on_dispatcher: NetworkClient):
+@pytest.mark.parametrize('module, function', [
+    pytest.param('findus_edge.stub', 'negative', id='function_failure'),
+    pytest.param('findus_edge.stub', 'unexisting', id='function_missing'),
+    pytest.param('findus_edge.unexisting', 'negative', id='module'),
+    pytest.param('unexisting.unexisting', 'unexisting', id='lib'),
+
+])
+def test_task_failure_detection(network_client_on_dispatcher: NetworkClient, module: str, function: str):
+    client = network_client_on_dispatcher
+    task = create_task(module=module, function=function, arguments={"arg": "test"})
+    client.generic_stage_handler(client.push_task_to_network, TaskState.CREATED)
+    sleep(0.1)
+    task_result = pull_task(client._pull_task_result())
+    logger.debug(task_result)
+    assert task_result['status'] is False, 'Positive status is received for failed command result on edge'
+    assert client.process_task_results(task_result) is False, ('NetworkClient has failed to '
+                                                               'detect failed command on edge')
+
+
+def test_task_failure_postponed_reschedule(network_client_on_dispatcher: NetworkClient):
     client = network_client_on_dispatcher
     task = create_task(function='negative', arguments={"arg": "test"})
     client.processing_cycle()
     sleep(0.1)
-    task_result = pull_task(client._pull_task_result())
-    logger.debug(task_result)
-
+    client.processing_cycle()
+    task.refresh_from_db()
+    assert task.state == TaskState.POSTPONED, 'Failed task is not postponed'
+    assert task.processing_state == TaskState.CREATED, 'Failed task is not reset for rerun'
+    assert task.sent is None, 'Failed task "sent" parameter is not cleared'
