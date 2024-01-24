@@ -135,3 +135,22 @@ def test_task_failure_postponed_reschedule(network_client_on_dispatcher: Network
     assert task.state == TaskState.POSTPONED, 'Failed task is not postponed'
     assert task.processing_state == TaskState.CREATED, 'Failed task is not reset for rerun'
     assert task.sent is None, 'Failed task "sent" parameter is not cleared'
+
+
+def test_task_retry_flow(network_client_on_dispatcher: NetworkClient):
+    client = network_client_on_dispatcher
+    task = create_task(function='negative', arguments={"arg": "test"})
+    for _ in range(2):
+        client.processing_cycle()
+        task.refresh_from_db()
+        logger.debug(task.state)
+    assert task.state == TaskState.POSTPONED, 'Failed task is not postponed'
+    task.function = 'relay'
+    task.postponed = now() - timedelta(hours=1)
+    task.save()
+    for _ in range(3):
+        client.processing_cycle()
+        task.refresh_from_db()
+        logger.debug(task.state)
+    assert task.state == TaskState.PROCESSED, 'Failed to complete rescheduled task'
+
