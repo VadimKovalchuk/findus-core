@@ -8,12 +8,24 @@ from tests.conftest import TEST_TICKERS_STR_LIST
 from ticker.models import Ticker, Scope
 from task.models import Task, TaskState
 from flow.lib.flow_processor import FlowProcessor
-from flow.workflow import TestScopeWorklow
+from flow.workflow import TestScopeWorklow, DefaultScopesWorkflow
 
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.django_db
+
+
+def test_default_scopes_creation():
+    expected_scopes = ["SP500", "SP400", "SP600"]  # extend with SCHD
+
+    flow_processor = FlowProcessor()
+    workflow = DefaultScopesWorkflow()
+    workflow.create()
+    flow_processor.processing_cycle()
+    for scope_name in expected_scopes:
+        assert Scope.objects.filter(name=scope_name), f'Scope {scope_name} is missing after defaults rollout'
+    assert len(expected_scopes) == len(Scope.objects.all()), 'Redundant scope(s) detected'
 
 
 def test_scope_extend_direct(scope_with_tickers, scope_tickers):

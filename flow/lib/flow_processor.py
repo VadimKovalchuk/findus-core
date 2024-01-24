@@ -1,5 +1,6 @@
 import json
 import logging
+import traceback
 
 from datetime import timedelta
 
@@ -51,7 +52,7 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
             processing_result = active_stage()
         except Exception:
             processing_result = False
-            logger.error(f'Flow "{flow.name}" has failed with exception on stage "{active_stage.__name__}"')
+            logger.error(f'Flow "{flow.name}" has failed on {active_stage.__name__} with exception : {traceback.format_exc()}')
             scheduler: Scheduler = Scheduler(event_name='flow_failure', artifacts=json.dumps({"flow": flow.id}))
             scheduler.push()
             flow.postponed = now() + timedelta(hours=1)
