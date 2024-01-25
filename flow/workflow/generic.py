@@ -1,7 +1,9 @@
-from typing import Dict
+from typing import Callable, Dict, List, Iterable
 
-from flow.models import Flow
-from task.models import Task
+from django.db.models import Q
+
+from flow.models import Flow, FlowState
+from task.models import Task, TaskState
 
 STAGE_COUNT_CAP = 100
 
@@ -43,10 +45,6 @@ class Workflow:
         self.flow.arguments_dict = _dict
         self.flow.save()
 
-    @property
-    def tasks(self) -> Task:
-        return self.task_set.all()
-
     def validate_flow(self):
         if not self.flow:
             raise AttributeError('Flow attribute is not set')
@@ -54,6 +52,9 @@ class Workflow:
     def save(self):
         self.validate_flow()
         self.flow.save()
+
+    def set_done(self):
+        self.flow.set_done()
 
     def arguments_update(self, _dict: Dict):
         arguments: Dict = self.arguments
@@ -76,3 +77,65 @@ class Workflow:
 
     def stage_0(self):
         return True
+
+
+class TaskHandler:
+
+    @property
+    def tasks(self) -> List[Task]:
+        return self.flow.task_set.all()
+
+    @property
+    def undone_tasks(self) -> List[Task]:
+        return self.flow.task_set.filter(~Q(processing_state=TaskState.DONE))
+
+    def check_all_task_processed(self):
+        processed = self.flow.task_set.filter(processing_state=TaskState.PROCESSED)
+        # print((len(processed), len(self.undone_tasks)))
+        # print(len(processed) == len(self.undone_tasks))
+        return len(processed) == len(self.undone_tasks)
+
+    def map_task_results(self, func_list: List[Callable], interrupt_on_failure=False):
+        all_pass = True
+        for task in self.undone_tasks:
+            task_pass = True
+            for func in func_list:
+                if not func(task):
+                    if interrupt_on_failure:
+                        return False
+                    task_pass = False
+                    all_pass = False
+            else:
+                if task_pass:
+                    task.set_done()
+        return all_pass
+
+
+class ChildWorkflowHandler:
+
+    @property
+    def child_flows_ids(self: Workflow):
+        if 'child_flow_ids' not in self.arguments:
+            self.arguments_update({'child_flow_ids': []})
+        return self.arguments.get('child_flow_ids')
+
+    @child_flows_ids.setter
+    def child_flows_ids(self: Workflow, id_list: list):
+        self.arguments_update({'child_flow_ids': id_list})
+
+    @property
+    def child_flows(self) -> Iterable[Flow]:
+        for flow_id in self.child_flows_ids:
+            yield Flow.objects.get(id=flow_id)
+
+    def append_child_flow(self, flow: Flow):
+        flows_ids = self.child_flows_ids
+        flows_ids.append(flow.id)
+        self.child_flows_ids = flows_ids
+
+    def check_child_flows_done(self):
+        for flow in self.child_flows:
+            if flow.processing_state != FlowState.DONE:
+                return False
+        else:
+            return True

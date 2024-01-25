@@ -38,6 +38,8 @@ class AlgoMetric(models.Model):
     target_model = models.CharField(max_length=100, help_text='calculated Django model')
     target_field = models.CharField(max_length=100, help_text='Django model calculated field')
     normalization_method = models.CharField(max_length=20)
+    min_threshold = models.FloatField(null=True, help_text='minimal metric value that can be used in calculations')
+    max_threshold = models.FloatField(null=True, help_text='maximum metric value that can be used in calculations')
     method_parameters = models.TextField(default='{}', help_text='Normalization method parameters')
 
     @property
@@ -49,38 +51,40 @@ class AlgoMetric(models.Model):
         self.method_parameters = json.dumps(_dict)
 
     @property
-    def limits(self):
-        return self.method_parameters_dict.get('limits', {})
-
-    @property
     def target_model_class(self):
         return METRIC_MODELS_REFERENCE.get(self.target_model)
 
-    def get_normalization_data(self, ignore_empty=True):
+    def get_normalization_data(self):
         data = {}
         tickers = self.algo.reference_scope.tickers.all()
-        limits = self.limits
         for tkr in tickers:
+            # TODO: Refactor query filter
             _obj = self.target_model_class.objects.filter(ticker=tkr).last()
-            # Ignore ticker if it has no reference model instances
-            if not _obj:
+            if not _obj:  # Ignore ticker if it has no reference model instances
                 continue
-            value = _obj.__dict__.get(self.target_field)
-            # Ignore empty field of corresponding reference model
-            if value is None and ignore_empty:
+            value = getattr(_obj, self.target_field, None)
+            if value is None:  # Ignore empty field of corresponding reference model
                 continue
-            # In case if metric field has reference data limits
-            if limits:
-                # Ignore value if it is over max limit
-                _max = limits.get("max")
-                if _max and _max < value:
-                    continue
-                # Ignore value if it is under min limit
-                _min = limits.get("min")
-                if _min and _min > value:
-                    continue
+            if self.max_threshold and self.max_threshold < value:  # Ignore value if it is over max limit
+                continue
+            if self.min_threshold and self.min_threshold > value:  # Ignore value if it is under min limit
+                continue
             data[_obj.id] = value
         return data
+
+    def get_ticker_data(self, ticker: Ticker):
+        # TODO: Refactor query filter
+        _obj = self.target_model_class.objects.filter(ticker=ticker).last()
+        if not _obj:  # Ignore ticker if it has no reference model instances
+            return
+        value = getattr(_obj, self.target_field, None)
+        if value is None:  # Ignore empty field of corresponding reference model
+            return
+        if self.max_threshold and self.max_threshold < value:  # Ignore value if it is over max limit
+            return self.max_threshold
+        if self.min_threshold and self.min_threshold > value:  # Ignore value if it is under min limit
+            return self.min_threshold
+        return {_obj.id: value}
 
     def __str__(self):
         return f'({self.id}) "{self.name}" of {self.algo.name}'
@@ -105,7 +109,6 @@ class AlgoMetricSlice(models.Model):
     id = models.AutoField(primary_key=True, help_text='Internal ID')
     slice = models.ForeignKey(AlgoSlice, on_delete=models.CASCADE)
     metric = models.ForeignKey(AlgoMetric, on_delete=models.CASCADE)
-    # ticker = models.ForeignKey(Ticker, on_delete=models.CASCADE)
     result = models.FloatField(null=True, help_text='metric rating')
 
     def __str__(self):

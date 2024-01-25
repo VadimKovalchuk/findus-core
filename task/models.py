@@ -88,5 +88,15 @@ class Task(models.Model):
             'arguments': self.arguments_dict
         }
 
+    def reset(self):
+        self.sent = None
+        self.state = TaskState.CREATED
+        self.save()
+
+    def set_done(self):
+        self.state = TaskState.DONE
+        self.postponed = now() + timedelta(days=92)
+        self.save()
+
     def __str__(self):
         return f'({self.id}) "{self.name}"'

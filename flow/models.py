@@ -57,3 +57,10 @@ class Flow(models.Model):
     @property
     def tasks(self) -> Task:
         return self.task_set.all()
+
+    def set_done(self):
+        self.state = FlowState.DONE
+        self.postponed = now() + timedelta(days=92)
+        self.save()
+
+

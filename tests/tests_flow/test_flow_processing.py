@@ -1,3 +1,4 @@
+import json
 import logging
 
 from time import monotonic, sleep
@@ -8,7 +9,12 @@ from django.utils.timezone import now
 
 from flow.lib.flow_processor import FlowProcessor
 from flow.models import FlowState
-from flow.workflow import TestRelayWorklow, TestStagesWorklow
+from flow.workflow import (
+    TestRelayWorklow,
+    TestStagesWorklow,
+    TestTaskPostProcPositiveWorkflow,
+    TestTaskPostProcNegativeWorkflow,
+)
 from task.models import Task
 
 logger = logging.getLogger(__name__)
@@ -40,6 +46,34 @@ def test_task_creation():
     for task in flow.tasks:
         assert isinstance(task, Task), 'Child task type mismatch'
         assert task.name == 'network_relay_task', 'Child task name mismatch'
+
+
+def test_task_post_processing_positive():
+    flow_processor = FlowProcessor()
+    workflow = TestTaskPostProcPositiveWorkflow()
+    flow = workflow.create()
+    start = monotonic()
+    while not flow.processing_state == FlowState.DONE and monotonic() < start + 2:
+        flow_processor.processing_cycle()
+        flow.refresh_from_db()
+        logger.debug((flow.state, flow.stage))
+    logger.info(monotonic() - start)
+    flow.refresh_from_db()
+    assert flow.processing_state == FlowState.DONE, 'Flow is not DONE when expected'
+
+
+def test_task_post_processing_negative():
+    flow_processor = FlowProcessor()
+    workflow = TestTaskPostProcNegativeWorkflow()
+    flow = workflow.create()
+    start = monotonic()
+    while not flow.state == FlowState.POSTPONED and monotonic() < start + 2:
+        flow_processor.processing_cycle()
+        flow.refresh_from_db()
+        logger.debug((flow.state, flow.stage))
+    logger.info(monotonic() - start)
+    flow.refresh_from_db()
+    assert flow.state == FlowState.POSTPONED, 'Flow is not POSTPONED when expected'
 
 
 def test_task_lifecycle():

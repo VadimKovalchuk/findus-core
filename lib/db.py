@@ -46,7 +46,7 @@ def generic_query_set_generator(query_getter: Callable) -> Generator:
             yield None
 
 
-def get_pending_network_tasks() -> QuerySet:
+def get_pending_tasks() -> QuerySet:
     query_set = Task.objects.filter(postponed__isnull=True)
     query_set = query_set.filter(processing_state=TaskState.CREATED)
     query_set = query_set.filter(sent__isnull=True)
@@ -54,20 +54,42 @@ def get_pending_network_tasks() -> QuerySet:
     return query_set
 
 
-def get_overdue_network_tasks() -> QuerySet:
+def get_running_tasks() -> QuerySet:
     query_set = Task.objects.filter(postponed__isnull=True)
     query_set = query_set.filter(processing_state=TaskState.STARTED)
-    query_set = query_set.filter(sent__lt=now() - timedelta(days=1))
+    query_set = query_set.filter(sent__isnull=False)
+    query_set = query_set.order_by('sent')
+    return query_set
+
+
+def get_postponed_tasks() -> QuerySet:
+    query_set = Task.objects.filter(postponed__lt=now())
+    query_set = query_set.order_by('postponed')
+    return query_set
+
+
+def get_overdue_tasks() -> QuerySet:
+    query_set = Task.objects.filter(postponed__isnull=True)
+    query_set = query_set.filter(processing_state=TaskState.STARTED)
+    query_set = query_set.filter(sent__lt=now() - timedelta(hours=1))
     query_set = query_set.order_by('id')
     return query_set
 
 
-def pending_network_tasks():
-    yield from generic_query_set_generator(get_pending_network_tasks)
+def pending_tasks():
+    yield from generic_query_set_generator(get_pending_tasks)
 
 
-def overdue_network_tasks():
-    yield from generic_query_set_generator(get_overdue_network_tasks)
+def running_tasks():
+    yield from generic_query_set_generator(get_running_tasks)
+
+
+def postponed_tasks():
+    yield from generic_query_set_generator(get_postponed_tasks)
+
+
+def overdue_tasks():
+    yield from generic_query_set_generator(get_overdue_tasks)
 
 
 def get_created_flows() -> QuerySet:
