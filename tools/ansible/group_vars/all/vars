@@ -16,3 +16,5 @@ django_apps:
   - task
   - ticker
   - schedule
+  - flow
+  - algo
