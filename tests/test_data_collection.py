@@ -13,7 +13,7 @@ from task.lib.network_client import NetworkClient
 from task.models import Task, TaskState
 from ticker.models import Ticker, Scope, Price
 
-from tests.test_edge.test_collection import calculate_boundaries
+from tests.tests_edge.test_collection import calculate_boundaries
 from tests.utils import get_date_by_delta
 
 logger = logging.getLogger(__name__)

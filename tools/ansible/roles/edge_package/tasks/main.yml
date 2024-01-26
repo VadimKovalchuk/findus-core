@@ -11,6 +11,13 @@
     version: '{{ edge_branch }}'
 
 - name: Building wheels for Findus-edge
-  ansible.builtin.shell: 'source {{ general_venv }}/dcn/bin/activate; python setup.py bdist_wheel'
+  ansible.builtin.shell:
   args:
     chdir: '{{ project_path }}/dcn/packages/edge'
+    cmd: 'source {{ general_venv }}/dcn/bin/activate && python setup.py bdist_wheel'
+    executable: /bin/bash
+
+- name: Install findus-edge package to DCN env
+  pip:
+    virtualenv: '{{ general_venv }}/dcn'
+    name: 'file://{{ project_path }}/dcn/packages/edge/dist/findus_edge-0.0.1-py3-none-any.whl'

@@ -13,7 +13,7 @@ from flow.lib.flow_processor import FlowProcessor
 from flow.workflow import CalculateAlgoMetricsWorkflow, ApplyAlgoMetricsWorkflow, RateAlgoSliceWorkflow, RateAllSlicesWorkflow
 from task.lib.network_client import NetworkClient
 from task.models import TaskState
-from tests.test_algo.conftest import algo_scope
+from tests.tests_algo.conftest import algo_scope
 from ticker.models import Scope, Ticker
 
 logger = logging.getLogger(__name__)

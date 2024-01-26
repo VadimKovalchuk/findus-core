@@ -14,3 +14,10 @@
   ansible.builtin.shell: 'source {{ general_venv }}/core/bin/activate; python setup.py bdist_wheel'
   args:
     chdir: '{{ core_path }}/packages/dcn'
+    executable: /bin/bash
+
+- name: Install DCN package to DCN env
+  pip:
+    virtualenv: '{{ general_venv }}/core'
+    name: 'file://{{ project_path }}/core/packages/dcn/dist/dcn-0.0.1-py3-none-any.whl'
+

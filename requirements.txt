@@ -4,3 +4,4 @@ psycopg2-binary==2.9.7
 pyzmq==25.1.1
 PyYAML==6.0.1
 requests==2.31.0
+wheel==0.37.1

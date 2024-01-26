@@ -1,6 +1,6 @@
 import pytest
 
-from tests.test_edge.test_normalization import UNIFORM_DISTRIBUTION_DATA
+from tests.tests_edge.test_normalization import UNIFORM_DISTRIBUTION_DATA
 from ticker.models import Scope, Ticker, FinvizFundamental
 
 
