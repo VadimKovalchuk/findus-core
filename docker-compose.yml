@@ -9,6 +9,11 @@ services:
       - 5432:5432
     volumes:
       - /var/lib/postgresql/data:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
   adminer:
     image: "adminer"
     restart: always
@@ -22,6 +27,11 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
   dispatcher:
     image: "dcn:latest"
     deploy:
@@ -31,6 +41,11 @@ services:
     command: ["python", "service/dispatcher.py", "rabbitmq"]
     volumes:
       - ./log/dispatcher/:/src/log/dispatcher/
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
   agent:
     image: "dcn:latest"
     command: ["python", "service/agent.py", "dispatcher", "docker"]
@@ -39,6 +54,11 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
   dcn_client:
     image: "findus:latest"
     command: ["python", "manage.py", "dcn_client"]
@@ -46,13 +66,11 @@ services:
       - ./log/client/:/src/log/django/
     deploy:
       mode: global
-#  task_processor:
-#    image: "findus:latest"
-#    command: ["python", "manage.py", "task_processor"]
-#    volumes:
-#      - ./log/task_processor/:/src/log/django/
-#    deploy:
-#      mode: global
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
   flow_processor:
     image: "findus:latest"
     command: ["python", "manage.py", "flow_processor"]
@@ -60,6 +78,11 @@ services:
       - ./log/flow_processor/:/src/log/django/
     deploy:
       mode: global
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
   scheduler:
     image: "findus:latest"
     command: ["python", "manage.py", "scheduler"]
@@ -67,6 +90,11 @@ services:
       - ./log/scheduler/:/src/log/django/
     deploy:
       mode: global
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
 #  web_server:
 #    image: "findus:latest"
 #    command: [ "python", "manage.py", "runserver", "0.0.0.0:8000" ]
@@ -76,3 +104,8 @@ services:
 #      mode: global
 #    ports:
 #      - 8000:8000
+#    logging:
+#      driver: "json-file"
+#      options:
+#        max-size: "10m"
+#        max-file: "10"
