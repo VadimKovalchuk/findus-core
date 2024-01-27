@@ -1,8 +1,6 @@
 import logging
 from lib.common_service import CommonServiceMixin
 from lib.db import DatabaseMixin, generic_query_set_generator
-# from task.lib.commands import COMMANDS, Command
-# from task.lib.commands import SystemTask
 from flow.models import Flow
 from flow.workflow import get_workflow_map
 from schedule.models import Event, Schedule

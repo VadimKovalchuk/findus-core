@@ -1,0 +1,10 @@
+{
+  "name": {
+    "human_name": "Infra defaults",
+    "description": "Control mandatory default instances",
+    "type": 1,
+    "artifacts": "",
+    "workflows": ["create_default_scopes"],
+    "schedule": []
+  }
+}
