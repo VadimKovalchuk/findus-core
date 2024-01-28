@@ -1,5 +1,5 @@
 {
-  "name": {
+  "create_default_scopes": {
     "human_name": "Infra defaults",
     "description": "Control mandatory default instances",
     "type": 1,

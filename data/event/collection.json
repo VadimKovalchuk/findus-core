@@ -28,7 +28,7 @@
     "description": "Update prices and dividend payouts",
     "type": 3,
     "artifacts": "",
-    "workflows": ["collect_daily_global"],
+    "workflows": ["collect_daily_prices_global"],
     "schedule" : []
   },
   "update_finviz_fundamental": {
