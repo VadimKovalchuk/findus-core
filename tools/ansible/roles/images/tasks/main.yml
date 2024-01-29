@@ -1,6 +1,6 @@
 - name: Pull Python 3.10 slim image
   community.docker.docker_image:
-    name: python:3.10-slim
+    name: python:3.11-slim
     source: pull
     pull:
       platform: amd64

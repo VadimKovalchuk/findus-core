@@ -51,7 +51,12 @@ class AppendTickerPricesWorfklow(Workflow, TaskHandler):
         return True
 
     def stage_1(self):
-        return self.check_all_task_processed()
+        if self.check_all_task_processed():
+            return True
+        else:
+            self.postponed = now() + timedelta(minutes=2)
+            self.save()
+            return False
 
     def stage_2(self):
         return self.map_task_results([append_prices, append_dividends])

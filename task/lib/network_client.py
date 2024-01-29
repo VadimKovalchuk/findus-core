@@ -37,7 +37,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         self.quotas = TASK_PROCESSING_QUOTAS
         self.stages = (
             (self.push_task_to_network, TaskState.CREATED),
-            # (self.finalize_task, OVERDUE),
+            (self.process_overdue, OVERDUE),
             (self.process_task_results, TaskState.PROCESSED),
             (self.process_postponed, TaskState.POSTPONED),
         )
@@ -74,7 +74,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         else:
             task.postponed = now() + timedelta(hours=1)
             task.reset()
-            return False
+            return True
 
 
     def push_task_to_network(self, task: Task):
@@ -91,6 +91,10 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         logger.info(f'Task "{task.name}" postpone period expired')
         task.postponed = None
         task.save()
+        return True
+
+    def process_overdue(self, task: Task):
+        task.reset()
         return True
 
     def processing_cycle(self):

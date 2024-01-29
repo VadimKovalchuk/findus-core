@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Callable, Dict, List, Iterable
 
 from django.db.models import Q
@@ -26,18 +27,24 @@ class Workflow:
 
     @property
     def stage(self):
-        self.validate_flow()
         return self.flow.stage
 
     @stage.setter
     def stage(self, stage: str):
-        self.validate_flow()
         self.flow.stage = stage
         self.flow.save()
 
     @property
+    def postponed(self):
+        return self.flow.postponed
+
+    @postponed.setter
+    def postponed(self, date: datetime):
+        self.flow.postponed = date
+        self.flow.save()
+
+    @property
     def arguments(self):
-        self.validate_flow()
         return self.flow.arguments_dict
 
     @arguments.setter
@@ -50,7 +57,6 @@ class Workflow:
             raise AttributeError('Flow attribute is not set')
 
     def save(self):
-        self.validate_flow()
         self.flow.save()
 
     def set_done(self):
@@ -62,11 +68,9 @@ class Workflow:
         self.arguments = arguments
 
     def check_last_stage(self):
-        self.validate_flow()
         return self.stage_count == self.stage + 1
 
     def get_active_stage_method(self):
-        self.validate_flow()
         if self.flow.stage > self.stage_count:
             raise AttributeError('Flow active stage is more than total stage count')
         return getattr(self, f'stage_{self.flow.stage}')
