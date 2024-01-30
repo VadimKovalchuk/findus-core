@@ -165,12 +165,7 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'dcn_client': {
-            'handlers': ['file'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-        'task_processor': {
+        'processing': {
             'handlers': ['file'],
             'level': 'DEBUG',
             'propagate': True,

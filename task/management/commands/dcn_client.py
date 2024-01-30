@@ -6,7 +6,7 @@ from time import sleep
 from django.core.management.base import BaseCommand
 from task.lib.network_client import NetworkClient
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('network_client')
 
 
 class Command(BaseCommand):

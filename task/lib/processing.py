@@ -12,7 +12,7 @@ from schedule.lib.interface import Scheduler
 from task.models import Task
 from ticker.models import Ticker, FinvizFundamental, Scope
 
-logger = logging.getLogger('task_processor')
+logger = logging.getLogger('processing')
 logger.debug(log_path)
 
 
@@ -111,49 +111,3 @@ def update_scope(task: Task):
             # scheduler: Scheduler = Scheduler(event_name='scope_exclude', artifacts=json.dumps({"ticker": tkr}))
             # scheduler.push()
     return True
-
-
-def get_all_tickers(task: Task):
-    arguments = task.arguments_dict
-    tickers = Ticker.objects.all()
-    symbols = [ticker.symbol for ticker in tickers]
-    arguments["ticker"] = symbols
-    task.arguments_dict = arguments
-    task.save()
-    return True
-
-
-def clone_arguments_to_children(task):
-    if task.arguments:
-        for child_task in task.get_children():
-            child_task.arguments = task.arguments
-            child_task.save()
-    else:
-        logger.warning(f'No arguments to clone from task: {task}')
-    return True
-
-
-def define_ticker_daily_start_date(task: Task):
-    arguments = task.arguments_dict
-    symbol = arguments['ticker']
-    ticker = Ticker.objects.get(symbol=symbol)
-    if ticker.price_set.count():
-        latest_price = ticker.price_set.latest('date')
-        latest_date: datetime.datetime = latest_price.date + datetime.timedelta(days=1)
-        logger.debug(f'Latest price date for {symbol}: {latest_date}')
-        arguments['start'] = f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
-        task.arguments_dict = arguments
-        task.save()
-    return True
-
-
-def draft_get_param_for_algo(task: Task):
-    with open('pe.txt', 'w') as fh:
-        for tkr in tkrs:
-            fv = tkr.finvizfundamental_set.first()
-            if fv and fv.price_earnings:
-                line = f"{tkr.symbol},{fv.price_earnings}\n"
-                fh.write(line)
-
-
-PROCESSING_FUNCTIONS = {name: obj for name, obj in inspect.getmembers(sys.modules[__name__])}

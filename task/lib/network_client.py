@@ -74,7 +74,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
         else:
             task.postponed = now() + timedelta(hours=1)
             task.reset()
-            return True
+            return False
 
 
     def push_task_to_network(self, task: Task):

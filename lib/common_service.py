@@ -4,7 +4,7 @@ from typing import Callable
 
 IDLE_TIMEOUT_PROGRESSIVE = [0, 1, 3, 10]
 
-logger = logging.getLogger('task_processor')
+logger = logging.getLogger('processing')
 
 
 class CommonServiceMixin:

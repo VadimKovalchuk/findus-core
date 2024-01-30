@@ -7,6 +7,7 @@ from time import monotonic, sleep
 import pytest
 
 from flow.lib.flow_processor import FlowProcessor
+from flow.models import FlowState
 from flow.workflow import (ScopeUpdateWorkflow, AddAllTickerPricesWorkflow, AppendTickerPricesWorfklow,
                            AppendFinvizWorkflow, AddAllTickerFinvizWorkflow)
 from task.lib.network_client import NetworkClient
@@ -67,7 +68,7 @@ def test_ticker_daily_data(
     flow_processor = FlowProcessor()
     workflow = AppendTickerPricesWorfklow()
     flow = workflow.create()
-    workflow.arguments = {'ticker': ticker_sample.symbol}
+    workflow.arguments = {'ticker': ticker_sample.symbol, 'test': True}
     flow_processor.processing_cycle()
     flow.refresh_from_db()
     task = flow.tasks[0]
@@ -76,14 +77,13 @@ def test_ticker_daily_data(
     task.arguments_dict = args
     task.save()
     start = monotonic()
-    while not task.processing_state == TaskState.DONE and monotonic() < start + 20:
+    while not workflow.flow.processing_state == FlowState.DONE and monotonic() < start + 5:
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        task.refresh_from_db()
+        flow.refresh_from_db()
         sleep(0.1)
-        # logger.debug(task.processing_state)
-        # logger.debug(flow.stage)
     logger.info(monotonic() - start)
+    task.refresh_from_db()
     result = json.loads(task.result)
     args_price_count = len(result['prices'])
     db_price_count = ticker_sample.price_set.count()

@@ -1,14 +1,18 @@
-from datetime import timedelta
+import logging
+
+from datetime import datetime, timedelta
 from typing import Dict, List
 
 from django.utils.timezone import now
 
 from flow.workflow.generic import Workflow, TaskHandler, ChildWorkflowHandler
-from flow.models import Flow
 from task.models import Task, TaskState
 from task.lib.processing import (append_prices, append_dividends, append_finviz_fundamental, append_new_tickers,
-                                 update_scope, define_ticker_daily_start_date)
+                                 update_scope)
 from ticker.models import Ticker
+
+
+logger = logging.getLogger(__name__)  # 'flow_processor')
 
 
 class ScopeUpdateWorkflow(Workflow, TaskHandler):
@@ -37,6 +41,19 @@ class AppendTickerPricesWorfklow(Workflow, TaskHandler):
     flow_name = 'append_ticker_price_data'
 
     def stage_0(self):
+        def define_ticker_daily_start_date(_task: Task):
+            arguments = _task.arguments_dict
+            symbol = arguments['ticker']
+            ticker = Ticker.objects.get(symbol=symbol)
+            if ticker.price_set.count():
+                latest_price = ticker.price_set.latest('date')
+                latest_date = latest_price.date + timedelta(days=1)
+                logger.debug(f'Latest price date for {ticker.symbol}: {latest_date}')
+                arguments = task.arguments_dict
+                arguments['start'] = f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
+                task.arguments_dict = arguments
+            return True
+
         if 'ticker' not in self.arguments:
             raise ValueError('Ticker is not defined for prices collection workflow')
         task = Task.objects.create(
@@ -46,16 +63,17 @@ class AppendTickerPricesWorfklow(Workflow, TaskHandler):
             function='ticker_history',
         )
         task.arguments_dict = {'ticker': self.arguments['ticker']}
+        define_ticker_daily_start_date(task)
         task.save()
-        define_ticker_daily_start_date(task)  # TODO: REFACTOR!
         return True
 
     def stage_1(self):
         if self.check_all_task_processed():
             return True
         else:
-            self.postponed = now() + timedelta(minutes=2)
-            self.save()
+            if 'test' not in self.arguments:
+                self.postponed = now() + timedelta(minutes=2)
+                self.save()
             return False
 
     def stage_2(self):

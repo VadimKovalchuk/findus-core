@@ -44,7 +44,7 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
         return start_result
 
     def process_flow(self, flow: Flow):
-        logger.info(f'Processing flow: ({flow.id}){flow.name} stage {flow.stage}')
+        # logger.debug(f'Processing flow: ({flow.id}){flow.name} stage {flow.stage}')
         workflow = self.workflow_map[flow.name](flow)
         active_stage = workflow.get_active_stage_method()
         #logger.debug(active_stage)
@@ -57,8 +57,10 @@ class FlowProcessor(CommonServiceMixin, DatabaseMixin):
             scheduler.push()
             flow.postponed = now() + timedelta(hours=1)
         if processing_result:
+            logger.debug(f'Flow ({flow.id}){flow.name} stage {flow.stage} complete.')
             if workflow.check_last_stage():
                 workflow.set_done()
+                logger.debug(f'Flow complete.')
             else:
                 flow.stage += 1
         # else:
