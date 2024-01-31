@@ -1,0 +1,2 @@
+REQUEUE_PERIOD = 'requeue_period'
+STAGE_COUNT_CAP = 100

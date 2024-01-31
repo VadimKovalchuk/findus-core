@@ -1,4 +1,7 @@
+import logging
 from django.db import models
+
+logger = logging.getLogger('processing')
 
 
 class AbstractTicker(models.Model):
@@ -21,12 +24,10 @@ class Ticker(AbstractTicker):
     def add_price(self, price_data_list: list) -> bool:
         date, _open, high, low, close, volume = price_data_list
         if self.get_price_by_date(date=date):
-            # TODO: Generate corresponding schedule
-            # logger.debug(f'{ticker_name} price for {date} already exists')
-            return False
+            logger.debug(f'{self.symbol} price for {date} already exists. Skipping append')
         else:
             Price.objects.create(ticker=self, date=date, open=_open, high=high, low=low, close=close, volume=volume)
-            return True
+        return True
 
     def get_dividend_by_date(self, date: str):
         return self.dividend_set.filter(date=date)
@@ -34,12 +35,10 @@ class Ticker(AbstractTicker):
     def add_dividend(self, dividend_data_list: list) -> bool:
         date, size = dividend_data_list
         if self.get_dividend_by_date(date=date):
-            # TODO: Generate corresponding schedule
-            # logger.debug(f'{ticker_name} dividend for {date} already exists')
-            return False
+            logger.debug(f'{self.symbol} dividend for {date} already exists. Skipping append')
         else:
             Dividend.objects.create(ticker=self, date=date, size=size)
-            return True
+        return True
 
 
 class Scope(models.Model):

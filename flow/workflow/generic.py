@@ -1,16 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Callable, Dict, List, Iterable
 
 from django.db.models import Q
 
-from flow.models import Flow, FlowState
-from task.models import Task, TaskState
+from django.utils.timezone import now
 
-STAGE_COUNT_CAP = 100
+
+from flow.models import Flow, FlowState
+from flow.workflow.constants import STAGE_COUNT_CAP, REQUEUE_PERIOD
+from task.models import Task, TaskState
 
 
 class Workflow:
     flow_name = 'generic'
+    _default_requeue_period = 1  # minute
 
     def __init__(self, flow: Flow = None):
         self.flow = flow
@@ -35,6 +38,19 @@ class Workflow:
         self.flow.save()
 
     @property
+    def state(self):
+        return self.flow.state
+
+    @state.setter
+    def state(self, state: str):
+        self.flow.state = state
+        self.flow.save()
+
+    @property
+    def processing_state(self):
+        return self.flow.processing_state
+
+    @property
     def postponed(self):
         return self.flow.postponed
 
@@ -52,9 +68,8 @@ class Workflow:
         self.flow.arguments_dict = _dict
         self.flow.save()
 
-    def validate_flow(self):
-        if not self.flow:
-            raise AttributeError('Flow attribute is not set')
+    def refresh_from_db(self):
+        self.flow.refresh_from_db()
 
     def save(self):
         self.flow.save()
@@ -62,10 +77,11 @@ class Workflow:
     def set_done(self):
         self.flow.set_done()
 
-    def arguments_update(self, _dict: Dict):
+    def update_arguments(self, _dict: Dict):
         arguments: Dict = self.arguments
         arguments.update(_dict)
         self.arguments = arguments
+        self.save()
 
     def check_last_stage(self):
         return self.stage_count == self.stage + 1
@@ -81,6 +97,14 @@ class Workflow:
 
     def stage_0(self):
         return True
+
+    def set_for_test(self):
+        pass
+
+    def postpone_requeue(self):
+        requeue_period = self.arguments.get(REQUEUE_PERIOD, self._default_requeue_period)
+        self.postponed = now() + timedelta(minutes=requeue_period)
+        self.save()
 
 
 class TaskHandler:
@@ -120,12 +144,12 @@ class ChildWorkflowHandler:
     @property
     def child_flows_ids(self: Workflow):
         if 'child_flow_ids' not in self.arguments:
-            self.arguments_update({'child_flow_ids': []})
+            self.update_arguments({'child_flow_ids': []})
         return self.arguments.get('child_flow_ids')
 
     @child_flows_ids.setter
     def child_flows_ids(self: Workflow, id_list: list):
-        self.arguments_update({'child_flow_ids': id_list})
+        self.update_arguments({'child_flow_ids': id_list})
 
     @property
     def child_flows(self) -> Iterable[Flow]:

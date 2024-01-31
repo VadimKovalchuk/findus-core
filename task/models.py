@@ -1,7 +1,7 @@
 import json
 
 from datetime import datetime, timedelta
-from typing import List
+from typing import Dict
 
 from django.db import models
 from django.utils.timezone import now
@@ -68,16 +68,16 @@ class Task(models.Model):
     def result_dict(self, _dict: dict):
         self.result = json.dumps(_dict)
 
-    @property
-    def postponed_relative(self):
-        if self.postponed:
-            return self.postponed - datetime.now()
-        else:
-            return timedelta(seconds=0)
-
-    @postponed_relative.setter
-    def postponed_relative(self, delta: timedelta):
-        self.postponed = now() + delta
+    # @property
+    # def postponed_relative(self):
+    #     if self.postponed:
+    #         return self.postponed - datetime.now()
+    #     else:
+    #         return timedelta(seconds=0)
+    #
+    # @postponed_relative.setter
+    # def postponed_relative(self, delta: timedelta):
+    #     self.postponed = now() + delta
 
     def compose_for_dcn(self, client: str = ''):
         return {
@@ -87,6 +87,12 @@ class Task(models.Model):
             'function': self.function,
             'arguments': self.arguments_dict
         }
+
+    def update_arguments(self, _dict: Dict):
+        arguments: Dict = self.arguments_dict
+        arguments.update(_dict)
+        self.arguments_dict = arguments
+        self.save()
 
     def reset(self):
         self.sent = None

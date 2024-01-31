@@ -38,7 +38,7 @@ def algo_with_calculated_metrics(
     algo = algorithm.algo
     workflow = CalculateAlgoMetricsWorkflow()
     flow = workflow.create()
-    workflow.arguments_update({'algo_name': algo.name, 'is_reference': True})
+    workflow.update_arguments({'algo_name': algo.name, 'is_reference': True})
     start = monotonic()
     while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
         flow_processor.processing_cycle()
@@ -65,7 +65,7 @@ def test_calculate_algo_metrics(
     algo = algorithm.algo
     workflow = CalculateAlgoMetricsWorkflow()
     flow = workflow.create()
-    workflow.arguments_update({'algo_name': algo.name, 'is_reference': True})
+    workflow.update_arguments({'algo_name': algo.name, 'is_reference': True})
     start = monotonic()
     while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
         flow_processor.processing_cycle()
@@ -101,7 +101,7 @@ def test_apply_metrics(
         workflow = ApplyAlgoMetricsWorkflow()
         flow = workflow.create()
         flows.append(flow)
-        workflow.arguments_update({'algo_name': algo.name, 'is_reference': True, 'ticker': ticker.symbol})
+        workflow.update_arguments({'algo_name': algo.name, 'is_reference': True, 'ticker': ticker.symbol})
     start = monotonic()
     while [flow for flow in flows if not flow.processing_state == TaskState.DONE] and monotonic() < start + 10:
         flow_processor.processing_cycle()
@@ -126,7 +126,7 @@ def test_per_slice_algo_rate(
         flow = workflow.create()
         flows.append(flow)
         algo_slice = AlgoSlice.objects.get(ticker=ticker)
-        workflow.arguments_update({'algo_slice_id': algo_slice.id})
+        workflow.update_arguments({'algo_slice_id': algo_slice.id})
         start = monotonic()
     while [flow for flow in flows if not flow.processing_state == TaskState.DONE] and monotonic() < start + 10:
         flow_processor.processing_cycle()
@@ -148,7 +148,7 @@ def test_bulk_algo_rate(
     algo: Algo = algo_with_calculated_metrics.algo
     workflow = RateAllSlicesWorkflow()
     flow = workflow.create()
-    workflow.arguments_update({'algo_name': algo.name})
+    workflow.update_arguments({'algo_name': algo.name})
     start = monotonic()
     while not flow.processing_state == TaskState.DONE and monotonic() < start + 10:
         flow_processor.processing_cycle()

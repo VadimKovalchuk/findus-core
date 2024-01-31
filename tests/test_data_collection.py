@@ -67,20 +67,18 @@ def test_ticker_daily_data(
 ):
     flow_processor = FlowProcessor()
     workflow = AppendTickerPricesWorfklow()
-    flow = workflow.create()
-    workflow.arguments = {'ticker': ticker_sample.symbol, 'test': True}
+    workflow.create()
+    workflow.arguments = {'ticker': ticker_sample.symbol}
+    workflow.set_for_test()
     flow_processor.processing_cycle()
-    flow.refresh_from_db()
-    task = flow.tasks[0]
-    args = task.arguments_dict
-    args['start'] = start_date
-    task.arguments_dict = args
-    task.save()
+    workflow.refresh_from_db()
+    task = workflow.tasks[0]
+    task.update_arguments({'start': start_date})
     start = monotonic()
-    while not workflow.flow.processing_state == FlowState.DONE and monotonic() < start + 5:
+    while not workflow.processing_state == FlowState.DONE and monotonic() < start + 5:
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        flow.refresh_from_db()
+        workflow.refresh_from_db()
         sleep(0.1)
     logger.info(monotonic() - start)
     task.refresh_from_db()
@@ -107,14 +105,16 @@ def test_daily_global(
     _min, _max = 60, 65
     flow_processor = FlowProcessor()
     workflow = AddAllTickerPricesWorkflow()
-    flow = workflow.create()
+    workflow.create()
+    workflow.set_for_test()
     set_sample_prices()
     start = monotonic()
-    while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
+    while not workflow.processing_state == FlowState.DONE and monotonic() < start + 5:
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        flow.refresh_from_db()
+        workflow.refresh_from_db()
         sleep(0.1)
+        #logger.info([wf.state for wf in workflow.child_flows])
     logger.info(monotonic() - start)
     for ticker in scope_with_tickers.tickers.all():
         db_price_count = ticker.price_set.count()
