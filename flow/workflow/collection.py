@@ -1,3 +1,4 @@
+import json
 import logging
 
 from datetime import datetime, timedelta
@@ -5,7 +6,7 @@ from typing import Dict, List
 
 from django.utils.timezone import now
 
-from flow.workflow.constants import REQUEUE_PERIOD
+from flow.workflow.constants import DEFAULT_START_DATE, REQUEUE_PERIOD
 from flow.workflow.generic import Workflow, TaskHandler, ChildWorkflowHandler
 from task.models import Task, TaskState
 from task.lib.processing import (append_prices, append_dividends, append_finviz_fundamental, append_new_tickers,
@@ -46,27 +47,30 @@ class AppendTickerPricesWorfklow(Workflow, TaskHandler):
         self.save()
 
     def stage_0(self):
-        def define_ticker_daily_start_date(_task: Task):
-            arguments = _task.arguments_dict
-            symbol = arguments['ticker']
+        def define_ticker_daily_start_date(symbol: str):
             ticker = Ticker.objects.get(symbol=symbol)
             if ticker.price_set.count():
                 latest_price = ticker.price_set.latest('date')
                 latest_date = latest_price.date + timedelta(days=1)
                 logger.debug(f'Latest price date for {ticker.symbol}: {latest_date}')
-                task.update_arguments({'start': f'{latest_date.year}-{latest_date.month}-{latest_date.day}'})
-            return True
+                return f'{latest_date.year}-{latest_date.month}-{latest_date.day}'
+            else:
+                return DEFAULT_START_DATE
 
         if 'ticker' not in self.arguments:
             raise ValueError('Ticker is not defined for prices collection workflow')
+        symbol = self.arguments['ticker']
+        arguments = {
+            'ticker': symbol,
+            'start': define_ticker_daily_start_date(symbol),
+        }
         task = Task.objects.create(
             name='get_ticker_prices',
             flow=self.flow,
             module='findus_edge.yahoo',
             function='ticker_history',
+            arguments=json.dumps(arguments)
         )
-        task.update_arguments({'ticker': self.arguments['ticker']})
-        define_ticker_daily_start_date(task)  # TODO: convert to getter
         return True
 
     def stage_1(self):
