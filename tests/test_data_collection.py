@@ -129,16 +129,17 @@ def test_finviz_fundamental(
 ):
     flow_processor = FlowProcessor()
     workflow = AppendFinvizWorkflow()
-    flow = workflow.create()
+    workflow.create()
     workflow.arguments = {'ticker': ticker_sample.symbol}
+    workflow.set_for_test()
     start = monotonic()
-    while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
+    while not workflow.processing_state == TaskState.DONE and monotonic() < start + 5:
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        flow.refresh_from_db()
+        workflow.refresh_from_db()
         sleep(0.1)
     logger.info(monotonic() - start)
-    result = json.loads(flow.tasks[0].result)
+    result = json.loads(workflow.tasks[0].result)
     data_slice_count = ticker_sample.finvizfundamental_set.count()
     assert data_slice_count == 1, 'Ticker fundamental data was not correctly appended'
     data_slice = ticker_sample.finvizfundamental_set.all()[0]
@@ -152,12 +153,13 @@ def test_finviz_fundamental_global(
 ):
     flow_processor = FlowProcessor()
     workflow = AddAllTickerFinvizWorkflow()
-    flow = workflow.create()
+    workflow.create()
+    workflow.set_for_test()
     start = monotonic()
-    while not flow.processing_state == TaskState.DONE and monotonic() < start + 20:
+    while not workflow.processing_state == TaskState.DONE and monotonic() < start + 5:
         flow_processor.processing_cycle()
         network_client_on_dispatcher.processing_cycle()
-        flow.refresh_from_db()
+        workflow.refresh_from_db()
         sleep(0.1)
     logger.info(monotonic() - start)
     for ticker in scope_with_tickers.tickers.all():

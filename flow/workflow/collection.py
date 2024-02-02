@@ -22,14 +22,14 @@ class ScopeUpdateWorkflow(Workflow, TaskHandler):
 
     def stage_0(self):
         for scope_name in ["SP500", "SP400", "SP600"]:
+            arguments = {"scope": scope_name}
             task = Task.objects.create(
                 name=f'update_{scope_name.lower()}_ticker_list',
                 flow=self.flow,
                 module='findus_edge.tickers',
                 function='get_scope',
+                arguments=json.dumps(arguments),
             )
-            task.arguments_dict = {"scope": scope_name}
-            task.save()
         return True
 
     def stage_1(self):
@@ -69,7 +69,7 @@ class AppendTickerPricesWorfklow(Workflow, TaskHandler):
             flow=self.flow,
             module='findus_edge.yahoo',
             function='ticker_history',
-            arguments=json.dumps(arguments)
+            arguments=json.dumps(arguments),
         )
         return True
 
@@ -95,8 +95,8 @@ class AddAllTickerPricesWorkflow(Workflow, ChildWorkflowHandler):
         for ticker in [ticker.symbol for ticker in Ticker.objects.all()]:
             workflow = AppendTickerPricesWorfklow()
             flow = workflow.create()
-            self.append_child_flow(flow)
             workflow.arguments = {'ticker': ticker}
+            self.append_child_flow(flow)
             if REQUEUE_PERIOD in self.arguments:  # Custom requeue period for testing purposes
                 workflow.update_arguments({REQUEUE_PERIOD: self.arguments[REQUEUE_PERIOD]})
         return True
@@ -112,21 +112,29 @@ class AddAllTickerPricesWorkflow(Workflow, ChildWorkflowHandler):
 class AppendFinvizWorkflow(Workflow, TaskHandler):
     flow_name = 'append_finviz_fundamental'
 
+    def set_for_test(self):
+        self.update_arguments({REQUEUE_PERIOD: 0})
+        self.save()
+
     def stage_0(self):
         if 'ticker' not in self.arguments:
             raise ValueError('Ticker is not defined for Finviz fundamental data collection workflow')
+        arguments = {'ticker': self.arguments['ticker']}
         task = Task.objects.create(
             name='append_finviz_fundamental',
             flow=self.flow,
             module='findus_edge.finviz',
             function='fundamental_converted',
+            arguments=json.dumps(arguments),
         )
-        task.arguments_dict = {'ticker': self.arguments['ticker']}
-        task.save()
         return True
 
     def stage_1(self):
-        return self.check_all_task_processed()
+        if self.check_all_task_processed():
+            return True
+        else:
+            self.postpone_requeue()
+            return False
 
     def stage_2(self):
         return self.map_task_results([append_finviz_fundamental])
@@ -135,13 +143,23 @@ class AppendFinvizWorkflow(Workflow, TaskHandler):
 class AddAllTickerFinvizWorkflow(Workflow, ChildWorkflowHandler):
     flow_name = 'collect_finviz_fundamental_global'
 
+    def set_for_test(self):
+        self.update_arguments({REQUEUE_PERIOD: 0})
+        self.save()
+
     def stage_0(self):
         for ticker in [ticker.symbol for ticker in Ticker.objects.all()]:
             workflow = AppendFinvizWorkflow()
             flow = workflow.create()
             workflow.arguments = {'ticker': ticker}
             self.append_child_flow(flow)
+            if REQUEUE_PERIOD in self.arguments:  # Custom requeue period for testing purposes
+                workflow.update_arguments({REQUEUE_PERIOD: self.arguments[REQUEUE_PERIOD]})
         return True
 
     def stage_1(self):
-        return self.check_child_flows_done()
+        if self.check_child_flows_done():
+            return True
+        else:
+            self.postpone_requeue()
+            return False
