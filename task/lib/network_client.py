@@ -15,6 +15,7 @@ from task.models import Task, TaskState
 logger = logging.getLogger('dcn_client')
 
 OVERDUE = 'overdue'
+RUNNEING_TASKS_CAP = 100
 
 
 class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
@@ -41,6 +42,7 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
             (self.process_task_results, TaskState.PROCESSED),
             (self.process_postponed, TaskState.POSTPONED),
         )
+        self.running_tasks_count = 0
 
     @property
     def online(self):
@@ -66,6 +68,8 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
             task.save()
             return True
 
+        if self.running_tasks_count > 0:
+            self.running_tasks_count -= 1
         task_id = dcn_task['id']
         task: Task = Task.objects.get(pk=task_id)
         logger.info(f'Task {task.name} execution results received')
@@ -76,15 +80,15 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
             task.reset()
             return False
 
-
     def push_task_to_network(self, task: Task):
-        logger.info(f'Sending task: {task.name}')
+        logger.info(f'Sending task: ({task.id}) {task.name}')
         dcn_task = task.compose_for_dcn(self.name)
         dcn_task['client'] = self.broker.queue
         self.broker.publish(dcn_task)
         task.sent = now()
         task.state = TaskState.STARTED
         task.save()
+        self.running_tasks_count += 1
         return True
 
     def process_postponed(self, task: Task):
@@ -99,4 +103,8 @@ class NetworkClient(Client, CommonServiceMixin, DatabaseMixin):
 
     def processing_cycle(self):
         for stage_handler, task_state in self.stages:
+            if task_state == TaskState.CREATED and self.running_tasks_count >= RUNNEING_TASKS_CAP:
+                continue
             self.generic_stage_handler(stage_handler, task_state)
+        else:
+            logger.debug(f'Tasks in progress: {self.running_tasks_count}')

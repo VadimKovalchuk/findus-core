@@ -24,7 +24,8 @@ class CommonServiceMixin:
     def finalize_cycle(self):
         if self.idle:
             self._calculate_idle_period()
-            logger.debug(f'Processing cycle is idle for {self.idle_period} sec')
+            if self.idle_period == IDLE_TIMEOUT_PROGRESSIVE[-1]:
+                logger.debug(f'Processing cycle is idle for {self.idle_period} sec')
             sleep(self.idle_period)
         else:
             self.idle_period = 0

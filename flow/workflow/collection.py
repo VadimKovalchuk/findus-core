@@ -92,6 +92,7 @@ class AddAllTickerPricesWorkflow(Workflow, ChildWorkflowHandler):
         self.save()
 
     def stage_0(self):
+        logger.info('Creating child workflows')
         for ticker in [ticker.symbol for ticker in Ticker.objects.all()]:
             workflow = AppendTickerPricesWorfklow()
             flow = workflow.create()
@@ -148,13 +149,17 @@ class AddAllTickerFinvizWorkflow(Workflow, ChildWorkflowHandler):
         self.save()
 
     def stage_0(self):
+        logger.info('Creating child workflows')
+        delay = 20
         for ticker in [ticker.symbol for ticker in Ticker.objects.all()]:
             workflow = AppendFinvizWorkflow()
             flow = workflow.create()
             workflow.arguments = {'ticker': ticker}
+            workflow.postponed = now() + timedelta(seconds=delay)
             self.append_child_flow(flow)
             if REQUEUE_PERIOD in self.arguments:  # Custom requeue period for testing purposes
                 workflow.update_arguments({REQUEUE_PERIOD: self.arguments[REQUEUE_PERIOD]})
+            delay += 1
         return True
 
     def stage_1(self):
