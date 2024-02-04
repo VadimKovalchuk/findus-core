@@ -6,7 +6,7 @@ from typing import Dict, List
 
 from django.utils.timezone import now
 
-from flow.workflow.constants import DEFAULT_START_DATE, REQUEUE_PERIOD
+from flow.workflow.constants import DEFAULT_START_DATE, CHILDREN_DISTRIBUTION, REQUEUE_PERIOD
 from flow.workflow.generic import Workflow, TaskHandler, ChildWorkflowHandler
 from task.models import Task, TaskState
 from task.lib.processing import (append_prices, append_dividends, append_finviz_fundamental, append_new_tickers,
@@ -145,21 +145,24 @@ class AddAllTickerFinvizWorkflow(Workflow, ChildWorkflowHandler):
     flow_name = 'collect_finviz_fundamental_global'
 
     def set_for_test(self):
-        self.update_arguments({REQUEUE_PERIOD: 0})
+        self.update_arguments({
+            REQUEUE_PERIOD: 0,
+            CHILDREN_DISTRIBUTION: (0, 0),
+        })
         self.save()
 
     def stage_0(self):
         logger.info('Creating child workflows')
-        delay = 20
         for ticker in [ticker.symbol for ticker in Ticker.objects.all()]:
             workflow = AppendFinvizWorkflow()
             flow = workflow.create()
             workflow.arguments = {'ticker': ticker}
-            workflow.postponed = now() + timedelta(seconds=delay)
             self.append_child_flow(flow)
             if REQUEUE_PERIOD in self.arguments:  # Custom requeue period for testing purposes
                 workflow.update_arguments({REQUEUE_PERIOD: self.arguments[REQUEUE_PERIOD]})
-            delay += 1
+        # Custom values for children distribution on timeline
+        start_delay, step = self.arguments[CHILDREN_DISTRIBUTION] if CHILDREN_DISTRIBUTION in self.arguments else (20, 1)
+        self.distribute_children_on_timeline(start_delay, step)
         return True
 
     def stage_1(self):

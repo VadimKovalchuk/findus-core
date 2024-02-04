@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Callable, Dict, List, Iterable
 
@@ -9,6 +10,9 @@ from django.utils.timezone import now
 from flow.models import Flow, FlowState
 from flow.workflow.constants import STAGE_COUNT_CAP, REQUEUE_PERIOD
 from task.models import Task, TaskState
+
+
+logger = logging.getLogger('flow_processor')
 
 
 class Workflow:
@@ -117,6 +121,12 @@ class TaskHandler:
     def undone_tasks(self) -> List[Task]:
         return self.flow.task_set.filter(~Q(processing_state=TaskState.DONE))
 
+    def distribute_task_on_timeline(self, start_delay: int, step: int):
+        delay = start_delay
+        for task in self.undone_tasks:
+            task.postponed = now() + timedelta(seconds=delay)
+            delay += step
+
     def check_all_task_processed(self):
         processed = self.flow.task_set.filter(processing_state=TaskState.PROCESSED)
         # print((len(processed), len(self.undone_tasks)))
@@ -167,3 +177,11 @@ class ChildWorkflowHandler:
                 return False
         else:
             return True
+
+    def distribute_children_on_timeline(self, start_delay: int, step: int):
+        delay = start_delay
+        for flow in self.child_flows:
+            logger.debug(f'Postpone child flow for {delay}')
+            flow.postponed = now() + timedelta(seconds=delay)
+            flow.save()
+            delay += step
