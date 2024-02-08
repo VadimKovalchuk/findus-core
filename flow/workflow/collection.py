@@ -7,7 +7,7 @@ from typing import Dict, List
 from django.db import transaction
 from django.utils.timezone import now
 
-from flow.workflow.constants import DEFAULT_START_DATE, DISABLE_EVENTS, CHILDREN_DISTRIBUTION, REQUEUE_PERIOD
+from flow.workflow.constants import DEFAULT_SCOPES, DEFAULT_START_DATE, DISABLE_EVENTS, CHILDREN_DISTRIBUTION, REQUEUE_PERIOD
 from flow.workflow.generic import Workflow, TaskHandler, ChildWorkflowHandler
 from schedule.lib.interface import Scheduler
 from task.models import Task
@@ -29,7 +29,7 @@ class ScopeUpdateWorkflow(Workflow, TaskHandler):
         self.save()
 
     def stage_0(self):
-        for scope_name in ["SP500", "SP400", "SP600"]:
+        for scope_name in DEFAULT_SCOPES:
             arguments = {"scope": scope_name}
             task = Task.objects.create(
                 name=f'update_{scope_name.lower()}_ticker_list',
