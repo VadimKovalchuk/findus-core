@@ -9,7 +9,7 @@ import pytest
 from flow.lib.flow_processor import FlowProcessor
 from flow.models import FlowState
 from flow.workflow import (ScopeUpdateWorkflow, AddAllTickerPricesWorkflow, AppendTickerPricesWorfklow,
-                           AppendFinvizWorkflow, AddAllTickerFinvizWorkflow)
+                           AppendFinvizWorkflow, AddAllTickerFinvizWorkflow, NewTickerProcessingWorkflow)
 from task.lib.network_client import NetworkClient
 from task.models import Task, TaskState
 from ticker.models import Ticker, Scope, Price
@@ -166,3 +166,26 @@ def test_finviz_fundamental_global(
         db_finviz_count = ticker.finvizfundamental_set.count()
         logger.info(f'{ticker.symbol} fundamental slice count: {db_finviz_count}')
         assert db_finviz_count == 1, f'Tickers finviz fundamental slice count "{db_finviz_count}" is not 1'
+
+
+def test_new_ticker_processing(
+        network_client_on_dispatcher: NetworkClient,
+        ticker_sample: Ticker
+):
+    flow_processor = FlowProcessor()
+    workflow = NewTickerProcessingWorkflow()
+    workflow.create()
+    workflow.arguments = {'ticker': ticker_sample.symbol}
+    workflow.set_for_test()
+    start = monotonic()
+    while not workflow.processing_state == FlowState.DONE and monotonic() < start + 5:
+        flow_processor.processing_cycle()
+        network_client_on_dispatcher.processing_cycle()
+        workflow.refresh_from_db()
+        sleep(0.1)
+    logger.info(monotonic() - start)
+    finviz_slice_count = ticker_sample.finvizfundamental_set.count()
+    price_slice_count = ticker_sample.price_set.count()
+    logger.debug((finviz_slice_count, price_slice_count))
+    assert finviz_slice_count == 1, 'Unexpected finviz slices count'
+    assert price_slice_count > 250, 'Unexpected price count'

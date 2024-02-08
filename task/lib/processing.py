@@ -1,68 +1,13 @@
-import datetime
-import json
 import logging
-import sys
-import inspect
-from typing import Union
 
 from django.db import transaction
 
 from settings import log_path
 from schedule.lib.interface import Scheduler
 from task.models import Task
-from ticker.models import Ticker, FinvizFundamental, Scope
+from ticker.models import Ticker, Scope
 
 logger = logging.getLogger('processing')
-logger.debug(log_path)
-
-
-def validate_result_json(task: Task):
-    logger.info(f'Validating result JSON')
-    try:
-        # result = bool(json.loads(task.result))
-        # logger.debug(f'JSON bool context: {result}')
-        return True
-    except TypeError:
-        logger.error(f'Failed to load JSON:\n{task.arguments}')
-        return False
-    except KeyError:
-        logger.error(f'"Ticker key is missing in task arguments when expected"')
-        return False
-
-
-def append_prices(task: Task):
-    ticker_name = task.arguments_dict['ticker']
-    logger.info(f'Processing prices for {ticker_name}')
-    ticker = Ticker.objects.get(symbol=ticker_name)
-    history = task.result_dict
-    prices = history.get('prices', [])
-    for price_list in prices:
-        if not ticker.add_price(price_list):
-            return False
-    return True
-
-
-def append_dividends(task: Task):
-    ticker_name = task.arguments_dict['ticker']
-    logger.info(f'Processing dividends for {ticker_name}')
-    ticker = Ticker.objects.get(symbol=ticker_name)
-    history = task.result_dict
-    dividends = history.get('dividends', [])
-    for dividend in dividends:
-        if not ticker.add_dividend(dividend):
-            return False
-    return True
-
-
-def append_finviz_fundamental(task: Task):
-    ticker_name = task.arguments_dict['ticker']
-    logger.info(f'Processing fundamental data from finviz for {ticker_name}')
-    ticker = Ticker.objects.get(symbol=ticker_name)
-    result = task.result_dict
-    result['values']['ticker'] = ticker
-    fundamental = FinvizFundamental(**result['values'])
-    fundamental.save()
-    return True
 
 
 def append_new_tickers(task: Task):
