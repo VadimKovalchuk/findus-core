@@ -37,6 +37,7 @@ def test_ticker_list(network_client_on_dispatcher: NetworkClient, sp_scopes):
     flow_processor = FlowProcessor()
     workflow = ScopeUpdateWorkflow()
     flow = workflow.create()
+    workflow.set_for_test()
     start = monotonic()
     while not flow.processing_state == TaskState.DONE and monotonic() < start + 60:
         flow_processor.processing_cycle()

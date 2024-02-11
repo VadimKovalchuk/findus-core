@@ -1,5 +1,6 @@
 from algo.algorithm.generic import Algorithm
 from algo.algorithm.test import *
+from algo.algorithm.finviz import FinvizAlgorithm
 
 
 def get_algorithm_map():
